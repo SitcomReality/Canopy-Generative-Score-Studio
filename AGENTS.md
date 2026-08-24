@@ -10,7 +10,7 @@ Canopy is a browser-based **generative/adaptive music studio** for game develope
 
 There is no backend, no server, no database. Projects persist in `localStorage` under the key `canopy-project`. The UI language of the product is English.
 
-The project schema (version 2) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize parameters. Song-level fields are bpm, key, scale, progression, reverb and swing.
+The project schema (version 3) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/energyRole parameters. Song-level fields are bpm, key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth) and variationSeed.
 
 **Known future work:** long-form variation/dynamics (music that evolves over 30+ minutes without feeling looped) is designed but not implemented — see `dev/docs/longFormVariation.md`.
 

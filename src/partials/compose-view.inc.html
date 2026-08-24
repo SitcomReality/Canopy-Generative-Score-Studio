@@ -117,6 +117,34 @@
           <div id="slider-density"></div>
           <div id="slider-variation"></div>
           <div id="slider-humanize"></div>
+          <label class="select-label" title="Guaranteed quiet pass so loops breathe: the layer drops out briefly on a fixed cycle.">Breathe
+            <select id="rest-window-select">
+              <option value="0">Off</option>
+              <option value="1">Every 2nd bar</option>
+              <option value="2">Every 3rd bar</option>
+              <option value="4">Every 5th bar</option>
+              <option value="7">Every 8th bar</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="control-group">
+          <div class="group-title" title="A slow-moving energy curve under the reactive game context. Flat holds steady; Arc builds, peaks, then resolves; Tide swells and recedes."><span>Long form</span><i data-icon="waves" data-size="14"></i></div>
+          <label class="select-label">Journey shape
+            <select id="journey-shape-select">
+              <option value="flat">Flat — steady</option>
+              <option value="arc">Arc — build &amp; resolve</option>
+              <option value="tide">Tide — swell &amp; recede</option>
+            </select>
+          </label>
+          <label class="select-label">Cycle length
+            <select id="journey-length-select">
+              <option value="8">8 bars</option>
+              <option value="16">16 bars</option>
+              <option value="32">32 bars</option>
+            </select>
+          </label>
+          <div id="slider-depth"></div>
         </div>
 
         <div class="control-group atmosphere-group">

@@ -47,3 +47,23 @@ export function mutateMotif(steps, rate, rng = Math.random) {
   }
   return out;
 }
+
+// Macro journey curve: slow-moving song-level energy (0..1) layered under
+// the reactive game context. `bar` is the absolute bar counter; the cycle
+// repeats every `length` bars. Depth scales away from a neutral 0.5 so
+// depth 0 always means constant mid energy.
+export function journeyEnergy(shape, depth, bar, length) {
+  const span = Math.max(4, Math.round(length));
+  const phase = (((bar % span) + span) % span) / span;
+  let raw;
+  if (shape === "arc") {
+    // Build -> peak -> resolve across the whole cycle.
+    raw = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+  } else if (shape === "tide") {
+    raw = 0.5 + 0.5 * Math.sin(phase * Math.PI * 2);
+  } else {
+    return 0.5;
+  }
+  const amount = Math.max(0, Math.min(100, depth)) / 100;
+  return 0.5 + (raw - 0.5) * amount;
+}

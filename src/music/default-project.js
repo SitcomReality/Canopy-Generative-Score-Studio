@@ -1,14 +1,21 @@
-// The serialized project schema (version 2). Keep this shape stable: exported
+// The serialized project schema (version 3). Keep this shape stable: exported
 // .canopy.json files and saved localStorage drafts must keep round-tripping.
 // Version 2 moved per-track data (notes, voice, density/variation/humanize,
 // mute) into a `layers` array so layers can be added, removed and renamed.
-// hydrateProject still accepts version 1 flat projects and migrates them.
+// Version 3 added long-form fields: per-layer restWindow + energyRole, and
+// song-level journey (macro energy curve) + variationSeed. hydrateProject
+// still accepts version 1 flat projects and version 2 layer projects.
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
 
-export const PROJECT_VERSION = 2;
+export const PROJECT_VERSION = 3;
 
 export const EMPTY_STEPS = Array.from({ length: 16 }, () => false);
+
+// How a layer follows the macro journey / context energy at bar boundaries:
+// "forward" leans into high-energy states, "recessive" eases out of them,
+// "balanced" splits the difference.
+export const ENERGY_ROLES = ["balanced", "forward", "recessive"];
 
 // Layer roles decide how the engine voices a layer and what kind of data its
 // steps hold: "degrees" layers store scale degrees (null = rest), "steps"
@@ -32,6 +39,8 @@ export const DEFAULT_LAYERS = [
     density: 42,
     variation: 20,
     humanize: 10,
+    restWindow: 0,
+    energyRole: "balanced",
     steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
   },
   {
@@ -45,6 +54,8 @@ export const DEFAULT_LAYERS = [
     density: 58,
     variation: 34,
     humanize: 18,
+    restWindow: 0,
+    energyRole: "balanced",
     steps: [4, null, 6, 5, 4, 2, null, 1, 2, null, 4, 3, 2, 1, null, 0],
   },
   {
@@ -58,6 +69,8 @@ export const DEFAULT_LAYERS = [
     density: 80,
     variation: 10,
     humanize: 8,
+    restWindow: 0,
+    energyRole: "balanced",
     steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
   },
   {
@@ -71,6 +84,8 @@ export const DEFAULT_LAYERS = [
     density: 70,
     variation: 15,
     humanize: 12,
+    restWindow: 0,
+    energyRole: "recessive",
     steps: [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false],
   },
 ];
@@ -85,6 +100,8 @@ export const DEFAULT_PROJECT = {
   progressionName: "Open sky",
   reverb: 64,
   swing: 8,
+  journey: { shape: "flat", length: 16, depth: 35 },
+  variationSeed: 0,
   layers: DEFAULT_LAYERS,
 };
 
@@ -98,6 +115,23 @@ function clampBpm(value, fallback) {
   const num = Number(value);
   if (!Number.isFinite(num)) return fallback;
   return Math.max(48, Math.min(150, Math.round(num)));
+}
+
+function clampInt(value, min, max, fallback) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(num)));
+}
+
+const JOURNEY_SHAPES = ["flat", "arc", "tide"];
+
+function sanitizeJourney(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  return {
+    shape: JOURNEY_SHAPES.includes(raw.shape) ? raw.shape : DEFAULT_PROJECT.journey.shape,
+    length: clampInt(raw.length, 4, 64, DEFAULT_PROJECT.journey.length),
+    depth: clampPercent(raw.depth, DEFAULT_PROJECT.journey.depth),
+  };
 }
 
 function sanitizeDegrees(value, fallback) {
@@ -130,6 +164,8 @@ function sanitizeLayer(raw, index, usedIds) {
     density: clampPercent(raw?.density, fallback.density),
     variation: clampPercent(raw?.variation, fallback.variation),
     humanize: clampPercent(raw?.humanize, fallback.humanize),
+    restWindow: clampInt(raw?.restWindow, 0, 8, fallback.restWindow ?? 0),
+    energyRole: ENERGY_ROLES.includes(raw?.energyRole) ? raw.energyRole : "balanced",
     steps: kind === "degrees" ? sanitizeDegrees(raw?.steps, fallback.steps) : sanitizeSteps(raw?.steps, fallback.steps),
   };
 }
@@ -189,6 +225,8 @@ export function hydrateProject(value) {
         : DEFAULT_PROJECT.progressionName,
     reverb: clampPercent(source.reverb, DEFAULT_PROJECT.reverb),
     swing: clampPercent(source.swing, DEFAULT_PROJECT.swing),
+    journey: sanitizeJourney(source.journey),
+    variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
       ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))
       : layersFromV1(source),

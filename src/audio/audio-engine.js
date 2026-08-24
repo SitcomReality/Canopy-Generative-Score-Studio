@@ -6,7 +6,7 @@
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
 import { instrumentSettings } from "../music/instruments.js";
-import { mutateMotif } from "../music/variation.js";
+import { mutateMotif, journeyEnergy } from "../music/variation.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -66,6 +66,13 @@ export function createAudioEngine(store) {
     if ((voices[layer.id]?.kind ?? layer.role) === "melody") perfSteps[layer.id] = [...layer.steps];
   }
 
+  // Long-form arrangement state: absolute bar count for the journey curve,
+  // per-layer pass counters for rest windows, and the current quiet-pass
+  // flags consulted by the step callback.
+  let barCount = 0;
+  const restCounter = {};
+  const resting = {};
+
   const transport = Tone.getTransport();
   transport.bpm.value = project.bpm;
   transport.swing = project.swing / 100;
@@ -95,12 +102,35 @@ export function createAudioEngine(store) {
       }
     }
 
+    // Macro journey + arrangement energy, applied once per bar.
+    if (step === 0) {
+      barCount += 1;
+      const journey = score.journey ?? { shape: "flat", length: 16, depth: 0 };
+      const energy = journeyEnergy(journey.shape, journey.depth, barCount, journey.length);
+      const biasOf = (role) => (role === "forward" ? 3 : role === "recessive" ? -3 : 1.5);
+      for (const layer of score.layers) {
+        restCounter[layer.id] = (restCounter[layer.id] ?? 0) + 1;
+        const window = layer.restWindow ?? 0;
+        resting[layer.id] = window > 0 && restCounter[layer.id] % (window + 1) === 0;
+        const voice = voices[layer.id];
+        if (!voice || layer.muted) continue;
+        const delta = ((energy - 0.5) * 2) * biasOf(layer.energyRole);
+        if (voice.kind === "drums") {
+          voice.kick.volume.rampTo(-10 + delta, 0.8);
+          voice.hat.volume.rampTo(-24 + delta, 0.8);
+        } else {
+          const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
+          voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
+        }
+      }
+    }
+
     const contextDensity = context === "combat" ? 0.98 : context === "unease" ? 0.76 : 0.5;
     const chordDegree = score.progression[Math.floor(step / 4) % score.progression.length];
 
     for (const layer of score.layers) {
       const voice = voices[layer.id];
-      if (!voice || layer.muted) continue;
+      if (!voice || layer.muted || resting[layer.id]) continue;
       const humanDelay = Math.random() * (layer.humanize / 100) * 0.035;
 
       if (voice.kind === "chords") {
@@ -208,6 +238,9 @@ export function createAudioEngine(store) {
       transport.position = 0;
       // Discard drifted phrases so the next playback starts from the score
       // as written.
+      barCount = 0;
+      Object.keys(restCounter).forEach((id) => delete restCounter[id]);
+      Object.keys(resting).forEach((id) => delete resting[id]);
       for (const layer of store.get().project.layers) {
         if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
       }

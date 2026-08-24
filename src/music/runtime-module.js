@@ -28,6 +28,9 @@ let loopId = null;
 let nodes = null;
 let voices = {};
 let perfSteps = {};
+let barCount = 0;
+const restCounter = {};
+const resting = {};
 
 function pitchClass(key) {
   return NOTES.indexOf(({ Eb: "D#", Ab: "G#", Bb: "A#" })[key] || key);
@@ -44,9 +47,25 @@ function chord(degree) {
   return [degree, degree + 2, degree + 4, degree + 6].map((d) => note(d, 3));
 }
 
-// Anchored phrase mutation (long-form variation): steps 0 and 15 never
-// change; shifts move at most one scale degree; rests spawn near neighbours.
+// Anchored phrase mutation + macro journey curve (long-form variation):
+// steps 0 and 15 never change; shifts move at most one scale degree; rests
+// spawn near neighbours. The journey returns energy 0..1 per bar.
 const clampDegree = (d) => Math.max(0, Math.min(7, d));
+
+function journeyEnergy(shape, depth, bar, length) {
+  const span = Math.max(4, Math.round(length));
+  const phase = (((bar % span) + span) % span) / span;
+  let raw;
+  if (shape === "arc") {
+    raw = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+  } else if (shape === "tide") {
+    raw = 0.5 + 0.5 * Math.sin(phase * Math.PI * 2);
+  } else {
+    return 0.5;
+  }
+  const amount = Math.max(0, Math.min(100, depth)) / 100;
+  return 0.5 + (raw - 0.5) * amount;
+}
 
 function mutateMotif(steps, rate, rng = Math.random) {
   const out = [...steps];
@@ -86,6 +105,9 @@ function setup() {
   nodes = { reverb, layers: {} };
   voices = {};
   perfSteps = {};
+  barCount = 0;
+  for (const k of Object.keys(restCounter)) delete restCounter[k];
+  for (const k of Object.keys(resting)) delete resting[k];
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
     if (layer.role === "harmony") {
@@ -120,6 +142,27 @@ function setup() {
       transport.bpm.rampTo(score.bpm + ({ explore: 0, unease: 8, combat: 22 })[context], 0.5);
     }
     const chordDegree = score.progression[Math.floor(step / 4)];
+    if (step === 0) {
+      barCount += 1;
+      const journey = score.journey || { shape: "flat", length: 16, depth: 0 };
+      const energy = journeyEnergy(journey.shape, journey.depth, barCount, journey.length);
+      for (const layer of score.layers) {
+        restCounter[layer.id] = (restCounter[layer.id] || 0) + 1;
+        const window = layer.restWindow || 0;
+        resting[layer.id] = window > 0 && restCounter[layer.id] % (window + 1) === 0;
+        const voice = voices[layer.id];
+        if (!voice) continue;
+        const bias = layer.energyRole === "forward" ? 3 : layer.energyRole === "recessive" ? -3 : 1.5;
+        const delta = ((energy - 0.5) * 2) * bias;
+        if (voice.kind === "drums") {
+          voice.kick.volume.rampTo(-10 + delta, 0.8);
+          voice.hat.volume.rampTo(-24 + delta, 0.8);
+        } else if (voice.synth.volume) {
+          const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
+          voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
+        }
+      }
+    }
     if (boundary) {
       for (const layer of score.layers) {
         if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
@@ -129,7 +172,7 @@ function setup() {
     }
     for (const layer of score.layers) {
       const voice = voices[layer.id];
-      if (!voice || layer.muted) continue;
+      if (!voice || layer.muted || resting[layer.id]) continue;
       if (voice.kind === "chords" && layer.steps[step]) {
         voice.synth.triggerAttackRelease(chord(chordDegree), "2n", time, 0.24);
       } else if (voice.kind === "melody") {
@@ -168,6 +211,9 @@ export function stopScore() {
   step = 0;
   // Discard drifted phrases so the next playback starts from the score
   // as written.
+  barCount = 0;
+  for (const k of Object.keys(restCounter)) delete restCounter[k];
+  for (const k of Object.keys(resting)) delete resting[k];
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
   }

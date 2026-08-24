@@ -2,7 +2,7 @@
 // proportional to the variation rate. Runs against a deterministic rng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mutateMotif } from "../../src/music/variation.js";
+import { mutateMotif, journeyEnergy } from "../../src/music/variation.js";
 
 const MOTIF = [4, null, 6, 5, 4, 2, null, 1, 2, null, 4, 3, 2, 1, null, 0];
 
@@ -71,4 +71,26 @@ test("empty rests can spawn notes and notes can rest", () => {
   const dense = Array.from({ length: 16 }, (_, index) => (index === 0 || index === 15 ? 0 : 3));
   const rested = mutateMotif(dense, 100, resting);
   assert.ok(rested.some((step, index) => step === null && index !== 0 && index !== 15));
+});
+
+test("journeyEnergy stays within 0..1 and is periodic", () => {
+  for (const shape of ["flat", "arc", "tide"]) {
+    for (let bar = 0; bar < 64; bar++) {
+      const energy = journeyEnergy(shape, 80, bar, 16);
+      assert.ok(energy >= 0 && energy <= 1, `${shape} bar ${bar} out of range: ${energy}`);
+    }
+    assert.equal(journeyEnergy(shape, 80, 3, 16), journeyEnergy(shape, 80, 19, 16), `${shape} not periodic`);
+  }
+});
+
+test("flat shape ignores depth; depth 0 is always neutral", () => {
+  for (let bar = 0; bar < 32; bar++) assert.equal(journeyEnergy("flat", 90, bar, 8), 0.5);
+  for (const shape of ["arc", "tide"]) {
+    for (let bar = 0; bar < 32; bar++) assert.equal(journeyEnergy(shape, 0, bar, 8), 0.5);
+  }
+});
+
+test("arc builds to a peak mid-cycle at full depth", () => {
+  assert.equal(journeyEnergy("arc", 100, 0, 16), 0);
+  assert.equal(journeyEnergy("arc", 100, 8, 16), 1);
 });

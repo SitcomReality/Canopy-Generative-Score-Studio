@@ -105,7 +105,7 @@ test("hydrateProject migrates version 1 flat projects", () => {
     muted: { chords: false, melody: true, bass: false, percussion: true },
   };
   const migrated = hydrateProject(v1);
-  assert.equal(migrated.version, 2);
+  assert.equal(migrated.version, PROJECT_VERSION);
   assert.equal(migrated.reverb, 50);
   assert.equal(migrated.swing, 15);
   const byId = Object.fromEntries(migrated.layers.map((layer) => [layer.id, layer]));

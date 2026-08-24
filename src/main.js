@@ -277,6 +277,12 @@ const actions = {
     store.updateProject({ progressionName: preset.name, progression: preset.degrees });
   },
 
+  // Patch the song-level macro journey (shape / length / depth).
+  setJourney(patch) {
+    const journey = { ...(store.get().project.journey ?? { shape: "flat", length: 16, depth: 0 }), ...patch };
+    store.updateProject({ journey });
+  },
+
   addLayer() {
     const { project } = store.get();
     const index = project.layers.length;
@@ -291,6 +297,8 @@ const actions = {
       density: 50,
       variation: 30,
       humanize: 15,
+      restWindow: 0,
+      energyRole: "balanced",
       steps: Array(16).fill(null),
     };
     store.updateProject({ layers: [...project.layers, layer] });
