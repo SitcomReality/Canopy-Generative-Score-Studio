@@ -1,5 +1,5 @@
 // Pure phrase-level variation: anchored motif drift for the long-form
-// system (see dev/docs/longFormVariation.md). The written phrase is never
+// system (see dev/docs/songAuthoringGuide.md). The written phrase is never
 // touched — callers pass a copy and get a mutated copy back. Every output
 // step stays a scale degree 0..7 or null, so the harmony guard holds once
 // degrees go through scaleMidi() as usual.

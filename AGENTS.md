@@ -12,7 +12,7 @@ There is no backend, no server, no database. Projects persist in `localStorage` 
 
 The project schema (version 4) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/energyRole parameters plus reactive fields (`activity`, `fills`, `automation`). Song-level fields are bpm, key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth) and variationSeed. **Reactive dynamics live in the JSON**: a declarative axis space (`axes`), context presets with axis targets (`contexts`), song-level bindings (`bindings`), and per-layer activity/fills/automation. The adaptive behavior that used to be hardcoded in the two engines now lives in the schema, so a consumed `.score.js` reacts identically to the studio preview. See `dev/docs/dynamicsConvention.md`.
 
-**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/longFormVariation.md`. The **reactive dynamics core** (schema v4) in `src/music/dynamics.js` is the single source of truth for adaptive decisions; the exported runtime splices it verbatim into `.score.js`, and `dev/tests/dynamics-parity.test.js` guards against drift.
+**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/songAuthoringGuide.md`. The **reactive dynamics core** (schema v4) in `src/music/dynamics.js` is the single source of truth for adaptive decisions; the exported runtime splices it verbatim into `.score.js`, and `dev/tests/dynamics-parity.test.js` guards against drift.
 
 ## Tech stack
 
@@ -42,7 +42,8 @@ dev/scripts/build.py   .inc.html -> index.html stitcher (--watch)
 dev/scripts/check_imports.py  import/symbol checker + informational layer report
 dev/tests/             node:test suite for the pure music modules (npm test)
 dev/docs/systemArchitecture.md layout, layer rules, invariants
-dev/docs/longFormVariation.md  design & implementation of the long-form variation/dynamics system (shipped in v3)
+dev/docs/songAuthoringGuide.md  how the system works + the .canopy.json authoring contract
+dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 src/
   main.js              composition root: store instance, all actions, view wiring
