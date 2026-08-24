@@ -1,11 +1,13 @@
-# Long-form variation — design sketch (future work)
+# Long-form variation — design & implementation notes
 
 Canopy's core promise is background music that can play indefinitely without
-sounding like a loop. Today the score is a fixed 16-step phrase; the only
-variation is the engine's per-step randomization (`Safe variation`, context
-density). This sketch outlines the variation/dynamics system needed for
-true long-form playback. It is **not implemented yet** — this document is the
-plan.
+sounding like a loop. The score is a fixed 16-step phrase; variation comes
+from the engine's per-step randomization (`Safe variation`, context density)
+**plus the long-form system described here, which is now implemented**
+(schema v3): `src/music/variation.js` (anchored phrase mutation, journey
+curve, seeded PRNG), arrangement energy/rest windows at bar boundaries in
+`audio-engine.js` and the emitted runtime, and the "Long form" controls +
+per-layer "Breathe" in the refine panel.
 
 ## Goal
 
