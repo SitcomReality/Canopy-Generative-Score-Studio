@@ -64,3 +64,7 @@
 .glossary-grid > div { min-height: 135px; padding: 26px 30px 20px 0; margin-right: 30px; border-bottom: 1px solid #2c3830; }
 .glossary-grid strong { color: #ccd5cb; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 400; }
 .glossary-grid p { color: #647169; font-size: 9px; line-height: 1.7; }
+
+/* Orbit core pulse while the score is running (replaces framer-motion loop) */
+@keyframes corePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+.orbit-core.pulsing { animation: corePulse 3.4s ease-in-out infinite; }

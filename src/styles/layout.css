@@ -32,3 +32,10 @@
 .toast { position: fixed; right: 22px; bottom: 22px; z-index: 80; min-height: 42px; max-width: 390px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #607152; background: #1b271e; color: #dfe9d8; box-shadow: 0 15px 50px #03070491; font-size: 10px; }
 .toast > svg { color: #c7df98; }
 .toast button { margin-left: 8px; border: 0; background: transparent; color: #748176; cursor: pointer; }
+
+/* Tab underline (was a framer-motion layout element) */
+.main-tab.active::after { content: ""; position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: #cee598; }
+
+/* View fade-in when switching tabs (replaces framer-motion transitions) */
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.view-enter { animation: viewIn 0.24s ease; }
