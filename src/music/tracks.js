@@ -1,7 +1,4 @@
-// The four instrument layers shown in the layers panel.
-export const TRACKS = [
-  { id: "chords", name: "Canopy", detail: "Harmony bed", color: "#9dc98d" },
-  { id: "melody", name: "Firefly", detail: "Main motif", color: "#f1c97a" },
-  { id: "bass", name: "Root", detail: "Low pulse", color: "#d98868" },
-  { id: "percussion", name: "Footfall", detail: "Rhythm", color: "#b8a5d7" },
-];
+// The four instrument layers shown in the layers panel. Default layer
+// definitions live in default-project.js (single source of truth); these
+// re-exports keep the historical import path stable.
+export { DEFAULT_LAYERS as TRACKS, LAYER_ROLES } from "./default-project.js";

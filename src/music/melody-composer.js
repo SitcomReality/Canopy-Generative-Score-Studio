@@ -3,7 +3,8 @@
 // only ever move within 0..7 around chord degrees (harmony guard).
 import { SCALES } from "./scales.js";
 
-export function composeMelody(project) {
+export function composeMelody(project, layer) {
+  const density = layer?.density ?? 58;
   const scaleLength = SCALES[project.scale].length;
   let cursor = Math.min(4, scaleLength - 1);
   const melody = Array.from({ length: 16 }, (_, index) => {
@@ -12,7 +13,7 @@ export function composeMelody(project) {
       cursor = Math.min(7, chord + (Math.random() > 0.55 ? 2 : 4));
       return cursor;
     }
-    if (Math.random() > project.density / 100) return null;
+    if (Math.random() > density / 100) return null;
     const movement = Math.random() < 0.7 ? (Math.random() > 0.5 ? 1 : -1) : Math.random() > 0.5 ? 2 : -2;
     cursor = Math.max(0, Math.min(7, cursor + movement));
     return cursor;

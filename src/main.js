@@ -1,7 +1,8 @@
 // Entrypoint. Creates the app state, lazily builds the audio engine on the
 // first user gesture (browser autoplay policy), defines every user-facing
 // action, and wires the views.
-import { DEFAULT_PROJECT, hydrateProject } from "./music/default-project.js";
+import { hydrateProject } from "./music/default-project.js";
+
 import { PROGRESSIONS } from "./music/progressions.js";
 import { composeMelody, makeSparser } from "./music/melody-composer.js";
 import { runtimeModule } from "./music/runtime-module.js";
@@ -107,44 +108,74 @@ const actions = {
     notify(store.get().playing ? "Victory flourish queued for the next bar" : "Victory flourish will play after playback starts");
   },
 
-  toggleMute(track) {
-    const muted = { ...store.get().project.muted, [track]: !store.get().project.muted[track] };
-    store.updateProject({ muted });
+  toggleMute(layerId) {
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === layerId ? { ...layer, muted: !layer.muted } : layer);
+    store.updateProject({ layers });
   },
 
   selectTrack(track) {
     store.set({ selectedTrack: track });
   },
 
-  setMelodyStep(step, degree) {
-    const melody = [...store.get().project.melody];
-    melody[step] = melody[step] === degree ? null : degree;
-    store.updateProject({ melody });
+  // Toggle a note lane cell on the selected degree layer.
+  setDegreeStep(step, degree) {
+    const { project, selectedTrack } = store.get();
+    const layers = project.layers.map((layer) => {
+      if (layer.id !== selectedTrack) return layer;
+      const steps = [...layer.steps];
+      steps[step] = steps[step] === degree ? null : degree;
+      return { ...layer, steps };
+    });
+    store.updateProject({ layers });
   },
 
-  toggleBooleanStep(track, step) {
-    const values = [...store.get().project[track]];
-    values[step] = !values[step];
-    store.updateProject({ [track]: values });
+  // Toggle a beat on the selected on/off layer.
+  toggleLayerStep(step) {
+    const { project, selectedTrack } = store.get();
+    const layers = project.layers.map((layer) => {
+      if (layer.id !== selectedTrack) return layer;
+      const steps = [...layer.steps];
+      steps[step] = !steps[step];
+      return { ...layer, steps };
+    });
+    store.updateProject({ layers });
   },
 
   composeMelody() {
-    store.updateProject({ melody: composeMelody(store.get().project) });
-    notify("New in-key motif composed");
+    const { project, selectedTrack } = store.get();
+    const target = project.layers.find((layer) => layer.id === selectedTrack && layer.role === "motif")
+      ?? project.layers.find((layer) => layer.role === "motif");
+    if (!target) {
+      notify("Add a motif layer to compose a melody");
+      return;
+    }
+    const layers = project.layers.map((layer) =>
+      layer.id === target.id ? { ...layer, steps: composeMelody(project, layer) } : layer);
+    store.updateProject({ layers });
+    store.set({ selectedTrack: target.id });
+    notify(`New in-key motif composed for ${target.name}`);
   },
 
   makeSparser() {
-    const project = store.get().project;
-    store.updateProject({
-      melody: makeSparser(project.melody),
-      density: Math.max(20, project.density - 12),
-    });
+    const { project, selectedTrack } = store.get();
+    const target = project.layers.find((layer) => layer.id === selectedTrack && layer.role === "motif")
+      ?? project.layers.find((layer) => layer.role === "motif");
+    if (!target) {
+      notify("Add a motif layer to simplify");
+      return;
+    }
+    const layers = project.layers.map((layer) =>
+      layer.id === target.id
+        ? { ...layer, steps: makeSparser(layer.steps), density: Math.max(20, layer.density - 12) }
+        : layer);
+    store.updateProject({ layers });
     notify("Motif simplified without changing its harmony");
   },
 
   resetProject() {
     actions.stopPlayback();
-    store.set({ project: { ...DEFAULT_PROJECT }, currentContext: "explore", threat: 12 });
+    store.set({ project: hydrateProject({}), currentContext: "explore", threat: 12, selectedTrack: "melody" });
     notify("Starter score restored");
   },
 
@@ -175,7 +206,13 @@ const actions = {
       if (/\.midi?$/i.test(file.name)) {
         const midi = new Midi(await file.arrayBuffer());
         const fitted = melodyFromMidi(midi, store.get().project);
-        store.updateProject({ name: fitted.name || file.name.replace(/\.midi?$/i, ""), bpm: fitted.bpm, melody: fitted.melody });
+        let placed = false;
+        const layers = store.get().project.layers.map((layer) => {
+          if (layer.role !== "motif" || placed) return layer;
+          placed = true;
+          return { ...layer, steps: fitted.melody };
+        });
+        store.updateProject({ name: fitted.name || file.name.replace(/\.midi?$/i, ""), bpm: fitted.bpm, layers });
         notify("MIDI imported and fitted to the current scale");
       } else {
         const next = hydrateProject(JSON.parse(await file.text()));
@@ -191,15 +228,27 @@ const actions = {
     }
   },
 
+  // Per-layer keys (density/variation/humanize) apply to the selected layer;
+  // reverb/swing are song-level.
   setParameter(key, value) {
-    store.updateProject({ [key]: value });
-    if (key === "reverb") engine?.setReverb(value);
-    if (key === "swing") engine?.setSwing(value);
+    if (key === "reverb" || key === "swing") {
+      store.updateProject({ [key]: value });
+      if (key === "reverb") engine?.setReverb(value);
+      if (key === "swing") engine?.setSwing(value);
+      return;
+    }
+    const { selectedTrack } = store.get();
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === selectedTrack ? { ...layer, [key]: value } : layer);
+    store.updateProject({ layers });
   },
 
   setInstrument(instrument) {
-    store.updateProject({ instrument });
-    engine?.setInstrument(instrument);
+    const { selectedTrack } = store.get();
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === selectedTrack ? { ...layer, instrument } : layer);
+    store.updateProject({ layers });
+    engine?.setInstrument(selectedTrack, instrument);
   },
 
   setProgression(name) {

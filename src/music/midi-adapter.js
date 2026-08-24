@@ -2,19 +2,23 @@
 import { SCALES } from "./scales.js";
 import { keyToPitchClass, midiToNote } from "./note-names.js";
 import { scaleMidi, chordNotes } from "./scale-math.js";
+import { LAYER_ROLES } from "./default-project.js";
 
 export function buildMidi(project) {
   const midi = new Midi();
   midi.header.name = project.name;
   midi.header.setTempo(project.bpm);
+  const motif = project.layers.find((layer) => LAYER_ROLES[layer.role].kind === "degrees");
   const melodyTrack = midi.addTrack();
   melodyTrack.name = "Canopy Melody";
   const chordTrack = midi.addTrack();
   chordTrack.name = "Canopy Chords";
   const eighth = 60 / project.bpm / 2;
-  project.melody.forEach((degree, step) => {
-    if (degree !== null) melodyTrack.addNote({ name: midiToNote(scaleMidi(project, degree, 4)), time: step * eighth, duration: eighth * 0.82, velocity: 0.7 });
-  });
+  if (motif) {
+    motif.steps.forEach((degree, step) => {
+      if (degree !== null) melodyTrack.addNote({ name: midiToNote(scaleMidi(project, degree, 4)), time: step * eighth, duration: eighth * 0.82, velocity: 0.7 });
+    });
+  }
   project.progression.forEach((degree, index) => {
     chordNotes(project, degree).forEach((name) => chordTrack.addNote({ name, time: index * eighth * 4, duration: eighth * 3.8, velocity: 0.45 }));
   });

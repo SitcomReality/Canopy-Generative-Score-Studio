@@ -22,6 +22,12 @@
 .note-cell:hover { background: #202d24; }
 .note-cell.current, .automation-cell.current { box-shadow: inset 2px 0 #b4ca84, inset -1px 0 #b4ca8426; }
 .note-cell > span { position: absolute; inset: 7px 4px; border: 1px solid #eed58d; background: linear-gradient(90deg, #dcc77f, #f0dfa5); box-shadow: 0 0 15px #d6bd6a1f; }
+.beat-cell { position: relative; border-top: 0; border-left: 0; background: #16201a; cursor: pointer; padding: 0; }
+.beat-cell.strong { background: #19231d; }
+.beat-cell:hover { background: #202d24; }
+.beat-cell.current { box-shadow: inset 2px 0 #b4ca84, inset -1px 0 #b4ca8426; }
+.beat-cell > span { position: absolute; left: 50%; top: 50%; width: 14px; height: 14px; transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid #eed58d; background: linear-gradient(180deg, #dcc77f, #f0dfa5); box-shadow: 0 0 15px #d6bd6a1f; }
+.beat-row { grid-auto-rows: 64px; }
 .chord-row { grid-auto-rows: 45px; }
 .automation-label { position: sticky; left: 0; z-index: 3; display: grid; place-items: center; background: #101814; color: #58655d; font-size: 7px; letter-spacing: .12em; }
 .automation-cell { position: relative; border-top: 0; border-left: 0; background: #131c17; color: #829078; font-family: "Courier New", monospace; font-size: 8px; cursor: pointer; padding: 0; }

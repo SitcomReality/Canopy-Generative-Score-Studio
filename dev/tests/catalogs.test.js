@@ -7,6 +7,7 @@ import { SCALES } from "../../src/music/scales.js";
 import { PROGRESSIONS, ROMAN_NUMERALS } from "../../src/music/progressions.js";
 import { CONTEXTS } from "../../src/music/contexts.js";
 import { TRACKS } from "../../src/music/tracks.js";
+import { DEFAULT_PROJECT } from "../../src/music/default-project.js";
 
 test("scales start at the root and ascend", () => {
   for (const [name, intervals] of Object.entries(SCALES)) {
@@ -63,10 +64,8 @@ test("tracks have unique ids and colors", () => {
   assert.equal(TRACKS.length, 4);
 });
 
-test("default project mutes cover every track id", () => {
-  import("../../src/music/default-project.js").then(({ DEFAULT_PROJECT }) => {
-    for (const track of TRACKS) {
-      assert.ok(track.id in DEFAULT_PROJECT.muted);
-    }
-  });
+test("default project has one layer per track id", () => {
+  for (const track of TRACKS) {
+    assert.ok(DEFAULT_PROJECT.layers.some((layer) => layer.id === track.id));
+  }
 });

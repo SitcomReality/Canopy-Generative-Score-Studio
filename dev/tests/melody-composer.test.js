@@ -9,8 +9,9 @@ import { DEFAULT_PROJECT } from "../../src/music/default-project.js";
 test("composeMelody returns 16 steps with in-scale degrees or null", () => {
   for (const scale of Object.keys(SCALES)) {
     const project = { ...DEFAULT_PROJECT, scale };
+    const layer = DEFAULT_PROJECT.layers.find((item) => item.id === "melody");
     for (let run = 0; run < 20; run += 1) {
-      const melody = composeMelody(project);
+      const melody = composeMelody(project, layer);
       assert.equal(melody.length, 16);
       const max = 7; // composer clamps the cursor to 0..7
       for (const degree of melody) {
@@ -22,7 +23,7 @@ test("composeMelody returns 16 steps with in-scale degrees or null", () => {
 
 test("composeMelody anchors phrase starts on chord degrees", () => {
   for (let run = 0; run < 20; run += 1) {
-    const melody = composeMelody(DEFAULT_PROJECT);
+    const melody = composeMelody(DEFAULT_PROJECT, DEFAULT_PROJECT.layers.find((l) => l.id === "melody"));
     for (let bar = 0; bar < 4; bar += 1) {
       const chord = DEFAULT_PROJECT.progression[bar];
       const anchor = melody[bar * 4];
@@ -37,13 +38,13 @@ test("composeMelody anchors phrase starts on chord degrees", () => {
 
 test("composeMelody always resolves the final step to the tonic", () => {
   for (let run = 0; run < 20; run += 1) {
-    assert.equal(composeMelody(DEFAULT_PROJECT)[15], 0);
+    assert.equal(composeMelody(DEFAULT_PROJECT, DEFAULT_PROJECT.layers.find((l) => l.id === "melody"))[15], 0);
   }
 });
 
 test("makeSparser only removes non-anchor steps", () => {
   for (let run = 0; run < 20; run += 1) {
-    const melody = composeMelody(DEFAULT_PROJECT);
+    const melody = composeMelody(DEFAULT_PROJECT, DEFAULT_PROJECT.layers.find((l) => l.id === "melody"));
     const sparser = makeSparser(melody);
     assert.equal(sparser.length, 16);
     for (let index = 0; index < 16; index += 1) {
