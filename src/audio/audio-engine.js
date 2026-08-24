@@ -159,7 +159,10 @@ export function createAudioEngine(store) {
           flourish.synth.triggerAttackRelease(midiToNote(scaleMidi(score, degree, 5)), "16n", time + index * 0.09, 0.68);
         });
       }
-      store.set({ victoryQueued: false });
+      // Triumph resolves: the music settles back into unthreatened
+      // exploration from this same bar boundary.
+      store.set({ victoryQueued: false, currentContext: "explore", queuedContext: null });
+      transport.bpm.rampTo(score.bpm, 0.6);
     }
 
     store.set({ step: (step + 1) % 16 });

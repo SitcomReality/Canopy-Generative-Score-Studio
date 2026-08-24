@@ -88,7 +88,11 @@ function setup() {
       const lead = score.layers.find((layer) => layer.role === "motif" && !layer.muted);
       const synth = lead && voices[lead.id] ? voices[lead.id].synth : null;
       if (synth) [0, 2, 4, 7].forEach((d, i) => synth.triggerAttackRelease(note(d, 5), "16n", time + i * 0.09, 0.65));
+      // Triumph resolves back to unthreatened exploration.
       victoryQueued = false;
+      context = "explore";
+      queuedContext = null;
+      transport.bpm.rampTo(score.bpm, 0.5);
     }
     step = (step + 1) % 16;
   }, "8n");
