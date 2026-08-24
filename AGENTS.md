@@ -12,7 +12,7 @@ There is no backend, no server, no database. Projects persist in `localStorage` 
 
 ## Tech stack
 
-- **Plain JavaScript (ES modules), CSS, and HTML.** No framework, no TypeScript, no Tailwind, no bundler, no npm.
+- **Plain JavaScript (ES modules), CSS, and HTML.** No framework, no TypeScript, no Tailwind, no bundler, no runtime npm dependencies. (`package.json` exists only to set `"type": "module"` for the test runner and define `npm test`.)
 - **Tone.js 15** (vendored UMD global `Tone` in `vendor/tone.js`) — synth engine.
 - **@tonejs/midi 2** (vendored UMD global `Midi` in `vendor/midi.js`) — MIDI export/import.
 - Icons are inline SVGs extracted from lucide (`src/ui/icons.js`); do not add an icon dependency.
@@ -20,6 +20,7 @@ There is no backend, no server, no database. Projects persist in `localStorage` 
 ## Commands
 
 ```bash
+npm test                               # run the node:test suite in dev/tests/
 python3 dev/scripts/build.py           # stitch partials into index.html
 python3 dev/scripts/build.py --watch   # re-stitch on every edit (use with Live Server)
 python3 dev/scripts/check_imports.py   # gate: imports resolve + symbols exported; boundary report is informational
@@ -67,9 +68,11 @@ Keep new code modular with descriptive single-purpose filenames. Pure music-theo
 
 ## Testing
 
-No automated test suite exists yet. Minimum manual verification for changes:
+Automated tests live in `dev/tests/*.test.js` (node:test, no framework) and cover the pure `src/music/` modules: note naming, the harmony guard (`scale-math`), project schema/hydration round-trips, the melody composer's structural invariants, and the static catalogs. Run them with `npm test` — the suite must exit 0 before any commit.
 
-1. `python3 dev/scripts/check_imports.py` exits 0.
+Minimum manual verification for UI changes:
+
+1. `npm test` and `python3 dev/scripts/check_imports.py` both exit 0.
 2. Serve statically: play/pause/stop works, step highlight advances, context switching audibly changes tempo/density and applies at bar boundaries.
 3. Export each format (JSON project, `.score.js`, MIDI) and re-import the JSON project round-trips correctly.
 
