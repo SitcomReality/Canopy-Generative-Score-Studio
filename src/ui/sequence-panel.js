@@ -35,7 +35,7 @@ export function initSequencePanel(store, actions) {
   });
 
   store.subscribe((changed) => {
-    if (changed.includes("project") || changed.includes("step") || changed.includes("playing") || changed.includes("selectedTrack")) {
+    if (changed.includes("project") || changed.includes("step") || changed.includes("playing") || changed.includes("selectedTrack") || changed.includes("perfSteps")) {
       render(roll, store.get());
     }
   });
@@ -69,9 +69,13 @@ function render(roll, state) {
     rows = lanes.map((degree) => {
       const note = midiToNote(scaleMidi(project, degree, 4));
       const label = `<div class="note-label${degree === 0 || degree === 7 ? " root" : ""}"><span>${note.replace(/[0-9]/g, "")}</span><small>${note.match(/[0-9]/)?.[0] ?? ""}</small></div>`;
+      const perf = state.perfSteps?.[layer.id];
       const cells = Array.from({ length: 16 }, (_, s) => {
+        // Ghost cells show where generated variation sounds this pass but
+        // nothing is written (the "Generated variation" legend swatch).
         const active = layer.steps[s] === degree;
-        return `<button class="note-cell${active ? " active" : ""}${current(s)}" data-step="${s}" data-degree="${degree}" aria-label="${active ? "Remove" : "Add"} ${note} at step ${s + 1}">${active ? "<span></span>" : ""}</button>`;
+        const ghost = !active && perf && perf[s] === degree;
+        return `<button class="note-cell${active ? " active" : ""}${ghost ? " ghost" : ""}${current(s)}" data-step="${s}" data-degree="${degree}" aria-label="${active ? "Remove" : "Add"} ${note} at step ${s + 1}">${active || ghost ? "<span></span>" : ""}</button>`;
       }).join("");
       return `<div class="roll-row">${label}${cells}</div>`;
     }).join("");

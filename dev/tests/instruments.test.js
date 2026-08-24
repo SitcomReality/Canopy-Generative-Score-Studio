@@ -14,15 +14,20 @@ test("every instrument has a config for every layer role", () => {
   }
 });
 
-test("every preset has oscillator/envelope or kick/hat shape data", () => {
+test("every preset has oscillator/envelope or pluck shape data", () => {
   for (const name of INSTRUMENT_NAMES) {
     const preset = INSTRUMENTS[name];
     for (const role of ["motif", "harmony", "bass"]) {
-      assert.ok(preset[role].oscillator && preset[role].envelope, `${name}/${role} lacks synth shape`);
+      const shapeOk = (preset[role].oscillator && preset[role].envelope) || preset[role].pluck;
+      assert.ok(shapeOk, `${name}/${role} lacks synth shape`);
+    }
+    // Pluck voices are Karplus-strong: no filter envelope applies.
+    if (!preset.bass.pluck) {
+      assert.ok(preset.bass.filterEnvelope, `${name} bass should keep its filter envelope`);
     }
     assert.ok(preset.percussion.kick && preset.percussion.hat, `${name}/percussion lacks kick+hat`);
-    if (name !== undefined) {
-      assert.ok(preset.bass.filterEnvelope, `${name} bass should keep its filter envelope`);
+    if (preset.percussion.snare) {
+      assert.ok(preset.percussion.snare.noise && preset.percussion.snare.envelope, `${name}/percussion snare lacks shape`);
     }
   }
 });

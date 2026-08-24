@@ -18,6 +18,10 @@ import { initContextRibbon } from "./ui/context-ribbon.js";
 import { initLayersPanel } from "./ui/layers-panel.js";
 import { initSequencePanel } from "./ui/sequence-panel.js";
 import { initRefinePanel } from "./ui/refine-panel.js";
+import { initLayersOverview } from "./ui/layers-overview.js";
+import { initJourneyStrip } from "./ui/journey-strip.js";
+import { initDynamicsPanel } from "./ui/dynamics-panel.js";
+import { initLayerReactive } from "./ui/layer-reactive.js";
 import { initRuntimeView } from "./ui/runtime-view.js";
 
 const store = createAppState();
@@ -198,6 +202,9 @@ const actions = {
   resetProject() {
     actions.stopPlayback();
     store.set({ project: hydrateProject({}), currentContext: "explore", threat: 12, selectedTrack: "melody" });
+    // The engine's voice graph mirrors the old project's layers/roles; rebuild
+    // so restored ids always have matching voices.
+    rebuildEngine();
     notify("Starter score restored");
   },
 
@@ -240,6 +247,8 @@ const actions = {
         const next = hydrateProject(JSON.parse(await file.text()));
         actions.stopPlayback();
         store.set({ project: next });
+        // Rebuild so imported layer ids/roles get matching voices.
+        rebuildEngine();
         notify("Canopy project loaded");
       }
     } catch (error) {
@@ -275,6 +284,73 @@ const actions = {
   setProgression(name) {
     const preset = PROGRESSIONS.find((item) => item.name === name);
     store.updateProject({ progressionName: preset.name, progression: preset.degrees });
+  },
+
+  // --- Reactive dynamics (schema v4) --------------------------------------
+
+  // Reshape how a context feels: its axis targets ease in at bar boundaries.
+  setContextTarget(contextId, axis, value) {
+    const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0.5));
+    const contexts = store.get().project.contexts.map((ctx) =>
+      ctx.id === contextId ? { ...ctx, targets: { ...ctx.targets, [axis]: clamped } } : ctx);
+    store.updateProject({ contexts });
+  },
+
+  // The tempo.offset binding's top end (BPM added at full intensity).
+  setTempoBinding(maxOffset) {
+    const max = Math.max(0, Math.min(26, Math.round(maxOffset)));
+    const bindings = store.get().project.bindings.map((binding) =>
+      binding.target === "tempo.offset" ? { ...binding, domain: [binding.domain[0], max] } : binding);
+    store.updateProject({ bindings });
+    engine?.setTempo(store.get().project.bpm);
+  },
+
+  // activity: null clears the gate; otherwise { axis, range:[min,max] }.
+  setLayerActivity(layerId, activity) {
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === layerId
+        ? { ...layer, activity: activity ? { axis: activity.axis, range: [...activity.range] } : null }
+        : layer);
+    store.updateProject({ layers });
+  },
+
+  addFill(layerId) {
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === layerId
+        ? { ...layer, fills: [...(layer.fills ?? []), { at: [14], axis: "intensity", threshold: 0.5 }] }
+        : layer);
+    store.updateProject({ layers });
+  },
+
+  updateFill(layerId, index, patch) {
+    const layers = store.get().project.layers.map((layer) => {
+      if (layer.id !== layerId || !layer.fills?.[index]) return layer;
+      const fills = layer.fills.map((fill, i) => (i === index ? { ...fill, ...patch } : fill));
+      return { ...layer, fills };
+    });
+    store.updateProject({ layers });
+  },
+
+  removeFill(layerId, index) {
+    const layers = store.get().project.layers.map((layer) => {
+      if (layer.id !== layerId || !layer.fills?.[index]) return layer;
+      const fills = layer.fills.filter((_, i) => i !== index);
+      return { ...layer, fills: fills.length > 0 ? fills : null };
+    });
+    store.updateProject({ layers });
+  },
+
+  toggleFillStep(layerId, index, step) {
+    const layers = store.get().project.layers.map((layer) => {
+      if (layer.id !== layerId || !layer.fills?.[index]) return layer;
+      const fills = layer.fills.map((fill, i) => {
+        if (i !== index) return fill;
+        const at = fill.at.includes(step) ? fill.at.filter((value) => value !== step) : [...fill.at, step].sort((a, b) => a - b);
+        return { ...fill, at };
+      });
+      return { ...layer, fills };
+    });
+    store.updateProject({ layers });
   },
 
   // Patch the song-level macro journey (shape / length / depth).
@@ -371,8 +447,12 @@ initHeader(store, actions);
 initTransportBar(store, actions);
 initContextRibbon(store, actions);
 initLayersPanel(store, actions);
+initLayersOverview(store, actions);
 initSequencePanel(store, actions);
 initRefinePanel(store, actions);
+initJourneyStrip(store);
+initDynamicsPanel(store, actions);
+initLayerReactive(store, actions);
 initRuntimeView(store, actions);
 mountIcons(document);
 

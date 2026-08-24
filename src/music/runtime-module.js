@@ -31,6 +31,35 @@ function instrumentSettings(instrument, role) {
   return preset[role];
 }
 
+// ---- voice builders (mirror of audio-engine.js) --------------------------
+const ROLE_VOLUME = { melody: -9, chords: -16, bass: -11 };
+function makePitched(roleKey, cfg) {
+  const { voice, pluck, ...options } = cfg;
+  if (voice === "pluck") return new Tone.PluckSynth({ ...(pluck || {}), volume: ROLE_VOLUME[roleKey] });
+  if (voice === "fm") return new Tone.PolySynth(Tone.FMSynth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+  return new Tone.PolySynth(Tone.Synth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+}
+function makeDrums(instrument, reverb, glue) {
+  const preset = instrumentSettings(instrument, "percussion");
+  const extras = [];
+  const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).toDestination();
+  const hatFilter = preset.hatFilter
+    ? new Tone.Filter({ type: "highpass", frequency: preset.hatFilter }).connect(reverb)
+    : null;
+  const hat = new Tone.NoiseSynth({ ...preset.hat, volume: -24 }).connect(hatFilter || reverb);
+  if (hatFilter) extras.push(hatFilter);
+  let snare = null;
+  if (preset.snare) {
+    const snareFilter = preset.snareFilter
+      ? new Tone.Filter({ type: "bandpass", frequency: preset.snareFilter, Q: 0.8 }).connect(glue)
+      : null;
+    snare = new Tone.NoiseSynth({ ...preset.snare, volume: -14 }).connect(snareFilter || glue);
+    if (snareFilter) extras.push(snareFilter);
+    extras.push(snare);
+  }
+  return { kind: "drums", kick, hat, snare, extras };
+}
+
 // ---- reactive-dynamics core, spliced from src/music/dynamics.js ----
 // __RT_DYN_BEGIN__
 ${dynamics}
@@ -114,6 +143,7 @@ let step = 0;
 let loopId = null;
 let nodes = null;
 let voices = {};
+let drumExtras = [];
 let perfSteps = {};
 let barCount = 0;
 const restCounter = {};
@@ -122,8 +152,15 @@ let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
 let driftRng = Math.random;
 
 function setup() {
-  const reverb = new Tone.Reverb({ decay: 5, wet: score.reverb / 100 }).toDestination();
-  nodes = { reverb };
+  const master = new Tone.Gain(0.74).toDestination();
+  const limiter = new Tone.Limiter(-1).connect(master);
+  const glue = new Tone.Compressor({ threshold: -20, ratio: 2.4, attack: 0.01, release: 0.25 }).connect(limiter);
+  const reverb = new Tone.Reverb({ decay: 5, wet: score.reverb / 100 }).connect(glue);
+  const toneShaper = new Tone.Filter({ type: "lowpass", frequency: 7800 }).connect(glue);
+  const motifBus = new Tone.Panner(-0.18).connect(reverb);
+  const harmonyBus = new Tone.Panner(0.18).connect(toneShaper);
+  nodes = { reverb, glue, limiter, master, toneShaper, motifBus, harmonyBus };
+  drumExtras = [];
   voices = {};
   perfSteps = {};
   barCount = 0;
@@ -132,23 +169,25 @@ function setup() {
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
     if (layer.role === "harmony") {
-      const synth = new Tone.PolySynth(Tone.Synth).set({ ...instrumentSettings(layer.instrument, "harmony"), volume: -16 }).connect(reverb);
+      const synth = makePitched("chords", instrumentSettings(layer.instrument, "harmony")).connect(harmonyBus);
       voices[layer.id] = { kind: "chords", synth };
       nodes[layer.id] = synth;
     } else if (layer.role === "motif") {
-      const synth = new Tone.PolySynth(Tone.Synth).set({ ...instrumentSettings(layer.instrument, "motif"), volume: -9 }).connect(reverb);
+      const synth = makePitched("melody", instrumentSettings(layer.instrument, "motif")).connect(motifBus);
       voices[layer.id] = { kind: "melody", synth };
       nodes[layer.id] = synth;
     } else if (layer.role === "bass") {
-      const synth = new Tone.MonoSynth({ ...instrumentSettings(layer.instrument, "bass"), volume: -11 }).toDestination();
+      const cfg = instrumentSettings(layer.instrument, "bass");
+      const synth = cfg.pluck
+        ? makePitched("bass", cfg).toDestination()
+        : new Tone.MonoSynth({ ...cfg, volume: -11 }).toDestination();
       voices[layer.id] = { kind: "bass", synth };
       nodes[layer.id] = synth;
     } else if (layer.role === "percussion") {
-      const drums = instrumentSettings(layer.instrument, "percussion");
-      const kick = new Tone.MembraneSynth({ ...drums.kick, volume: -10 }).toDestination();
-      const hat = new Tone.NoiseSynth({ ...drums.hat, volume: -24 }).connect(reverb);
-      voices[layer.id] = { kind: "drums", kick, hat };
-      nodes[layer.id] = { kick, hat };
+      const drums = makeDrums(layer.instrument, reverb, glue);
+      voices[layer.id] = drums;
+      nodes[layer.id] = { kick: drums.kick, hat: drums.hat };
+      drumExtras.push(...drums.extras);
     }
   }
   const transport = Tone.getTransport();
@@ -179,6 +218,7 @@ function setup() {
         if (voice.kind === "drums") {
           voice.kick.volume.rampTo(-10 + delta, 0.8);
           voice.hat.volume.rampTo(-24 + delta, 0.8);
+          if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
         } else if (voice.synth) {
           const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
           voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
@@ -206,7 +246,10 @@ function setup() {
       } else if (ev.kind === "kick") {
         voice.kick.triggerAttackRelease(ev.pitch || "D1", ev.duration, time + (ev.offset || 0), ev.velocity);
       } else if (ev.kind === "hat") {
-        voice.hat.triggerAttackRelease("32n", ev.duration, time + (ev.offset || 0), ev.velocity);
+        voice.hat.triggerAttackRelease(ev.duration || "32n", time + (ev.offset || 0), ev.velocity);
+      } else if (ev.kind === "snare") {
+        const target = voice.snare || voice.hat;
+        target.triggerAttackRelease(ev.duration || "16n", time + (ev.offset || 0), ev.velocity);
       }
     }
     if (boundary && victoryQueued) {
@@ -259,6 +302,8 @@ export function disposeScore() {
     if (Array.isArray(node)) node.forEach((child) => child.dispose());
     else node.dispose && node.dispose();
   });
+  drumExtras.forEach((node) => node.dispose && node.dispose());
+  drumExtras = [];
   nodes = null;
   voices = {};
 }

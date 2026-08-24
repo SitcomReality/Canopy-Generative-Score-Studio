@@ -125,6 +125,7 @@ export function humanDelay(layer, rng) {
 //   scale: { kind:"scale", degree, octave, duration, velocity, offset }
 //   kick:  { kind:"kick", duration, velocity }
 //   hat:   { kind:"hat", duration, velocity }
+//   snare: { kind:"snare", duration, velocity, offset }  // fill accents/rolls
 export function computeStepFrame(project, live, state, step, rng) {
   const chordDegree = project.progression[Math.floor(step / 4) % project.progression.length];
   const chordVel = 0.22 + 0.08 * clamp01(live.intensity, 0);
@@ -212,6 +213,22 @@ export function computeStepFrame(project, live, state, step, rng) {
       // Higher intensity: fills add off-beat kicks and probabilistic extra hats.
       if (fillPush && step % 2 === 0) {
         events.push({ layerId: layer.id, kind: "kick", pitch, duration: "16n", velocity: av("kick.velocity", 0.25), offset: 0 });
+      }
+      // Fills also add snare accents; late-phrase fill steps close with a
+      // short rising roll so transitions into the next half feel played, not
+      // switched. Offsets are fixed (not rng) to keep seeded determinism.
+      const snareVel = av("snare.velocity", null);
+      if (fillPush) {
+        events.push({ layerId: layer.id, kind: "snare", duration: "16n", velocity: snareVel ?? Math.min(1, av("hat.velocity", 0.2) + 0.12), offset: 0 });
+        if (step % 2 === 1) {
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.24, offset: 0.045 });
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.3, offset: 0.09 });
+        }
+        if (step >= 13) {
+          [0, 0.04, 0.08, 0.12].forEach((offset, index) => {
+            events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: Math.min(1, (snareVel ?? 0.26) + index * 0.09), offset });
+          });
+        }
       }
       if (rng() < av("hat.variation", 0)) {
         events.push({ layerId: layer.id, kind: "hat", duration: "32n", velocity: av("hat.velocity", 0.16), offset: humanDelay(layer, rng) * 0.7 });

@@ -32,6 +32,7 @@
         </div>
       </div>
       <div class="deck-live">
+        <div class="axis-meters" id="axis-meters" aria-label="Live reactive axes" title="The live axis values the engine eases toward the active context's targets"></div>
         <strong id="context-status" aria-label="Live state status"></strong>
         <div class="context-switcher" id="context-switcher"></div>
         <label class="threat-control">
@@ -85,6 +86,7 @@
         <div class="roll-scroll">
           <div class="piano-roll" id="piano-roll"></div>
         </div>
+        <div class="layers-overview" id="layers-overview" aria-label="All layers at a glance"></div>
         <footer class="roll-footer">
           <span><i class="legend-note"></i> Written note</span>
           <span><i class="legend-variation"></i> Generated variation</span>
@@ -116,6 +118,7 @@
             <i data-icon="shield-check" data-size="15"></i>
             <p><strong>Harmony guard is on</strong><span id="harmony-guard-text"></span></p>
           </div>
+          <div id="layer-reactive" aria-label="Selected layer reactive settings"></div>
           <button class="reset-link" id="reset-project"><i data-icon="rotate-ccw" data-size="13"></i> Restore starter score</button>
         </div>
       </aside>
@@ -137,6 +140,7 @@
           <span class="kicker">Long form</span>
           <i data-icon="waves" data-size="14"></i>
         </header>
+        <div id="journey-strip" aria-label="Journey energy curve and playback position"></div>
         <div class="song-controls">
           <div class="field-row">
             <span>Journey</span>
@@ -160,6 +164,19 @@
             <input type="number" min="0" step="1" id="variation-seed-input" />
           </div>
         </div>
+      </div>
+
+      <div class="song-group">
+        <header class="song-heading" title="Reactive dynamics: each context steers the three axes, and the engine derives tempo, density, velocity and more from them. Drag a slider to reshape how that context feels.">
+          <span class="kicker">Reactive axes</span>
+          <i data-icon="zap" data-size="14"></i>
+        </header>
+        <div class="context-targets" id="context-targets"></div>
+        <label class="field-row binding-row" title="How many BPM the intensity axis can add at full tilt (the tempo.offset binding).">
+          <span>Tempo boost</span>
+          <input type="range" min="0" max="26" step="1" id="tempo-binding-input" />
+          <strong id="tempo-binding-value"></strong>
+        </label>
       </div>
 
       <div class="song-group">

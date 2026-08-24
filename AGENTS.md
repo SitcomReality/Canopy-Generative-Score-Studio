@@ -64,10 +64,14 @@ src/
   partials/            header/compose/runtime/toast .inc.html markup
 ```
 
-The compose view is laid out as `deck` (transport + live-state inset) →
-`workspace` (`rail` = layer list + pinned `inspector`, plus the phrase
-`editor`) → full-width `song-bar` (chord path / long form / atmosphere), sized
-to fit a ~1900×980 viewport with no page scroll. All colors/typography come
+The compose view is laid out as `deck` (transport + live-state inset with live
+axis meters) → `workspace` (`rail` = layer list + pinned `inspector`, plus the
+phrase `editor` with an all-layers minimap under the piano roll) → full-width
+`song-bar` (chord path / long form with a journey-energy strip / reactive axes
+/ atmosphere), sized to fit a ~1900×980 viewport with no page scroll. The v4
+reactive schema is exposed in the UI: context targets and the tempo binding in
+the song bar's "Reactive axes" group, per-layer activity gate + fills +
+automation summary in the inspector. All colors/typography come
 from `src/styles/tokens.css` custom properties. See `dev/docs/canopyUiOverhaul.md`.
 
 Keep new code modular with descriptive single-purpose filenames. Pure music-theory functions stay side-effect free under `music/`. Static page structure goes into partials; only data-driven markup is rendered from JS.

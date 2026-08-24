@@ -23,42 +23,76 @@ export function createAudioEngine(store) {
 
   const master = new Tone.Gain(0.74).toDestination();
   const limiter = new Tone.Limiter(-1).connect(master);
-  const reverb = new Tone.Reverb({ decay: 5.5, preDelay: 0.08, wet: project.reverb / 100 }).connect(limiter);
+  // Gentle glue compression ahead of the limiter so stacked layers stop
+  // squashing into a "kicked" sound; pitched voices get an air shelf and a
+  // little stereo width.
+  const glue = new Tone.Compressor({ threshold: -20, ratio: 2.4, attack: 0.01, release: 0.25 }).connect(limiter);
+  const reverb = new Tone.Reverb({ decay: 5.5, preDelay: 0.08, wet: project.reverb / 100 }).connect(glue);
   const delay = new Tone.FeedbackDelay("8n.", 0.22).connect(reverb);
   delay.wet.value = 0.26;
+  const toneShaper = new Tone.Filter({ type: "lowpass", frequency: 7800 }).connect(glue);
+  const motifBus = new Tone.Panner(-0.18).connect(delay);
+  const harmonyBus = new Tone.Panner(0.18).connect(toneShaper);
 
   // One voice bundle per layer, keyed by layer id. Layers added later (see
   // layer management) rebuild the engine, so this map always mirrors the
   // project's layers at construction time.
   const voices = {};
-  const disposables = [delay, reverb, limiter, master];
+  const disposables = [delay, reverb, glue, limiter, master, toneShaper, motifBus, harmonyBus];
+
+  // Build a pitched voice from a role config: a plain PolySynth(Tone.Synth)
+  // unless the preset declares `voice: "fm"` (PolySynth(FMSynth)) or
+  // `voice: "pluck"` (Karplus-strong PluckSynth).
+  const ROLE_VOLUME = { melody: -9, chords: -16, bass: -11 };
+  const makePitched = (roleKey, cfg) => {
+    const { voice, pluck, ...options } = cfg;
+    if (voice === "pluck") {
+      const synth = new Tone.PluckSynth({ ...(pluck ?? {}), volume: ROLE_VOLUME[roleKey] });
+      return synth;
+    }
+    if (voice === "fm") {
+      return new Tone.PolySynth(Tone.FMSynth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+    }
+    return new Tone.PolySynth(Tone.Synth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+  };
+
   const makeDrums = (instrument) => {
     const preset = instrumentSettings(instrument, "percussion");
+    const extras = [];
     const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).connect(limiter);
-    const hat = new Tone.NoiseSynth({ ...preset.hat, volume: -24 }).connect(reverb);
-    disposables.push(kick, hat);
-    return { kind: "drums", kick, hat };
+    const hatFilter = preset.hatFilter
+      ? new Tone.Filter({ type: "highpass", frequency: preset.hatFilter }).connect(reverb)
+      : null;
+    const hat = new Tone.NoiseSynth({ ...preset.hat, volume: -24 }).connect(hatFilter ?? reverb);
+    if (hatFilter) extras.push(hatFilter);
+    let snare = null;
+    if (preset.snare) {
+      const snareFilter = preset.snareFilter
+        ? new Tone.Filter({ type: "bandpass", frequency: preset.snareFilter, Q: 0.8 }).connect(glue)
+        : null;
+      snare = new Tone.NoiseSynth({ ...preset.snare, volume: -14 }).connect(snareFilter ?? glue);
+      if (snareFilter) extras.push(snareFilter);
+      disposables.push(snare);
+    }
+    disposables.push(kick, hat, ...extras);
+    return { kind: "drums", kick, hat, snare, extras };
   };
   for (const layer of project.layers) {
     if (layer.role === "harmony") {
-      const synth = new Tone.PolySynth(Tone.Synth).set({
-        ...instrumentSettings(layer.instrument, "harmony"),
-        volume: -16,
-      }).connect(reverb);
+      const synth = makePitched("chords", instrumentSettings(layer.instrument, "harmony"));
+      synth.connect(harmonyBus);
       voices[layer.id] = { kind: "chords", synth };
       disposables.push(synth);
     } else if (layer.role === "motif") {
-      const synth = new Tone.PolySynth(Tone.Synth).set({
-        ...instrumentSettings(layer.instrument, "motif"),
-        volume: -9,
-      }).connect(delay);
+      const synth = makePitched("melody", instrumentSettings(layer.instrument, "motif"));
+      synth.connect(motifBus);
       voices[layer.id] = { kind: "melody", synth };
       disposables.push(synth);
     } else if (layer.role === "bass") {
-      const synth = new Tone.MonoSynth({
-        ...instrumentSettings(layer.instrument, "bass"),
-        volume: -11,
-      }).connect(limiter);
+      const cfg = instrumentSettings(layer.instrument, "bass");
+      const synth = cfg.pluck ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
+      if (!cfg.pluck) synth.connect(limiter);
+      else synth.toDestination();
       voices[layer.id] = { kind: "bass", synth };
       disposables.push(synth);
     } else if (layer.role === "percussion") {
@@ -137,6 +171,7 @@ export function createAudioEngine(store) {
         if (voice.kind === "drums") {
           voice.kick.volume.rampTo(-10 + delta, 0.8);
           voice.hat.volume.rampTo(-24 + delta, 0.8);
+          if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
         } else {
           const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
           voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
@@ -152,9 +187,16 @@ export function createAudioEngine(store) {
     }
     const events = computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng);
 
+    // Layer ids that actually sound this step, for the UI's live indicators.
+    const sounding = [];
     for (const ev of events) {
       const voice = voices[ev.layerId];
       if (!voice) continue;
+      // Pitched events need a synth voice; skip rather than crash on any
+      // transient mismatch between the store's project and the voice graph.
+      const pitched = ev.kind === "chord" || ev.kind === "scale";
+      if (pitched && !voice.synth) continue;
+      sounding.push(ev.layerId);
       if (ev.kind === "chord") {
         voice.synth.triggerAttackRelease(chordNotes(score, ev.degree), ev.duration, time + (ev.offset ?? 0), ev.velocity);
       } else if (ev.kind === "scale") {
@@ -167,7 +209,11 @@ export function createAudioEngine(store) {
       } else if (ev.kind === "kick") {
         voice.kick.triggerAttackRelease(ev.pitch ?? "D1", ev.duration, time + (ev.offset ?? 0), ev.velocity);
       } else if (ev.kind === "hat") {
-        voice.hat.triggerAttackRelease("32n", ev.duration, time + (ev.offset ?? 0), ev.velocity);
+        // NoiseSynth signature is (duration, time, velocity).
+        voice.hat.triggerAttackRelease(ev.duration ?? "32n", time + (ev.offset ?? 0), ev.velocity);
+      } else if (ev.kind === "snare") {
+        const target = voice.snare ?? voice.hat;
+        target.triggerAttackRelease(ev.duration ?? "16n", time + (ev.offset ?? 0), ev.velocity);
       }
     }
 
@@ -185,7 +231,11 @@ export function createAudioEngine(store) {
       transport.bpm.rampTo(score.bpm + tempoOffset(score, liveAxes), 0.6);
     }
 
-    store.set({ step: (step + 1) % 16 });
+    // Publish the drifted phrases and live reactive state on bar boundaries so
+    // the UI can overlay ghost notes, meter the axes, and place the journey
+    // playhead ("Generated variation" legend).
+    if (isBar) store.set({ perfSteps: { ...perfSteps }, liveAxes: { ...liveAxes }, bar: barCount });
+    store.set({ step: (step + 1) % 16, sounding });
   }
 
   return {
@@ -204,12 +254,15 @@ export function createAudioEngine(store) {
       if (!target) return;
       if (target.kind === "melody" || target.kind === "chords") {
         const role = target.kind === "chords" ? "harmony" : "motif";
-        target.synth.set(instrumentSettings(instrument, role));
+        // Strip preset-only keys the live synth class may not know.
+        const { voice, pluck, ...options } = instrumentSettings(instrument, role);
+        target.synth.set({ ...options, volume: target.kind === "chords" ? -16 : -9 });
       } else if (target.kind === "bass") {
-        target.synth.set(instrumentSettings(instrument, "bass"));
+        const { voice, pluck, ...options } = instrumentSettings(instrument, "bass");
+        target.synth.set({ ...options, volume: -11 });
       } else if (target.kind === "drums") {
-        // Swap the kick/hat pair live; dispose the old nodes afterwards.
-        const old = [target.kick, target.hat];
+        // Swap the kit live; dispose the old nodes afterwards.
+        const old = [target.kick, target.hat, ...(target.snare ? [target.snare] : []), ...(target.extras ?? [])];
         const next = makeDrums(instrument);
         voices[layerId] = next;
         old.forEach((node) => node.dispose());
@@ -234,7 +287,7 @@ export function createAudioEngine(store) {
       for (const layer of store.get().project.layers) {
         if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
       }
-      store.set({ step: 0 });
+      store.set({ step: 0, sounding: [], perfSteps: { ...perfSteps }, bar: 0 });
     },
     dispose() {
       transport.clear(loopId);

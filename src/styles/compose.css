@@ -51,7 +51,7 @@
 .workspace > * { min-height: 0; overflow: hidden; }
 
 /* --- Song bar ---------------------------------------------------------- */
-.song-bar { height: 120px; flex: none; display: grid; grid-template-columns: 1fr 1.35fr 1fr; border-top: 1px solid var(--line-strong); background: var(--surface-1); }
+.song-bar { height: 120px; flex: none; display: grid; grid-template-columns: 0.9fr 1.15fr 1fr 1fr; border-top: 1px solid var(--line-strong); background: var(--surface-1); }
 .song-group { min-width: 0; padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px; }
 .song-group + .song-group { border-left: 1px solid var(--line); }
 .song-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-4); }
@@ -59,3 +59,24 @@
 .kicker { font-size: var(--kicker-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-4); }
 .song-heading .kicker { color: var(--accent-song); }
 .song-controls { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
+
+/* Journey strip: sparkline of the long-form energy curve + playhead. */
+#journey-strip { flex: none; height: 26px; border: 1px solid var(--line); background: var(--surface-2); }
+#journey-strip svg { display: block; width: 100%; height: 100%; }
+
+/* Live axis meters in the deck's live inset (intensity/tension/brightness). */
+.axis-meters { display: flex; flex-direction: column; gap: 3px; }
+.axis-meter { display: flex; align-items: center; gap: 6px; }
+.axis-meter small { width: 26px; color: var(--text-4); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.axis-track { width: 64px; height: 3px; background: var(--line-strong); }
+.axis-track i { display: block; height: 100%; background: var(--accent); transition: width .6s ease; }
+
+/* Reactive axes song group: per-context target sliders + tempo binding. */
+.context-targets { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; overflow-y: auto; }
+.target-row { display: grid; grid-template-columns: 62px repeat(3, 1fr); align-items: center; gap: 8px; }
+.target-row strong { color: var(--text-3); font-size: var(--kicker-size); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.target-row label { display: flex; align-items: center; gap: 5px; color: var(--text-4); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.target-row input, .binding-row input[type="range"] { appearance: none; flex: 1; min-width: 0; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+.target-row input::-webkit-slider-thumb, .binding-row input::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.binding-row { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
+.binding-row strong { color: var(--text-2); font-family: var(--font-num); white-space: nowrap; }

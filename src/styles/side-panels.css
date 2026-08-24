@@ -25,7 +25,7 @@
 .layer-row:hover { background: var(--surface-3); }
 .layer-row.selected { background: var(--surface-4); }
 .layer-row.selected::before { background: var(--accent-rail); }
-.layer-color { grid-row: 1 / span 2; width: 7px; height: 100%; min-height: 40px; opacity: .9; }
+.layer-color { grid-row: 1 / span 2; width: 7px; height: 100%; min-height: 40px; opacity: .9; transition: box-shadow .12s; }
 .layer-copy { grid-column: 2 / 4; display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-right: 30px; }
 .layer-copy strong { color: var(--text-2); font-size: var(--label-size); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .layer-copy small { color: var(--text-4); font-size: var(--kicker-size); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -38,6 +38,30 @@
 
 .layer-note { margin: 12px 16px 0; padding: 12px 0; border-top: 1px solid var(--line); display: flex; gap: 9px; color: var(--accent); }
 .layer-note p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+
+/* Selected-layer reactive editor (activity gate / fills / automation). */
+.reactive-heading { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; color: var(--text-4); font-size: var(--kicker-size); letter-spacing: .12em; text-transform: uppercase; }
+.reactive-heading button { border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-3); font-size: var(--kicker-size); padding: 2px 8px; cursor: pointer; }
+.reactive-heading button:hover { color: var(--text-1); }
+.reactive-empty { margin: 6px 0 0; color: var(--text-4); font-size: var(--kicker-size); }
+.reactive-hint { margin: 6px 0 0; color: var(--text-4); font-size: var(--kicker-size); }
+.gate-ranges { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 7px; }
+.gate-ranges label { display: flex; align-items: center; gap: 6px; color: var(--text-4); font-size: var(--kicker-size); cursor: pointer; }
+.gate-ranges input { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+.gate-ranges input::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.fill-row { margin-top: 8px; display: flex; flex-direction: column; gap: 5px; }
+.fill-meta { display: flex; align-items: center; gap: 7px; min-height: 22px; }
+.fill-meta select { height: 20px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: var(--kicker-size); cursor: pointer; }
+.fill-meta label { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; color: var(--text-4); font-size: var(--kicker-size); white-space: nowrap; cursor: pointer; }
+.fill-meta input { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+.fill-meta input::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.fill-remove { border: 0; background: transparent; color: var(--text-4); cursor: pointer; padding: 3px; }
+.fill-remove:hover { color: var(--text-1); }
+.fill-dots { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.fill-dots i { height: 9px; background: var(--surface-3); border-radius: 2px; cursor: pointer; transition: background-color .12s; }
+.fill-dots i.on { background: var(--note); }
+.automation-chips { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px; }
+.automation-chips li { border: 1px solid var(--line); padding: 2px 6px; color: var(--text-3); font-size: var(--kicker-size); white-space: nowrap; }
 .layer-note strong { color: var(--text-2); font-size: var(--kicker-size); }
 .layer-note span { color: var(--text-4); font-size: var(--kicker-size); line-height: 1.5; }
 .reset-link { margin: 14px 16px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; color: var(--text-3); font-size: var(--kicker-size); cursor: pointer; }

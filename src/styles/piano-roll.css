@@ -58,3 +58,19 @@
 .legend-note { background: var(--note); }
 .legend-variation { border: 1px dashed var(--accent); }
 .roll-footer p { margin-left: auto; color: var(--text-4); }
+
+/* Ghost notes: generated variation that sounds this pass but isn't written. */
+.note-cell.ghost > span { border: 1px dashed var(--accent); background: transparent; box-shadow: none; }
+
+/* Layers overview (minimap): one thin row per layer under the piano roll. */
+.layers-overview { flex: none; max-height: 118px; overflow-y: auto; padding: 6px 20px 8px; border-top: 1px solid var(--line); scrollbar-width: thin; }
+.overview-heading { margin-bottom: 3px; color: var(--text-4); letter-spacing: .14em; }
+.overview-row { display: grid; grid-template-columns: 74px 1fr; align-items: center; gap: 8px; width: 100%; min-width: min(672px, 100%); height: 17px; padding: 0; border: 0; background: transparent; cursor: pointer; text-align: left; }
+.overview-row:hover .overview-name { color: var(--text-1); }
+.overview-row.selected .overview-name { color: var(--accent-rail); }
+.overview-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-4); font-size: var(--kicker-size); transition: color .15s; }
+.overview-cells { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; height: 7px; }
+.overview-cells i { border-radius: 2px; background: var(--surface-3); transition: background-color .12s; }
+.overview-cells i.filled { background: var(--row-color, var(--note)); opacity: .75; }
+.overview-cells i.current { outline: 1px solid var(--accent); }
+.overview-row.sounding .overview-cells i.filled { opacity: 1; box-shadow: 0 0 6px var(--row-color, var(--note)); }

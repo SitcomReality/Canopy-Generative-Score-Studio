@@ -62,8 +62,21 @@ export function initLayersPanel(store, actions) {
     if (changed.includes("project") || changed.includes("selectedTrack")) {
       const { project, selectedTrack } = store.get();
       paint(project, selectedTrack);
+      paintSounding(store.get().sounding);
     }
+    // Live "sounding now" glow on rows whose layer triggered this step.
+    if (changed.includes("sounding")) paintSounding(store.get().sounding);
   });
+
+  function paintSounding(soundingIds) {
+    const sounding = new Set(soundingIds ?? []);
+    list.querySelectorAll(".layer-row").forEach((row) => {
+      const dot = row.querySelector(".layer-color");
+      const on = sounding.has(row.dataset.track);
+      row.classList.toggle("sounding", on);
+      if (dot) dot.style.boxShadow = on ? `0 0 9px 1px ${dot.style.backgroundColor}` : "";
+    });
+  }
 
   // Initial paint.
   const { project, selectedTrack } = store.get();
