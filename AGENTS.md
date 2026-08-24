@@ -59,10 +59,16 @@ src/
                        refine-panel, runtime-view), plus icons/toast/
                        parameter-slider/dom helpers as needed
   utils/               download helpers, cn() class joiner
-  styles/              base, layout, compose, piano-roll, side-panels,
-                       content, responsive
+  styles/              tokens (design-token palette), base, layout, compose,
+                       piano-roll, side-panels, content, responsive
   partials/            header/compose/runtime/toast .inc.html markup
 ```
+
+The compose view is laid out as `deck` (transport + live-state inset) →
+`workspace` (`rail` = layer list + pinned `inspector`, plus the phrase
+`editor`) → full-width `song-bar` (chord path / long form / atmosphere), sized
+to fit a ~1900×980 viewport with no page scroll. All colors/typography come
+from `src/styles/tokens.css` custom properties. See `dev/docs/canopyUiOverhaul.md`.
 
 Keep new code modular with descriptive single-purpose filenames. Pure music-theory functions stay side-effect free under `music/`. Static page structure goes into partials; only data-driven markup is rendered from JS.
 

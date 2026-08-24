@@ -60,13 +60,12 @@ function render(roll, state) {
       : "Click beats to place or remove hits for this layer.";
   }
 
-  const heads = Array.from({ length: 16 }, (_, s) =>
-    `<div class="step-head${current(s)}"><span>${s + 1}</span></div>`).join("");
-
+  let laneCount = 1;
   let rows = "";
   if (LAYER_ROLES[layer.role].kind === "degrees") {
     const scaleLength = SCALES[project.scale].length;
     const lanes = Array.from({ length: Math.min(8, scaleLength + 1) }, (_, index) => scaleLength - index);
+    laneCount = lanes.length;
     rows = lanes.map((degree) => {
       const note = midiToNote(scaleMidi(project, degree, 4));
       const label = `<div class="note-label${degree === 0 || degree === 7 ? " root" : ""}"><span>${note.replace(/[0-9]/g, "")}</span><small>${note.match(/[0-9]/)?.[0] ?? ""}</small></div>`;
@@ -89,6 +88,10 @@ function render(roll, state) {
     return `<div class="automation-cell${current(s)}" data-step="${s}">${s % 4 === 0 ? `<span>${chordLabel(project, degree)}</span>` : ""}</div>`;
   }).join("");
 
+  const heads = Array.from({ length: 16 }, (_, s) =>
+    `<div class="step-head${current(s)}"><span>${s + 1}</span></div>`).join("");
+  // Lanes stretch to fill the editor height; the count drives the row template.
+  roll.style.setProperty("--lanes", String(laneCount));
   roll.innerHTML = `<div class="roll-corner"><span>NOTE</span></div>${heads}${rows}
     <div class="roll-row chord-row"><div class="automation-label"><span>CHORDS</span></div>${chordCells}</div>`;
 

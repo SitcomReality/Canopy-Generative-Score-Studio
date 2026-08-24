@@ -1,72 +1,43 @@
-@media (max-width: 1180px) {
-  .composer-grid { grid-template-columns: 200px minmax(610px, 1fr) 244px; }
-  .brand-lockup { width: 220px; }
-  .transport-wave { display: none; }
-  .context-label { width: 180px; }
-  .runtime-layout { grid-template-columns: 1fr; }
-  .event-lab { border-right: 0; border-bottom: 1px solid #344038; padding-right: 0; }
-  .implementation-panel { padding-left: 0; }
+/* Two breakpoints that matter. Above 1500px the app fits with no page scroll;
+   below 1100px everything stacks and page scrolling returns. */
+@media (max-width: 1500px) {
+  .workspace { grid-template-columns: 280px minmax(0, 1fr); }
+  .song-bar { height: auto; min-height: 120px; grid-template-columns: 1fr 1fr; }
+  .song-group:nth-child(3) { border-left: 0; }
+  .deck-live > strong { display: none; }
 }
 
-@media (max-width: 900px) {
-  .app-header { padding: 0 14px; }
-  .brand-lockup { width: auto; margin-right: 22px; }
+@media (max-width: 1100px) {
+  body, .app-shell { height: auto; overflow: auto; }
+  .main-view:not(#view-compose) { overflow-y: visible; }
+  #view-compose { overflow: visible; }
+
+  .app-header { padding: 0 14px; flex-wrap: wrap; }
+  .brand-lockup { width: auto; margin-right: 18px; }
   .brand-caption, .save-state, .icon-action.labeled span { display: none; }
-  .main-tabs { gap: 16px; }
+  .main-tabs { margin-left: 0; gap: 16px; }
   .main-tab span { display: none; }
   .icon-action.labeled { width: 34px; padding: 0; }
-  .transport-bar { height: auto; min-height: 84px; flex-wrap: wrap; gap: 12px; padding: 12px 14px; }
+
+  .deck { height: auto; flex-wrap: wrap; gap: 12px; padding: 12px 14px; }
+  .deck-score { flex-wrap: wrap; gap: 12px; }
   .project-identity { width: 190px; }
   .transport-controls { padding: 0 14px; }
   .tempo-controls { padding-left: 0; }
-  .context-ribbon { padding: 10px 14px; flex-wrap: wrap; gap: 10px; }
-  .context-label { width: 170px; }
-  .threat-control { margin-left: 0; }
-  .composer-grid { display: block; }
-  .layers-panel { border-right: 0; border-bottom: 1px solid #29332d; }
-  .layer-list { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0; }
-  .layer-row { min-height: 84px; }
-  .layer-note, .reset-link, .layers-panel .panel-heading { display: none; }
-  .refine-panel { border-left: 0; border-top: 1px solid #29332d; display: grid; grid-template-columns: 180px 1fr 1fr 1fr; }
-  .refine-panel > * { border-right: 1px solid #29332d; }
-  .progression-control { border-right: 0; }
-  .runtime-view { padding-left: 24px; padding-right: 24px; }
-  .handoff-strip { grid-template-columns: repeat(2, 1fr); }
-}
+  .deck-live { margin-left: 0; flex-wrap: wrap; }
 
-@media (max-width: 640px) {
-  .app-header { height: 58px; }
-  .brand-name { font-size: 17px; }
-  .brand-mark { width: 29px; height: 29px; }
-  .header-actions { gap: 5px; }
-  .icon-action:not(.labeled) { display: none; }
-  .icon-action.labeled { display: inline-flex; }
-  .export-button { height: 31px; padding: 0 9px; }
-  .project-identity { width: 100%; }
-  .transport-controls { border-left: 0; padding-left: 0; }
-  .tempo-controls { gap: 12px; margin-left: auto; }
-  .context-label { width: 100%; }
-  .context-switcher { width: 100%; }
-  .context-option { flex: 1; min-width: 0; }
-  .threat-control { flex: 1; }
-  .threat-control input { flex: 1; }
-  .layer-list { grid-template-columns: repeat(2, 1fr); }
-  .sequence-heading { align-items: flex-start; gap: 15px; flex-direction: column; }
-  .roll-footer p { display: none; }
-  .refine-panel { display: block; }
-  .content-view { padding-left: 16px; padding-right: 16px; }
-  .content-intro { padding: 54px 0 42px; }
-  .content-intro h1 { font-size: 45px; }
-  .event-stage { grid-template-columns: 1fr; padding-bottom: 60px; }
-  .world-orbit { min-height: 250px; }
-  .runtime-play { bottom: 12px; }
-  .section-label { grid-template-columns: 28px 1fr; }
-  .section-label small { display: none; }
-  .handoff-strip, .workflow-steps, .glossary-grid { grid-template-columns: 1fr; }
-  .workflow-step { min-height: 150px; border-right: 0; margin: 0; }
-  .hybrid-section { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
-  .hybrid-diagram { flex-direction: column; align-items: stretch; }
-  .hybrid-diagram > div { min-height: 120px; }
-  .hybrid-diagram > i { text-align: center; }
-  .glossary-grid > div { margin-right: 0; }
+  .workspace { display: block; overflow: visible; }
+  .rail { border-right: 0; border-bottom: 1px solid var(--line); }
+  .layer-list { display: grid; grid-template-columns: repeat(2, 1fr); padding: 0; overflow: visible; }
+  .inspector { max-height: none; overflow: visible; }
+  .editor .roll-scroll { overflow-x: auto; }
+
+  .song-bar { grid-template-columns: 1fr; }
+  .song-group + .song-group { border-left: 0; border-top: 1px solid var(--line); }
+
+  .runtime-view { padding-left: 24px; padding-right: 24px; }
+  .runtime-layout { grid-template-columns: 1fr; }
+  .event-lab { border-right: 0; border-bottom: 1px solid var(--line-strong); padding-right: 0; }
+  .implementation-panel { padding-left: 0; }
+  .handoff-strip { grid-template-columns: 1fr; }
 }

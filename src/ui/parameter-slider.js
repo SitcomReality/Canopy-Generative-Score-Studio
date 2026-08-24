@@ -3,10 +3,9 @@
 // while the user drags.
 export function createParameterSlider(container, { label, low, high, onChange }) {
   container.innerHTML = `
-    <label class="parameter-slider">
+    <label class="parameter-slider" title="${low} to ${high}">
       <span><strong>${label}</strong><b></b></span>
       <input type="range" min="0" max="100" />
-      <small><i>${low}</i><i>${high}</i></small>
     </label>`;
   const input = container.querySelector("input");
   const readout = container.querySelector("b");

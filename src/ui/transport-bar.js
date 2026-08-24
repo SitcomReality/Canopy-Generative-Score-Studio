@@ -9,10 +9,6 @@ export function initTransportBar(store, actions) {
   const scaleSelect = document.getElementById("scale-select");
   Object.keys(SCALES).forEach((scale) => scaleSelect.add(new Option(scale, scale)));
 
-  // Decorative waveform: 18 fixed bars driven by CSS custom properties.
-  document.getElementById("transport-wave").innerHTML = Array.from({ length: 18 }, (_, index) =>
-    `<i style="--bar:${18 + ((index * 17) % 34)}px; --delay:${index * -0.07}s"></i>`).join("");
-
   document.getElementById("project-name").addEventListener("input", (event) => actions.renameProject(event.target.value));
   document.getElementById("play-button").addEventListener("click", actions.togglePlayback);
   document.getElementById("stop-button").addEventListener("click", actions.stopPlayback);

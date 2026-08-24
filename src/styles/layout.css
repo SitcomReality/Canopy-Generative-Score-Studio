@@ -1,41 +1,48 @@
-.app-shell { min-height: 100vh; background: #101713; overflow-x: hidden; }
+/* App shell: full-height flex so the compose view fits the viewport with no
+   page scroll; header 56 + deck 84 + workspace (flex) + song bar 120. */
+.app-shell { height: 100vh; display: flex; flex-direction: column; background: var(--surface-0); }
+.main-view { flex: 1; min-height: 0; }
+/* The compose view fits without scrolling; longer views (runtime) scroll internally. */
+#view-compose { overflow: hidden; }
+.main-view:not(#view-compose) { overflow-y: auto; }
+
 .app-header {
-  height: 68px; display: flex; align-items: center; border-bottom: 1px solid #29332d; background: #0d1411;
-  position: sticky; top: 0; z-index: 40; padding: 0 22px;
+  height: 56px; flex: none; display: flex; align-items: center; border-bottom: 1px solid var(--line-strong);
+  background: var(--surface-1); position: sticky; top: 0; z-index: 40; padding: 0 22px;
 }
 .brand-lockup { width: 280px; display: flex; align-items: center; gap: 11px; cursor: pointer; flex: none; }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #718261; color: #d8edaa; transform: rotate(-3deg); }
-.brand-name { font-family: Georgia, "Times New Roman", serif; font-size: 22px; letter-spacing: .17em; line-height: 1; color: #f1f2e9; }
-.brand-caption { margin-top: 5px; color: #78867d; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
-.main-tabs { height: 100%; display: flex; align-items: stretch; gap: 28px; }
-.main-tab { position: relative; display: flex; align-items: center; gap: 7px; border: 0; background: none; color: #849087; font-size: 12px; cursor: pointer; padding: 0 2px; }
-.main-tab:hover, .main-tab.active { color: #eef2e8; }
-.tab-underline { position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: #cee598; }
+.brand-mark { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--accent); color: var(--accent); transform: rotate(-3deg); }
+.brand-name { font-family: var(--font-serif); font-size: 20px; letter-spacing: .17em; line-height: 1; color: var(--text-1); }
+.brand-caption { margin-top: 4px; color: var(--text-3); font-size: var(--kicker-size); letter-spacing: .14em; text-transform: uppercase; }
+.main-tabs { height: 100%; display: flex; align-items: stretch; gap: 28px; margin-left: 12px; }
+.main-tab { position: relative; display: flex; align-items: center; gap: 7px; border: 0; background: none; color: var(--text-4); font-size: var(--label-size); font-weight: 600; cursor: pointer; padding: 0 2px; }
+.main-tab:hover, .main-tab.active { color: var(--text-1); }
+.tab-underline { position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: var(--accent); }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.save-state { display: flex; align-items: center; gap: 5px; color: #66736b; font-size: 11px; margin-right: 4px; }
-.icon-action, .export-button { border: 1px solid #303b34; background: #121b16; height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
-.icon-action { width: 34px; color: #9ba79e; }
+.save-state { display: flex; align-items: center; gap: 5px; color: var(--text-4); font-size: var(--label-size); margin-right: 4px; }
+.icon-action, .export-button { border: 1px solid var(--line-strong); background: var(--surface-3); height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
+.icon-action { width: 34px; color: var(--text-2); }
 .icon-action.labeled { width: auto; padding: 0 11px; }
-.icon-action:hover, .export-button:hover { border-color: #61715f; color: #eef2e8; }
+.icon-action:hover, .export-button:hover { border-color: var(--accent); color: var(--text-1); }
 .export-wrap { position: relative; }
-.export-button { color: #152015; background: #cee598; border-color: #cee598; padding: 0 13px; font-size: 11px; font-weight: 700; }
-.export-button:hover { background: #def1ac; color: #0d140c; border-color: #def1ac; }
-.export-menu { position: absolute; top: 42px; right: 0; width: 232px; padding: 6px; background: #17201b; border: 1px solid #344038; box-shadow: 0 20px 60px #030504b8; z-index: 60; }
-.export-menu button { width: 100%; display: flex; gap: 10px; border: 0; background: transparent; padding: 10px; text-align: left; color: #a8b3aa; cursor: pointer; }
-.export-menu button:hover { background: #212d25; color: #f2f4ed; }
+.export-button { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); padding: 0 13px; font-size: var(--label-size); font-weight: 700; }
+.export-button:hover { background: #ddefb0; color: var(--accent-ink); border-color: #ddefb0; }
+.export-menu { position: absolute; top: 40px; right: 0; width: 232px; padding: 6px; background: var(--surface-3); border: 1px solid var(--line-strong); box-shadow: var(--shadow-menu); z-index: 60; }
+.export-menu button { width: 100%; display: flex; gap: 10px; border: 0; background: transparent; padding: 10px; text-align: left; color: var(--text-2); cursor: pointer; }
+.export-menu button:hover { background: var(--surface-4); color: var(--text-1); }
 .export-menu button > span { display: flex; flex-direction: column; gap: 2px; }
-.export-menu strong { font-size: 11px; }
-.export-menu small { color: #6f7d73; font-size: 10px; }
-
+.export-menu strong { font-size: var(--label-size); }
+.export-menu small { color: var(--text-4); font-size: var(--kicker-size); }
 
 /* Toast */
-.toast { position: fixed; right: 22px; bottom: 22px; z-index: 80; min-height: 42px; max-width: 390px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid #607152; background: #1b271e; color: #dfe9d8; box-shadow: 0 15px 50px #03070491; font-size: 10px; }
-.toast > svg { color: #c7df98; }
-.toast button { margin-left: 8px; border: 0; background: transparent; color: #748176; cursor: pointer; }
+.toast { position: fixed; right: 22px; bottom: 22px; z-index: 80; min-height: 42px; max-width: 390px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-2); box-shadow: var(--shadow-menu); font-size: var(--label-size); }
+.toast > svg { color: var(--accent); }
+.toast button { margin-left: 8px; border: 0; background: transparent; color: var(--text-4); cursor: pointer; }
+.toast button:hover { color: var(--text-1); }
 
-/* Tab underline (was a framer-motion layout element) */
-.main-tab.active::after { content: ""; position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: #cee598; }
+/* Tab underline for the active tab */
+.main-tab.active::after { content: ""; position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: var(--accent); }
 
-/* View fade-in when switching tabs (replaces framer-motion transitions) */
+/* View fade-in when switching tabs */
 @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .view-enter { animation: viewIn 0.24s ease; }
