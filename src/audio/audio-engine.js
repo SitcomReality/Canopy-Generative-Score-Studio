@@ -6,6 +6,7 @@
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
 import { instrumentSettings } from "../music/instruments.js";
+import { mutateMotif } from "../music/variation.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -57,6 +58,14 @@ export function createAudioEngine(store) {
 
   const firstVoiceOf = (kind) => project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
 
+  // Performance copies of motif phrases. The written phrase in the project
+  // is never modified; at each bar boundary motif layers get a fresh drift
+  // pass derived from it, scaled by their "Safe variation" slider.
+  const perfSteps = {};
+  for (const layer of project.layers) {
+    if ((voices[layer.id]?.kind ?? layer.role) === "melody") perfSteps[layer.id] = [...layer.steps];
+  }
+
   const transport = Tone.getTransport();
   transport.bpm.value = project.bpm;
   transport.swing = project.swing / 100;
@@ -77,6 +86,15 @@ export function createAudioEngine(store) {
       transport.bpm.rampTo(score.bpm + ({ explore: 0, unease: 8, combat: 22 })[context], 0.6);
     }
 
+    // Bar-boundary phrase drift for motif layers (long-form variation).
+    if (isBar) {
+      for (const layer of score.layers) {
+        if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
+          perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation);
+        }
+      }
+    }
+
     const contextDensity = context === "combat" ? 0.98 : context === "unease" ? 0.76 : 0.5;
     const chordDegree = score.progression[Math.floor(step / 4) % score.progression.length];
 
@@ -95,7 +113,8 @@ export function createAudioEngine(store) {
           );
         }
       } else if (voice.kind === "melody") {
-        let degree = layer.steps[step];
+        const phrase = perfSteps[layer.id] ?? layer.steps;
+        let degree = phrase[step];
         if (degree !== null && Math.random() < 0.12 * (layer.variation / 100)) {
           degree = Math.max(0, Math.min(7, degree + (Math.random() > 0.5 ? 1 : -1)));
         }
@@ -187,6 +206,11 @@ export function createAudioEngine(store) {
     stop() {
       transport.stop();
       transport.position = 0;
+      // Discard drifted phrases so the next playback starts from the score
+      // as written.
+      for (const layer of store.get().project.layers) {
+        if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
+      }
       store.set({ step: 0 });
     },
     dispose() {
