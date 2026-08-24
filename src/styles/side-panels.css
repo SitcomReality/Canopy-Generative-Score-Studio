@@ -21,10 +21,11 @@
 .layer-row.selected { background: #1b271f; }
 .layer-row.selected::before { background: #d5e9a5; }
 .layer-color { width: 7px; height: 26px; margin-right: 11px; opacity: .9; }
-.layer-copy { display: flex; flex-direction: column; gap: 4px; }
+.layer-copy { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
 .layer-copy strong { color: #cfd7ce; font-size: 11px; font-weight: 600; }
-.layer-copy small { color: #59675e; font-size: 9px; }
-.mute-toggle { margin-left: auto; color: #68766c; padding: 8px; }
+.layer-copy small { color: #59675e; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-row .role-select, .layer-row .instrument-select { height: 26px; width: 92px; margin-left: 8px; border: 1px solid #2c3830; background: #141d17; color: #93a297; font-size: 9px; padding: 0 4px; cursor: pointer; }
+.mute-toggle { margin-left: 8px; color: #68766c; padding: 8px; }
 .layer-row.selected .mute-toggle { color: #aebcaf; }
 .layer-note { margin: 12px 14px 0; padding: 12px 0; border-top: 1px solid #29352d; border-bottom: 1px solid #29352d; display: flex; gap: 9px; color: #9eb67f; }
 .layer-note > div { display: flex; flex-direction: column; gap: 4px; }

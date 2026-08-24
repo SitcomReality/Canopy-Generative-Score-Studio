@@ -5,16 +5,7 @@
 // applied on bar boundaries (steps 0 and 8).
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
-
-const INSTRUMENT_SETTINGS = {
-  "Glass bell": { oscillator: { type: "sine" }, envelope: { attack: 0.04, decay: 0.3, sustain: 0.22, release: 2.8 } },
-  "Warm reed": { oscillator: { type: "square8" }, envelope: { attack: 0.12, decay: 0.22, sustain: 0.3, release: 1.8 } },
-  "Soft pluck": { oscillator: { type: "triangle" }, envelope: { attack: 0.008, decay: 0.45, sustain: 0.08, release: 1.4 } },
-};
-
-function instrumentSettings(voice) {
-  return INSTRUMENT_SETTINGS[voice] ?? INSTRUMENT_SETTINGS["Glass bell"];
-}
+import { instrumentSettings } from "../music/instruments.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -30,45 +21,37 @@ export function createAudioEngine(store) {
   // project's layers at construction time.
   const voices = {};
   const disposables = [delay, reverb, limiter, master];
+  const makeDrums = (instrument) => {
+    const preset = instrumentSettings(instrument, "percussion");
+    const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).connect(limiter);
+    const hat = new Tone.NoiseSynth({ ...preset.hat, volume: -24 }).connect(reverb);
+    disposables.push(kick, hat);
+    return { kind: "drums", kick, hat };
+  };
   for (const layer of project.layers) {
     if (layer.role === "harmony") {
       const synth = new Tone.PolySynth(Tone.Synth).set({
-        oscillator: { type: "triangle8" },
-        envelope: { attack: 1.3, decay: 1.5, sustain: 0.5, release: 4.5 },
+        ...instrumentSettings(layer.instrument, "harmony"),
         volume: -16,
       }).connect(reverb);
       voices[layer.id] = { kind: "chords", synth };
       disposables.push(synth);
     } else if (layer.role === "motif") {
       const synth = new Tone.PolySynth(Tone.Synth).set({
-        ...instrumentSettings(layer.instrument),
+        ...instrumentSettings(layer.instrument, "motif"),
         volume: -9,
       }).connect(delay);
       voices[layer.id] = { kind: "melody", synth };
       disposables.push(synth);
     } else if (layer.role === "bass") {
       const synth = new Tone.MonoSynth({
-        oscillator: { type: "triangle" },
-        envelope: { attack: 0.03, decay: 0.25, sustain: 0.28, release: 0.7 },
-        filterEnvelope: { attack: 0.02, decay: 0.25, sustain: 0.2, release: 0.4, baseFrequency: 80, octaves: 2.8 },
+        ...instrumentSettings(layer.instrument, "bass"),
         volume: -11,
       }).connect(limiter);
       voices[layer.id] = { kind: "bass", synth };
       disposables.push(synth);
     } else if (layer.role === "percussion") {
-      const kick = new Tone.MembraneSynth({
-        pitchDecay: 0.05,
-        octaves: 6,
-        envelope: { attack: 0.001, decay: 0.32, sustain: 0, release: 0.2 },
-        volume: -10,
-      }).connect(limiter);
-      const hat = new Tone.NoiseSynth({
-        noise: { type: "pink" },
-        envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.02 },
-        volume: -24,
-      }).connect(reverb);
-      voices[layer.id] = { kind: "drums", kick, hat };
-      disposables.push(kick, hat);
+      voices[layer.id] = makeDrums(layer.instrument);
     }
   }
 
@@ -179,10 +162,20 @@ export function createAudioEngine(store) {
       const offset = ({ combat: 22, unease: 8, explore: 0 })[store.get().currentContext] ?? 0;
       transport.bpm.rampTo(bpm + offset, 0.6);
     },
-    setInstrument(layerId, voice) {
+    setInstrument(layerId, instrument) {
       const target = voices[layerId];
-      if (target?.kind === "melody" || target?.kind === "chords") {
-        target.synth.set(instrumentSettings(voice));
+      if (!target) return;
+      if (target.kind === "melody" || target.kind === "chords") {
+        const role = target.kind === "chords" ? "harmony" : "motif";
+        target.synth.set(instrumentSettings(instrument, role));
+      } else if (target.kind === "bass") {
+        target.synth.set(instrumentSettings(instrument, "bass"));
+      } else if (target.kind === "drums") {
+        // Swap the kick/hat pair live; dispose the old nodes afterwards.
+        const old = [target.kick, target.hat];
+        const next = makeDrums(instrument);
+        voices[layerId] = next;
+        old.forEach((node) => node.dispose());
       }
     },
     play() {

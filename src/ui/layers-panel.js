@@ -1,18 +1,27 @@
-// Layers panel: layer selection with mute toggles, harmony-guard note,
-// restore-starter-score link. Rows render from project.layers so custom
-// layers appear alongside the defaults.
+// Layers panel: one div-based row per layer with inline role and instrument
+// selects, a mute toggle, harmony-guard note, and restore-starter-score link.
+// Rows render from project.layers so custom layers appear alongside the
+// defaults. Selects stop propagation so editing them never selects the row.
 import { iconSvg } from "./icons.js";
+import { LAYER_ROLES } from "../music/default-project.js";
+import { INSTRUMENT_NAMES } from "../music/instruments.js";
 
 export function initLayersPanel(store, actions) {
   const list = document.getElementById("layer-list");
   list.addEventListener("click", (event) => {
-    const row = event.target.closest("button.layer-row");
-    if (!row) return;
+    const row = event.target.closest(".layer-row");
+    if (!row || event.target.closest("select")) return;
     if (event.target.closest(".mute-toggle")) {
       actions.toggleMute(row.dataset.track);
     } else {
       actions.selectTrack(row.dataset.track);
     }
+  });
+  list.addEventListener("change", (event) => {
+    const row = event.target.closest(".layer-row");
+    if (!row) return;
+    if (event.target.classList.contains("role-select")) actions.setLayerRole(row.dataset.track, event.target.value);
+    if (event.target.classList.contains("instrument-select")) actions.setInstrument(row.dataset.track, event.target.value);
   });
   document.getElementById("reset-project").addEventListener("click", actions.resetProject);
 
@@ -63,9 +72,17 @@ export function initLayersPanel(store, actions) {
 
 function renderRows(list, project, selectedTrack) {
   list.innerHTML = project.layers.map((layer) => `
-    <button class="layer-row${selectedTrack === layer.id ? " selected" : ""}" data-track="${layer.id}">
+    <div class="layer-row${selectedTrack === layer.id ? " selected" : ""}" data-track="${layer.id}">
       <span class="layer-color" style="background-color:${layer.color}"></span>
-      <span class="layer-copy"><strong>${layer.name}</strong><small>${layer.detail}</small></span>
+      <span class="layer-copy"><strong>${layer.name}</strong><small>${layer.instrument}</small></span>
+      <select class="role-select" aria-label="${layer.name} role" title="What this layer does">
+        ${Object.entries(LAYER_ROLES).map(([value, def]) =>
+          `<option value="${value}"${value === layer.role ? " selected" : ""}>${def.label}</option>`).join("")}
+      </select>
+      <select class="instrument-select" aria-label="${layer.name} instrument" title="How this layer sounds">
+        ${INSTRUMENT_NAMES.map((name) =>
+          `<option${name === layer.instrument ? " selected" : ""}>${name}</option>`).join("")}
+      </select>
       <span class="mute-toggle" role="button" tabindex="0">${iconSvg(layer.muted ? "volume-x" : "volume-2", 14)}</span>
-    </button>`).join("");
+    </div>`).join("");
 }

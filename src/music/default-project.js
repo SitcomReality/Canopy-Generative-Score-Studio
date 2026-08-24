@@ -4,6 +4,7 @@
 // mute) into a `layers` array so layers can be added, removed and renamed.
 // hydrateProject still accepts version 1 flat projects and migrates them.
 import { SCALES } from "./scales.js";
+import { INSTRUMENT_NAMES } from "./instruments.js";
 
 export const PROJECT_VERSION = 2;
 
@@ -125,7 +126,7 @@ function sanitizeLayer(raw, index, usedIds) {
     role,
     color: typeof raw?.color === "string" && /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : fallback.color,
     muted: Boolean(raw?.muted),
-    instrument: typeof raw?.instrument === "string" && raw.instrument ? raw.instrument : fallback.instrument,
+    instrument: INSTRUMENT_NAMES.includes(raw?.instrument) ? raw.instrument : fallback.instrument,
     density: clampPercent(raw?.density, fallback.density),
     variation: clampPercent(raw?.variation, fallback.variation),
     humanize: clampPercent(raw?.humanize, fallback.humanize),

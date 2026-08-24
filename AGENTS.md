@@ -47,7 +47,8 @@ src/
   main.js              composition root: store instance, all actions, view wiring
   music/               pure music-theory modules, one concern per file:
                        note-names, keys, scales, progressions, scale-math,
-                       contexts, tracks, default-project (schema + hydrate),
+                       contexts, tracks, instruments (preset catalog),
+                       default-project (schema + hydrate),
                        melody-composer, midi-adapter, runtime-module (template)
   audio/audio-engine.js  Tone graph + 16-step sequencer
   state/app-state.js   pub/sub store + localStorage persistence

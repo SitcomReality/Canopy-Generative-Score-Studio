@@ -3,12 +3,20 @@
 // public API stable: startScore, stopScore, setGameMusicState, musicEvent,
 // disposeScore. It plays the version 2 layer-based project schema.
 import { SCALES } from "./scales.js";
+import { INSTRUMENTS } from "./instruments.js";
 
 export function runtimeModule(project) {
   const config = JSON.stringify(project, null, 2);
   return `import * as Tone from "tone";
 
 export const score = ${config};
+
+const INSTRUMENTS = ${JSON.stringify(INSTRUMENTS)};
+
+function instrumentSettings(instrument, role) {
+  const preset = INSTRUMENTS[instrument] || INSTRUMENTS["Glass bell"];
+  return preset[role];
+}
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const SCALES = ${JSON.stringify(SCALES)};
@@ -41,20 +49,21 @@ function setup() {
   voices = {};
   for (const layer of score.layers) {
     if (layer.role === "harmony") {
-      const synth = new Tone.PolySynth(Tone.Synth).connect(reverb);
+      const synth = new Tone.PolySynth(Tone.Synth).set({ ...instrumentSettings(layer.instrument, "harmony"), volume: -16 }).connect(reverb);
       voices[layer.id] = { kind: "chords", synth };
       nodes.layers[layer.id] = synth;
     } else if (layer.role === "motif") {
-      const synth = new Tone.PolySynth(Tone.Synth).connect(reverb);
+      const synth = new Tone.PolySynth(Tone.Synth).set({ ...instrumentSettings(layer.instrument, "motif"), volume: -9 }).connect(reverb);
       voices[layer.id] = { kind: "melody", synth };
       nodes.layers[layer.id] = synth;
     } else if (layer.role === "bass") {
-      const synth = new Tone.MonoSynth().toDestination();
+      const synth = new Tone.MonoSynth({ ...instrumentSettings(layer.instrument, "bass"), volume: -11 }).toDestination();
       voices[layer.id] = { kind: "bass", synth };
       nodes.layers[layer.id] = synth;
     } else if (layer.role === "percussion") {
-      const kick = new Tone.MembraneSynth().toDestination();
-      const hat = new Tone.NoiseSynth().connect(reverb);
+      const drums = instrumentSettings(layer.instrument, "percussion");
+      const kick = new Tone.MembraneSynth({ ...drums.kick, volume: -10 }).toDestination();
+      const hat = new Tone.NoiseSynth({ ...drums.hat, volume: -24 }).connect(reverb);
       voices[layer.id] = { kind: "drums", kick, hat };
       nodes.layers[layer.id] = { kick, hat };
     }

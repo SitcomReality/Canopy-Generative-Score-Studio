@@ -2,6 +2,7 @@
 // note density, safe variation, human feel) and song-level shared controls
 // (reverb, rhythmic sway, chord path with roman numerals).
 import { PROGRESSIONS, ROMAN_NUMERALS } from "../music/progressions.js";
+import { INSTRUMENT_NAMES } from "../music/instruments.js";
 import { createParameterSlider } from "./parameter-slider.js";
 
 export function initRefinePanel(store, actions) {
@@ -16,7 +17,8 @@ export function initRefinePanel(store, actions) {
   };
 
   const instrumentSelect = document.getElementById("instrument-select");
-  instrumentSelect.addEventListener("change", (event) => actions.setInstrument(event.target.value));
+  INSTRUMENT_NAMES.forEach((name) => instrumentSelect.add(new Option(name, name)));
+  instrumentSelect.addEventListener("change", (event) => actions.setInstrument(selectedLayerId, event.target.value));
 
   // Layer name editing: commit on blur or Enter.
   const nameInput = document.getElementById("refine-track-name");

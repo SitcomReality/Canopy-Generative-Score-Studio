@@ -265,12 +265,11 @@ const actions = {
     store.updateProject({ layers });
   },
 
-  setInstrument(instrument) {
-    const { selectedTrack } = store.get();
+  setInstrument(layerId, instrument) {
     const layers = store.get().project.layers.map((layer) =>
-      layer.id === selectedTrack ? { ...layer, instrument } : layer);
+      layer.id === layerId ? { ...layer, instrument } : layer);
     store.updateProject({ layers });
-    engine?.setInstrument(selectedTrack, instrument);
+    engine?.setInstrument(layerId, instrument);
   },
 
   setProgression(name) {
