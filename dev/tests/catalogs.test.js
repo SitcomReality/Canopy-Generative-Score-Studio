@@ -39,13 +39,17 @@ test("roman numerals cover 7 degrees", () => {
   assert.equal(ROMAN_NUMERALS.length, 7);
 });
 
-test("contexts have unique ids, names, and small tempo offsets", () => {
+test("contexts have unique ids, names, icons, and axis targets", () => {
   const ids = new Set();
   for (const context of CONTEXTS) {
     assert.ok(!ids.has(context.id), `duplicate context ${context.id}`);
     ids.add(context.id);
     assert.ok(context.name && context.short && context.icon);
-    assert.ok(Number.isInteger(context.tempoOffset) && context.tempoOffset >= 0 && context.tempoOffset <= 40);
+    // v4: contexts carry a targets axis vector over the canonical axes.
+    for (const axis of ["intensity", "tension", "brightness"]) {
+      assert.ok(Number.isFinite(context.targets?.[axis]), `${context.id} missing ${axis} target`);
+      assert.ok(context.targets[axis] >= 0 && context.targets[axis] <= 1, `${context.id} ${axis} out of range`);
+    }
   }
   assert.deepEqual([...ids].sort(), ["combat", "explore", "unease"]);
 });

@@ -23,6 +23,10 @@ src/
   utils/              download helpers, class-name join
   styles/             one stylesheet per visual area (+ responsive.css)
   partials/           .inc.html markup included into the template
+  dynamics.js         (in music/) shared reactive-dynamics decision core:
+                      axes, context targets, bindings, layer activity/fills/
+                      automation resolution. Pure and Tone-free; consumed by
+                      audio-engine.js and spliced verbatim into runtime-module.js.
 ```
 
 ## 2. Layer rules
@@ -44,14 +48,21 @@ their init functions in `main.js`.
 ## 3. Invariants
 
 - **Harmony guard**: every note is derived via `scaleMidi()` /
-  `chordNotes()` in `src/music/scale-math.js`. Never compute pitches outside
-  that module.
-- **Bar-boundary transitions**: adaptive context changes are queued and only
-  applied on steps 0 and 8 inside `audio-engine.js`.
-- **Schema stability**: the project object (`version: 1`) round-trips through
+  `chordNotes()` in `src/music/scale-math.js` (studio) or the vendored
+  `note()`/`chord()` in the emitted runtime. Never compute pitches outside
+  those. The decision core (`dynamics.js`) only ever returns scale degrees.
+- **Bar-boundary transitions**: adaptive context/axis changes are queued and
+  only applied on steps 0 and 8 inside `audio-engine.js`/the runtime. Never
+  mid-chord cuts.
+- **One adaptive core**: `src/music/dynamics.js` is the single source of truth
+  for reactive decisions; `runtime-module.js` splices it verbatim into emitted
+  `.score.js` files. `dev/tests/dynamics-parity.test.js` fails if they ever
+  drift.
+- **Schema stability**: the project object (`version: 4`) round-trips through
   localStorage key `canopy-project`, `.canopy.json` export/import, and is
-  embedded verbatim in exported `.score.js` files. Bump the version and
-  extend `hydrateProject` before breaking its shape.
+  embedded verbatim in exported `.score.js`. `hydrateProject` migrates v1/v2/v3
+  to v4 defaults. Bump the version and extend `hydrateProject` before breaking
+  its shape.
 - **Runtime API**: generated `.score.js` files are consumed in users' games;
   their public surface (`startScore`, `stopScore`, `setGameMusicState`,
   `musicEvent`, `disposeScore`) must stay stable.

@@ -10,9 +10,9 @@ Canopy is a browser-based **generative/adaptive music studio** for game develope
 
 There is no backend, no server, no database. Projects persist in `localStorage` under the key `canopy-project`. The UI language of the product is English.
 
-The project schema (version 3) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/energyRole parameters. Song-level fields are bpm, key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth) and variationSeed.
+The project schema (version 4) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/energyRole parameters plus reactive fields (`activity`, `fills`, `automation`). Song-level fields are bpm, key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth) and variationSeed. **Reactive dynamics live in the JSON**: a declarative axis space (`axes`), context presets with axis targets (`contexts`), song-level bindings (`bindings`), and per-layer activity/fills/automation. The adaptive behavior that used to be hardcoded in the two engines now lives in the schema, so a consumed `.score.js` reacts identically to the studio preview. See `dev/docs/dynamicsConvention.md`.
 
-**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/longFormVariation.md`, which now describes the shipped design.
+**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/longFormVariation.md`. The **reactive dynamics core** (schema v4) in `src/music/dynamics.js` is the single source of truth for adaptive decisions; the exported runtime splices it verbatim into `.score.js`, and `dev/tests/dynamics-parity.test.js` guards against drift.
 
 ## Tech stack
 
@@ -42,14 +42,16 @@ dev/scripts/build.py   .inc.html -> index.html stitcher (--watch)
 dev/scripts/check_imports.py  import/symbol checker + informational layer report
 dev/tests/             node:test suite for the pure music modules (npm test)
 dev/docs/systemArchitecture.md layout, layer rules, invariants
-dev/docs/longFormVariation.md  design sketch for the future long-form variation/dynamics system (not implemented)
+dev/docs/longFormVariation.md  design & implementation of the long-form variation/dynamics system (shipped in v3)
+dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 src/
   main.js              composition root: store instance, all actions, view wiring
   music/               pure music-theory modules, one concern per file:
                        note-names, keys, scales, progressions, scale-math,
                        contexts, tracks, instruments (preset catalog),
-                       default-project (schema + hydrate),
-                       melody-composer, midi-adapter, runtime-module (template)
+                       default-project (schema + hydrate), dynamics,
+                       variation, melody-composer, midi-adapter,
+                       runtime-module (template)
   audio/audio-engine.js  Tone graph + 16-step sequencer
   state/app-state.js   pub/sub store + localStorage persistence
   ui/                  one module per view region (header, transport-bar,
@@ -68,14 +70,15 @@ Keep new code modular with descriptive single-purpose filenames. Pure music-theo
 
 - Double quotes, semicolons, trailing commas — match surrounding code; there is no Prettier/ESLint config.
 - All styling lives in `src/styles/*.css` using semantic class names (e.g. `.transport-bar`). Do not introduce inline styles except dynamic custom properties (e.g. slider fills).
-- Musical logic must respect the "harmony guard": every generated note derives from `scaleMidi()` / `chordNotes()` in `src/music/scale-math.js`. Nothing ever leaves the chosen key/scale.
+- Musical logic must respect the "harmony guard": every generated note derives from `scaleMidi()` / `chordNotes()` in `src/music/scale-math.js` (studio) or the vendored `note()`/`chord()` in the runtime. Nothing ever leaves the chosen key/scale; `src/music/dynamics.js` only ever emits scale degrees.
 - Adaptive transitions are queued and applied only on bar boundaries (steps 0 and 8) inside `audio-engine.js`; keep state changes musical, never mid-chord cuts.
-- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameMusicState`, `musicEvent`, `disposeScore`) because exported files are consumed in users' games.
+- **Reactive dynamics live in `src/music/dynamics.js`** (pure, Tone-free) and are driven entirely by the JSON schema (axes/contexts/bindings/activity/fills/automation) — do not hardcode context-dependent rules in the engines. The exported runtime splices `dynamics.js` verbatim (see `runtimeModule()` in `music/runtime-module.js`).
+- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameMusicState`, `musicEvent`, `disposeScore`) because exported files are consumed in users' games. Do not hand-edit the spliced block — edit `dynamics.js` instead, and keep `dev/tests/dynamics-parity.test.js` green.
 - After editing any partial or the template, run `build.py` (or keep `--watch` running) before verifying changes.
 
 ## Testing
 
-Automated tests live in `dev/tests/*.test.js` (node:test, no framework) and cover the pure `src/music/` modules: note naming, the harmony guard (`scale-math`), project schema/hydration round-trips, the melody composer's structural invariants, and the static catalogs. Run them with `npm test` — the suite must exit 0 before any commit.
+Automated tests live in `dev/tests/*.test.js` (node:test, no framework) and cover the pure `src/music/` modules: note naming, the harmony guard (`scale-math`), project schema/hydration round-trips (including v1/v2/v3→v4 migration), the melody composer's structural invariants, the reactive-dynamics core, the static catalogs, and `dev/tests/dynamics-parity.test.js` (the emitted runtime's spliced decision core must always match `dynamics.js`). Run them with `npm test` — the suite must exit 0 before any commit.
 
 Minimum manual verification for UI changes:
 

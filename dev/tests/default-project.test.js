@@ -134,3 +134,42 @@ test("JSON round-trip through hydrateProject is lossless", () => {
   const round = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
   assert.deepEqual(hydrateProject(round), DEFAULT_PROJECT);
 });
+
+test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/fills/automation", () => {
+  const v3 = {
+    version: 3,
+    name: "Legacy",
+    bpm: 90,
+    key: "G",
+    scale: "Dorian",
+    progression: [0, 4, 5, 3],
+    reverb: 40,
+    swing: 10,
+    journey: { shape: "arc", length: 16, depth: 40 },
+    variationSeed: 7,
+    layers: [{ id: "perc", name: "Drums", role: "percussion", instrument: "Soft pluck", density: 60, variation: 10, humanize: 5, restWindow: 0, energyRole: "recessive", steps: [true, false, false, false, true, false, true, false, true, false, true, false, true, false, true, false] }],
+  };
+  const hydrated = hydrateProject(v3);
+  // v3 -> v4: reactive fields get defaults.
+  assert.equal(hydrated.version, 4);
+  assert.deepEqual(hydrated.axes, DEFAULT_PROJECT.axes);
+  assert.deepEqual(hydrated.bindings, DEFAULT_PROJECT.bindings);
+  assert.deepEqual(hydrated.contexts, DEFAULT_PROJECT.contexts);
+  // Legacy v3 layer had no reactive fields -> defaults applied: activity/fills
+  // stay null; automation defaults to the index-matched fallback layer's
+  // automation (DEFAULT_LAYERS[0] = chords here), never undefined.
+  assert.equal(hydrated.layers[0].activity, null);
+  assert.equal(hydrated.layers[0].fills, null);
+  assert.ok(Array.isArray(hydrated.layers[0].automation) && hydrated.layers[0].automation.length > 0);
+
+  // A v4 score carrying explicit reactive fields is preserved (and the
+  // percussion default activity survives).
+  const v4 = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+  v4.bindings = [{ target: "tempo.offset", axis: "tension", domain: [0, 18] }];
+  const again = hydrateProject(v4);
+  assert.deepEqual(again.bindings, v4.bindings);
+  const perc = again.layers.find((l) => l.id === "percussion");
+  assert.deepEqual(perc.activity, { axis: "intensity", range: [0.35, 1] });
+  assert.ok(Array.isArray(perc.automation) && perc.automation.length > 0);
+  assert.deepEqual(perc.fills, [{ at: [8, 11, 14], axis: "intensity", threshold: 0.5 }, { at: [12], axis: "intensity", threshold: 0.7 }]);
+});

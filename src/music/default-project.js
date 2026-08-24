@@ -1,14 +1,29 @@
-// The serialized project schema (version 3). Keep this shape stable: exported
+// The serialized project schema (version 4). Keep this shape stable: exported
 // .canopy.json files and saved localStorage drafts must keep round-tripping.
-// Version 2 moved per-track data (notes, voice, density/variation/humanize,
-// mute) into a `layers` array so layers can be added, removed and renamed.
-// Version 3 added long-form fields: per-layer restWindow + energyRole, and
-// song-level journey (macro energy curve) + variationSeed. hydrateProject
-// still accepts version 1 flat projects and version 2 layer projects.
+// Version 2 moved per-track data into a `layers` array so layers can be added,
+// removed and renamed. Version 3 added long-form fields: per-layer restWindow +
+// energyRole, song-level journey + variationSeed. Version 4 adds the reactive
+// dynamics contract: song-level `axes`/`contexts`/`bindings` and per-layer
+// `activity`/`fills`/`automation`. The adaptive behavior that used to be
+// hardcoded in the two playback engines now lives here in the JSON, so an
+// exported score encodes *how it reacts*, not just *what it plays*.
+// hydrateProject still accepts version 1 flat projects, version 2 layer
+// projects, and version 3 projects (migrating them to v4 defaults).
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
+import { CONTEXTS } from "./contexts.js";
+import { clamp01, domainValue } from "./dynamics.js";
 
-export const PROJECT_VERSION = 3;
+// Re-exported so schema consumers share the single source of truth for these
+// helpers (see dev/tests/dynamics-parity.test.js).
+export { clamp01, domainValue };
+
+export const PROJECT_VERSION = 4;
+
+// The canonical reactive axes every context target and every binding maps
+// from. Each is a continuous 0..1 dimension; the game (or a context preset)
+// steers these and the engine derives musical parameters from them.
+export const DEFAULT_AXES = ["intensity", "tension", "brightness"];
 
 export const EMPTY_STEPS = Array.from({ length: 16 }, () => false);
 
@@ -27,6 +42,26 @@ export const LAYER_ROLES = {
   percussion: { label: "Rhythm", kind: "steps" },
 };
 
+// Song-level reactive space. `contexts` are named presets over `axes`
+// (derived from music/contexts.js CONTEXTS); `bindings` map an axis to a
+// song-level parameter (currently tempo.offset, which replaces the old
+// hardcoded explore/unease/combat bpm table).
+export const AXES = {
+  intensity: { label: "Intensity" },
+  tension: { label: "Tension" },
+  brightness: { label: "Brightness" },
+};
+
+export const DEFAULT_CONTEXTS = CONTEXTS.map(({ id, name, targets }) => ({
+  id,
+  label: name,
+  targets: { ...targets },
+}));
+
+export const DEFAULT_BINDINGS = [
+  { target: "tempo.offset", axis: "intensity", domain: [0, 26] },
+];
+
 export const DEFAULT_LAYERS = [
   {
     id: "chords",
@@ -41,6 +76,12 @@ export const DEFAULT_LAYERS = [
     humanize: 10,
     restWindow: 0,
     energyRole: "balanced",
+    activity: null,
+    fills: null,
+    automation: [
+      { param: "velocity", axis: "intensity", domain: [0.22, 0.3] },
+      { param: "duration", axis: "intensity", domain: ["1m", "2n"] },
+    ],
     steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
   },
   {
@@ -56,6 +97,14 @@ export const DEFAULT_LAYERS = [
     humanize: 18,
     restWindow: 0,
     energyRole: "balanced",
+    activity: null,
+    fills: null,
+    automation: [
+      { param: "velocity", axis: "intensity", domain: [0.4, 0.58] },
+      { param: "duration", axis: "intensity", domain: ["4n", "8n"] },
+      { param: "density", axis: "tension", domain: [0.5, 0.98] },
+      { param: "octave", axis: "intensity", domain: [4, 5] },
+    ],
     steps: [4, null, 6, 5, 4, 2, null, 1, 2, null, 4, 3, 2, 1, null, 0],
   },
   {
@@ -71,6 +120,14 @@ export const DEFAULT_LAYERS = [
     humanize: 8,
     restWindow: 0,
     energyRole: "balanced",
+    activity: null,
+    fills: [
+      { at: [7, 15], axis: "intensity", threshold: 0.6 },
+    ],
+    automation: [
+      { param: "velocity", axis: "intensity", domain: [0.32, 0.56] },
+      { param: "duration", axis: "intensity", domain: ["4n", "8n"] },
+    ],
     steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
   },
   {
@@ -86,6 +143,17 @@ export const DEFAULT_LAYERS = [
     humanize: 12,
     restWindow: 0,
     energyRole: "recessive",
+    activity: { axis: "intensity", range: [0.35, 1] },
+    fills: [
+      { at: [8, 11, 14], axis: "intensity", threshold: 0.5 },
+      { at: [12], axis: "intensity", threshold: 0.7 },
+    ],
+    automation: [
+      { param: "kickProps", axis: "intensity", domain: [{ midi: "D1", vel: 0.25 }, { midi: "C1", vel: 0.68 }] },
+      { param: "kick.velocity", axis: "intensity", domain: [0.25, 0.68] },
+      { param: "hat.velocity", axis: "intensity", domain: [0.16, 0.32] },
+      { param: "hat.variation", axis: "intensity", domain: [0.0, 0.3] },
+    ],
     steps: [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false],
   },
 ];
@@ -102,6 +170,9 @@ export const DEFAULT_PROJECT = {
   swing: 8,
   journey: { shape: "flat", length: 16, depth: 35 },
   variationSeed: 0,
+  axes: AXES,
+  contexts: DEFAULT_CONTEXTS,
+  bindings: DEFAULT_BINDINGS,
   layers: DEFAULT_LAYERS,
 };
 
@@ -121,6 +192,62 @@ function clampInt(value, min, max, fallback) {
   const num = Number(value);
   if (!Number.isFinite(num)) return fallback;
   return Math.max(min, Math.min(max, Math.round(num)));
+}
+
+// Canonical reactive axes: { id: { label } }. Whitelisted to the DEFAULT_AXES
+// set so an imported score can't silently grow unknown axes.
+function sanitizeAxes(value) {
+  if (!value || typeof value !== "object") return { ...AXES };
+  const out = {};
+  for (const id of DEFAULT_AXES) {
+    const raw = value[id];
+    out[id] = { label: typeof raw?.label === "string" && raw.label ? raw.label : AXES[id].label };
+  }
+  return out;
+}
+
+// Named context presets over the axes: { id, label, targets }. Defaults to
+// the DEFAULT_CONTEXTS list when missing; unknown ids are dropped.
+function sanitizeContexts(value) {
+  if (!Array.isArray(value) || value.length === 0) return DEFAULT_CONTEXTS.map((ctx) => ({ ...ctx, targets: { ...ctx.targets } }));
+  const known = new Set(DEFAULT_CONTEXTS.map((ctx) => ctx.id));
+  const out = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const id = typeof raw.id === "string" && raw.id ? raw.id : null;
+    if (!id || !known.has(id)) continue;
+    const fallback = DEFAULT_CONTEXTS.find((ctx) => ctx.id === id);
+    const targets = {};
+    for (const axis of DEFAULT_AXES) {
+      targets[axis] = clamp01(raw.targets?.[axis], fallback.targets[axis]);
+    }
+    out.push({
+      id,
+      label: typeof raw.label === "string" && raw.label ? raw.label : fallback.label,
+      targets,
+    });
+  }
+  return out.length > 0 ? out : DEFAULT_CONTEXTS.map((ctx) => ({ ...ctx, targets: { ...ctx.targets } }));
+}
+
+// Song-level axis->parameter maps. Only known targets are kept.
+function sanitizeBindings(value) {
+  if (!Array.isArray(value)) return DEFAULT_BINDINGS.map((b) => ({ ...b, domain: [...b.domain] }));
+  const out = [];
+  for (const raw of value) {
+    if (
+      !raw ||
+      typeof raw !== "object" ||
+      typeof raw.target !== "string" ||
+      typeof raw.axis !== "string" ||
+      !Array.isArray(raw.domain) ||
+      raw.domain.length < 2
+    ) {
+      continue;
+    }
+    out.push({ target: raw.target, axis: raw.axis, domain: [...raw.domain] });
+  }
+  return out.length > 0 ? out : DEFAULT_BINDINGS.map((b) => ({ ...b, domain: [...b.domain] }));
 }
 
 const JOURNEY_SHAPES = ["flat", "arc", "tide"];
@@ -146,6 +273,59 @@ function sanitizeSteps(value, fallback) {
   return [...value.slice(0, 16), ...EMPTY_STEPS].slice(0, 16).map(Boolean);
 }
 
+// A layer's automation: an array of { param, axis, domain }. The engine
+// looks up per-param live values driven by a reactive axis. Kept shallow
+// so the runtime can vendor the same lookup trivially.
+function sanitizeAutomation(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (entry) =>
+        entry &&
+        typeof entry === "object" &&
+        typeof entry.param === "string" &&
+        typeof entry.axis === "string" &&
+        Array.isArray(entry.domain) &&
+        entry.domain.length >= 2,
+    )
+    .map((entry) => ({ param: entry.param, axis: entry.axis, domain: [...entry.domain] }));
+}
+
+// A layer's fills: { at: [steps], axis, threshold } — extra hits injected at
+// those steps when the axis is high. Returns [] if anything is malformed.
+const FILL_STEP = (value) => (Number.isInteger(value) && value >= 0 && value < 16 ? value : null);
+
+function sanitizeFills(value) {
+  if (!Array.isArray(value)) return null;
+  const out = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const at = Array.isArray(raw.at) ? raw.at.map(FILL_STEP).filter((v) => v !== null) : [];
+    if (at.length === 0 || typeof raw.axis !== "string" || typeof raw.threshold !== "number") continue;
+    out.push({ at, axis: raw.axis, threshold: Math.max(0, Math.min(1, raw.threshold)) });
+  }
+  return out.length > 0 ? out : null;
+}
+
+// A layer's activity gate: silent outside a per-axis 0..1 range. Single-axis
+// form { axis, range:[min,max] } preserved; a map of axis->range collapses to
+// the tightest single range for v4.
+function sanitizeActivity(value) {
+  if (!value || typeof value !== "object") return null;
+  const norm = (n) => clamp01(n, 0.5);
+  const axis = typeof value.axis === "string" ? value.axis : null;
+  const range = Array.isArray(value.range) && value.range.length === 2 ? value.range.map(norm) : null;
+  if (axis && range) return { axis, range };
+  // Map form: { intensity:[0.2,1], ... } — keep the tightest range across axes.
+  let best = null;
+  for (const r of Object.values(value)) {
+    if (!Array.isArray(r) || r.length !== 2) continue;
+    const [lo, hi] = r.map(norm);
+    if (!best || hi - lo < best.to - best.from) best = { from: lo, to: hi };
+  }
+  return best;
+}
+
 function sanitizeLayer(raw, index, usedIds) {
   const fallback = DEFAULT_LAYERS[index] ?? DEFAULT_LAYERS[1];
   const role = raw && raw.role in LAYER_ROLES ? raw.role : "motif";
@@ -166,6 +346,9 @@ function sanitizeLayer(raw, index, usedIds) {
     humanize: clampPercent(raw?.humanize, fallback.humanize),
     restWindow: clampInt(raw?.restWindow, 0, 8, fallback.restWindow ?? 0),
     energyRole: ENERGY_ROLES.includes(raw?.energyRole) ? raw.energyRole : "balanced",
+    activity: raw?.activity !== undefined ? sanitizeActivity(raw.activity) : (fallback.activity ?? null),
+    fills: raw?.fills !== undefined ? sanitizeFills(raw.fills) : (fallback.fills ?? null),
+    automation: raw?.automation !== undefined ? sanitizeAutomation(raw.automation) : (fallback.automation ?? []),
     steps: kind === "degrees" ? sanitizeDegrees(raw?.steps, fallback.steps) : sanitizeSteps(raw?.steps, fallback.steps),
   };
 }
@@ -226,6 +409,9 @@ export function hydrateProject(value) {
     reverb: clampPercent(source.reverb, DEFAULT_PROJECT.reverb),
     swing: clampPercent(source.swing, DEFAULT_PROJECT.swing),
     journey: sanitizeJourney(source.journey),
+    axes: sanitizeAxes(source.axes),
+    contexts: sanitizeContexts(source.contexts),
+    bindings: sanitizeBindings(source.bindings),
     variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
       ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))

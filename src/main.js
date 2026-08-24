@@ -305,6 +305,9 @@ const actions = {
       humanize: 15,
       restWindow: 0,
       energyRole: "balanced",
+      activity: null,
+      fills: null,
+      automation: [],
       steps: Array(16).fill(null),
     };
     store.updateProject({ layers: [...project.layers, layer] });

@@ -19,6 +19,7 @@ edit a partial, this script restitches index.html, Live Server reloads.
 """
 import os
 import re
+import subprocess
 import sys
 import time
 
@@ -58,12 +59,21 @@ def resolve_includes(text, source):
 
 
 def build():
+    regen_vendored()
     with open(TEMPLATE, "r", encoding="utf-8") as handle:
         template = handle.read()
     html = resolve_includes(template, "index.template.html")
     with open(OUTPUT, "w", encoding="utf-8") as handle:
         handle.write(html)
     print(f"built index.html ({len(html)} bytes)")
+
+
+def regen_vendored():
+    """Regenerate src/music/dynamics.vendored.js from dynamics.js (the browser
+    cannot read the filesystem at export time, so the shared decision core is
+    precomputed into a string module). Runs on every build."""
+    script = os.path.join(ROOT, "dev", "scripts", "vendor_dynamics.mjs")
+    subprocess.run(["node", script], check=True, stdout=subprocess.DEVNULL)
 
 
 def inputs():

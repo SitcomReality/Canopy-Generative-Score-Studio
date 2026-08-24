@@ -1,12 +1,22 @@
 // Web Audio graph + 16-step sequencer, built on the vendored Tone global.
 // The transport callback reads live values from the passed-in `store`, so
 // parameter changes apply without re-subscribing. Every project layer gets
-// its own voice(s), shaped by its role. Adaptive context changes are only
-// applied on bar boundaries (steps 0 and 8).
+// its own voice(s), shaped by its role. Adaptive *decisions* (activity,
+// automation, fills, context -> axis -> parameter) come from the shared pure
+// core in ../music/dynamics.js, never from hardcoded context rules here.
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
 import { instrumentSettings } from "../music/instruments.js";
-import { mutateMotif, journeyEnergy, makeRng } from "../music/variation.js";
+import { mutateMotif, makeRng } from "../music/variation.js";
+import {
+  computeStepFrame,
+  contextTargets,
+  easeToward,
+  tempoOffset,
+  journeyGain,
+  layerActive,
+} from "../music/dynamics.js";
+import { journeyEnergy } from "../music/variation.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -72,6 +82,8 @@ export function createAudioEngine(store) {
   let barCount = 0;
   const restCounter = {};
   const resting = {};
+  // The live axis vector, eased toward the active context's targets each bar.
+  let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
   // Seeded determinism: a non-zero variationSeed reproduces the same drift
   // sequence; 0 (the default) is fully random. Reset on each playback.
   let driftRng = Math.random;
@@ -93,7 +105,12 @@ export function createAudioEngine(store) {
     if (isBar && queuedContext) {
       context = queuedContext;
       store.set({ currentContext: context, queuedContext: null });
-      transport.bpm.rampTo(score.bpm + ({ explore: 0, unease: 8, combat: 22 })[context], 0.6);
+    }
+
+    // Ease live axes toward the active context's targets every bar boundary.
+    if (isBar) {
+      liveAxes = easeToward(liveAxes, contextTargets(score, context), 0.5);
+      transport.bpm.rampTo(score.bpm + tempoOffset(score, liveAxes), 0.6);
     }
 
     // Bar-boundary phrase drift for motif layers (long-form variation).
@@ -110,14 +127,13 @@ export function createAudioEngine(store) {
       barCount += 1;
       const journey = score.journey ?? { shape: "flat", length: 16, depth: 0 };
       const energy = journeyEnergy(journey.shape, journey.depth, barCount, journey.length);
-      const biasOf = (role) => (role === "forward" ? 3 : role === "recessive" ? -3 : 1.5);
       for (const layer of score.layers) {
         restCounter[layer.id] = (restCounter[layer.id] ?? 0) + 1;
         const window = layer.restWindow ?? 0;
         resting[layer.id] = window > 0 && restCounter[layer.id] % (window + 1) === 0;
         const voice = voices[layer.id];
-        if (!voice || layer.muted) continue;
-        const delta = ((energy - 0.5) * 2) * biasOf(layer.energyRole);
+        if (!voice || layer.muted || resting[layer.id] || !layerActive(layer, liveAxes)) continue;
+        const delta = journeyGain(layer, energy);
         if (voice.kind === "drums") {
           voice.kick.volume.rampTo(-10 + delta, 0.8);
           voice.hat.volume.rampTo(-24 + delta, 0.8);
@@ -128,62 +144,30 @@ export function createAudioEngine(store) {
       }
     }
 
-    const contextDensity = context === "combat" ? 0.98 : context === "unease" ? 0.76 : 0.5;
-    const chordDegree = score.progression[Math.floor(step / 4) % score.progression.length];
-
+    // Feed the project runtime state the shared core needs to resolve events.
+    const restingIds = score.layers.filter((layer) => resting[layer.id]).map((layer) => layer.id);
+    const features = {};
     for (const layer of score.layers) {
-      const voice = voices[layer.id];
-      if (!voice || layer.muted || resting[layer.id]) continue;
-      const humanDelay = Math.random() * (layer.humanize / 100) * 0.035;
+      features[layer.id] = { steps: perfSteps[layer.id] ?? layer.steps };
+    }
+    const events = computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng);
 
-      if (voice.kind === "chords") {
-        if (layer.steps[step]) {
-          voice.synth.triggerAttackRelease(
-            chordNotes(score, chordDegree),
-            context === "combat" ? "2n" : "1m",
-            time,
-            context === "combat" ? 0.3 : 0.22,
-          );
-        }
-      } else if (voice.kind === "melody") {
-        const phrase = perfSteps[layer.id] ?? layer.steps;
-        let degree = phrase[step];
-        if (degree !== null && Math.random() < 0.12 * (layer.variation / 100)) {
-          degree = Math.max(0, Math.min(7, degree + (Math.random() > 0.5 ? 1 : -1)));
-        }
-        if (degree === null && Math.random() < 0.08 * (layer.variation / 100) * contextDensity) {
-          degree = Math.max(0, Math.min(7, chordDegree + (Math.random() > 0.5 ? 2 : 4)));
-        }
-        if (degree !== null && Math.random() < layer.density / 100 + 0.24) {
-          const octave = context === "combat" && step % 4 === 3 ? 5 : 4;
-          const velocity = context === "combat" ? 0.58 : context === "unease" ? 0.48 : 0.4;
-          voice.synth.triggerAttackRelease(
-            midiToNote(scaleMidi(score, degree, octave)),
-            context === "explore" ? "4n" : "8n",
-            time + humanDelay,
-            velocity,
-          );
-        }
-      } else if (voice.kind === "bass") {
-        const active = layer.steps[step] || (context === "unease" && step % 4 === 2) || (context === "combat" && step % 2 === 0);
-        if (active) {
-          voice.synth.triggerAttackRelease(
-            midiToNote(scaleMidi(score, chordDegree, 2)),
-            context === "combat" ? "8n" : "4n",
-            time + humanDelay * 0.45,
-            context === "combat" ? 0.56 : 0.32,
-          );
-        }
-      } else if (voice.kind === "drums") {
-        const active = layer.steps[step] || (context === "combat" && step % 2 === 0);
-        if (active) {
-          if (step % 4 === 0 || context === "combat") {
-            voice.kick.triggerAttackRelease(context === "combat" ? "C1" : "D1", "16n", time, context === "combat" ? 0.68 : 0.25);
-          }
-          if (context !== "explore" || Math.random() < (layer.variation / 100) * 0.3) {
-            voice.hat.triggerAttackRelease("32n", time + humanDelay * 0.7, context === "combat" ? 0.32 : 0.16);
-          }
-        }
+    for (const ev of events) {
+      const voice = voices[ev.layerId];
+      if (!voice) continue;
+      if (ev.kind === "chord") {
+        voice.synth.triggerAttackRelease(chordNotes(score, ev.degree), ev.duration, time + (ev.offset ?? 0), ev.velocity);
+      } else if (ev.kind === "scale") {
+        voice.synth.triggerAttackRelease(
+          midiToNote(scaleMidi(score, ev.degree, ev.octave)),
+          ev.duration,
+          time + (ev.offset ?? 0),
+          ev.velocity,
+        );
+      } else if (ev.kind === "kick") {
+        voice.kick.triggerAttackRelease(ev.pitch ?? "D1", ev.duration, time + (ev.offset ?? 0), ev.velocity);
+      } else if (ev.kind === "hat") {
+        voice.hat.triggerAttackRelease("32n", ev.duration, time + (ev.offset ?? 0), ev.velocity);
       }
     }
 
@@ -197,7 +181,8 @@ export function createAudioEngine(store) {
       // Triumph resolves: the music settles back into unthreatened
       // exploration from this same bar boundary.
       store.set({ victoryQueued: false, currentContext: "explore", queuedContext: null });
-      transport.bpm.rampTo(score.bpm, 0.6);
+      liveAxes = easeToward(liveAxes, contextTargets(score, "explore"), 1);
+      transport.bpm.rampTo(score.bpm + tempoOffset(score, liveAxes), 0.6);
     }
 
     store.set({ step: (step + 1) % 16 });
@@ -211,7 +196,7 @@ export function createAudioEngine(store) {
       transport.swing = value / 100;
     },
     setTempo(bpm) {
-      const offset = ({ combat: 22, unease: 8, explore: 0 })[store.get().currentContext] ?? 0;
+      const offset = tempoOffset(store.get().project, liveAxes);
       transport.bpm.rampTo(bpm + offset, 0.6);
     },
     setInstrument(layerId, instrument) {
