@@ -7,6 +7,7 @@ import {
   EMPTY_STEPS,
   LAYER_ROLES,
   PROJECT_VERSION,
+  convertStepsForRole,
   hydrateProject,
 } from "../../src/music/default-project.js";
 
@@ -118,6 +119,15 @@ test("hydrateProject migrates version 1 flat projects", () => {
   assert.equal(byId.melody.variation, 22);
   assert.equal(byId.melody.humanize, 9);
   assert.equal(byId.chords.muted, false);
+});
+
+test("convertStepsForRole switches between step kinds without losing hits", () => {
+  const degrees = [0, null, 4, null, 7, null, null, null, null, null, null, null, null, null, null, 0];
+  const steps = convertStepsForRole(degrees, "motif", "harmony");
+  assert.deepEqual(steps.slice(0, 5), [true, false, true, false, true]);
+  const back = convertStepsForRole(steps, "harmony", "motif");
+  assert.deepEqual(back.slice(0, 5), [0, null, 0, null, 0]);
+  assert.deepEqual(convertStepsForRole(steps, "harmony", "bass"), steps);
 });
 
 test("JSON round-trip through hydrateProject is lossless", () => {

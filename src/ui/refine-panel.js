@@ -18,14 +18,28 @@ export function initRefinePanel(store, actions) {
   const instrumentSelect = document.getElementById("instrument-select");
   instrumentSelect.addEventListener("change", (event) => actions.setInstrument(event.target.value));
 
+  // Layer name editing: commit on blur or Enter.
+  const nameInput = document.getElementById("refine-track-name");
+  nameInput.addEventListener("change", () => actions.renameLayer(selectedLayerId, nameInput.value));
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") nameInput.blur();
+  });
+
+  const roleSelect = document.getElementById("role-select");
+  let selectedLayerId = null;
+  roleSelect.addEventListener("change", (event) => actions.setLayerRole(selectedLayerId, event.target.value));
+
   const progressionSelect = document.getElementById("progression-select");
   PROGRESSIONS.forEach((item) => progressionSelect.add(new Option(item.name, item.name)));
   progressionSelect.addEventListener("change", (event) => actions.setProgression(event.target.value));
 
-  function paintLayer(project, selectedTrack) {
-    const layer = project.layers.find((item) => item.id === selectedTrack) ?? project.layers[0];
+  function paintLayer(project, trackId) {
+    const layer = project.layers.find((item) => item.id === trackId) ?? project.layers[0];
+    selectedLayerId = layer.id;
     Object.keys(layerSliders).forEach((key) => layerSliders[key].set(layer[key]));
     instrumentSelect.value = layer.instrument;
+    roleSelect.value = layer.role;
+    if (document.activeElement !== nameInput) nameInput.value = layer.name;
   }
 
   function paintShared(project) {

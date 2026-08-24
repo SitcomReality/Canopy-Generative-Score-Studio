@@ -1,7 +1,7 @@
 // Entrypoint. Creates the app state, lazily builds the audio engine on the
 // first user gesture (browser autoplay policy), defines every user-facing
 // action, and wires the views.
-import { hydrateProject } from "./music/default-project.js";
+import { hydrateProject, DEFAULT_LAYERS, LAYER_ROLES, convertStepsForRole } from "./music/default-project.js";
 
 import { PROGRESSIONS } from "./music/progressions.js";
 import { composeMelody, makeSparser } from "./music/melody-composer.js";
@@ -27,6 +27,18 @@ function initializeAudio() {
   if (!engine) engine = createAudioEngine(store);
   return engine;
 }
+
+// Adding/removing layers or changing a layer's role changes the synth graph,
+// so the engine is rebuilt (keeping playback state) instead of patched.
+function rebuildEngine() {
+  if (!engine) return;
+  const wasPlaying = store.get().playing;
+  engine.dispose();
+  engine = createAudioEngine(store);
+  if (wasPlaying) engine.play();
+}
+
+const LAYER_PALETTE = ["#9dc98d", "#f1c97a", "#d98868", "#b8a5d7", "#7fb8c9", "#c9a3b8"];
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -254,6 +266,74 @@ const actions = {
   setProgression(name) {
     const preset = PROGRESSIONS.find((item) => item.name === name);
     store.updateProject({ progressionName: preset.name, progression: preset.degrees });
+  },
+
+  addLayer() {
+    const { project } = store.get();
+    const index = project.layers.length;
+    const layer = {
+      id: `layer-${Date.now().toString(36)}`,
+      name: index >= DEFAULT_LAYERS.length ? `New layer ${index - DEFAULT_LAYERS.length + 1}` : "New layer",
+      detail: "Main motif",
+      role: "motif",
+      color: LAYER_PALETTE[index % LAYER_PALETTE.length],
+      muted: false,
+      instrument: "Glass bell",
+      density: 50,
+      variation: 30,
+      humanize: 15,
+      steps: Array(16).fill(null),
+    };
+    store.updateProject({ layers: [...project.layers, layer] });
+    store.set({ selectedTrack: layer.id });
+    rebuildEngine();
+    notify(`${layer.name} added — rename it in the Selected layer panel`);
+    actions.beginRenameLayer();
+  },
+
+  beginRenameLayer() {
+    const input = document.getElementById("refine-track-name");
+    if (!input) return;
+    input.focus();
+    input.select();
+  },
+
+  renameLayer(layerId, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === layerId ? { ...layer, name: trimmed } : layer);
+    store.updateProject({ layers });
+  },
+
+  removeLayer(layerId) {
+    const { project, selectedTrack } = store.get();
+    if (project.layers.length <= 1) {
+      notify("A score needs at least one layer");
+      return;
+    }
+    const layers = project.layers.filter((layer) => layer.id !== layerId);
+    store.updateProject({ layers });
+    if (selectedTrack === layerId) store.set({ selectedTrack: layers[0].id });
+    rebuildEngine();
+    notify("Layer removed");
+  },
+
+  setLayerRole(layerId, role) {
+    if (!layerId) return;
+    const { project } = store.get();
+    const layers = project.layers.map((layer) => {
+      if (layer.id !== layerId || layer.role === role) return layer;
+      return {
+        ...layer,
+        role,
+        detail: LAYER_ROLES[role].label,
+        steps: convertStepsForRole(layer.steps, layer.role, role),
+      };
+    });
+    store.updateProject({ layers });
+    rebuildEngine();
+    notify("Layer role changed");
   },
 };
 

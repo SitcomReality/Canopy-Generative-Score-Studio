@@ -6,6 +6,14 @@
 .panel-heading span, .sequence-heading > div > span { color: #5f6c64; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; }
 .panel-heading strong { color: #dfe6dc; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 400; }
 .panel-heading button { border: 0; background: transparent; color: #59665e; cursor: pointer; }
+.layer-menu-anchor { position: relative; }
+.layer-menu { position: absolute; right: 0; top: 26px; z-index: 20; min-width: 150px; display: flex; flex-direction: column; border: 1px solid #344139; background: #17211b; box-shadow: 0 10px 26px #00000066; }
+.layer-menu button { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 0; border-bottom: 1px solid #242f27; background: transparent; color: #9aa79d; font-size: 10px; text-align: left; cursor: pointer; }
+.layer-menu button:last-child { border-bottom: 0; }
+.layer-menu button:hover { background: #1f2b23; color: #e4e9e1; }
+.layer-menu button[data-layer-action="remove"]:hover { color: #e0a49b; }
+#refine-track-name { width: 100%; border: 0; border-bottom: 1px dashed transparent; background: transparent; color: #dfe6dc; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 400; padding: 0 0 2px; }
+#refine-track-name:focus { outline: none; border-bottom-color: #64744f; }
 .layer-list { padding: 10px 0; }
 .layer-row { width: 100%; min-height: 58px; position: relative; border: 0; display: flex; align-items: center; background: transparent; padding: 0 15px 0 17px; cursor: pointer; text-align: left; }
 .layer-row::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: transparent; }

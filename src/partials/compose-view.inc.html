@@ -49,7 +49,14 @@
       <aside class="layers-panel">
         <div class="panel-heading">
           <div><span>Sound world</span><strong>Layers</strong></div>
-          <button title="More layer options"><i data-icon="ellipsis" data-size="17"></i></button>
+          <div class="layer-menu-anchor">
+            <button title="More layer options" id="layer-options-button" aria-haspopup="true"><i data-icon="ellipsis" data-size="17"></i></button>
+            <div class="layer-menu" id="layer-menu" hidden>
+              <button data-layer-action="add"><i data-icon="plus" data-size="13"></i> Add layer</button>
+              <button data-layer-action="rename"><i data-icon="pencil" data-size="13"></i> Rename layer</button>
+              <button data-layer-action="remove"><i data-icon="trash-2" data-size="13"></i> Remove layer</button>
+            </div>
+          </div>
         </div>
         <div class="layer-list" id="layer-list"></div>
         <div class="layer-note">
@@ -84,11 +91,19 @@
 
       <aside class="refine-panel">
         <div class="panel-heading refine-heading">
-          <div><span>Selected layer</span><strong id="refine-track-name"></strong></div>
+          <div><span>Selected layer</span><input id="refine-track-name" aria-label="Layer name" maxlength="24" /></div>
           <span class="selected-dot" id="selected-dot"></span>
         </div>
 
         <div class="control-group">
+          <label class="select-label">Layer role
+            <select id="role-select">
+              <option value="motif">Main motif</option>
+              <option value="harmony">Harmony bed</option>
+              <option value="bass">Low pulse</option>
+              <option value="percussion">Rhythm</option>
+            </select>
+          </label>
           <label class="select-label">Voice character
             <select id="instrument-select">
               <option>Glass bell</option><option>Warm reed</option><option>Soft pluck</option>

@@ -153,8 +153,17 @@ function layersFromV1(value) {
   return DEFAULT_LAYERS.map((layer, index) => sanitizeLayer({ ...layer, ...overrides[layer.id] }, index, new Set()));
 }
 
-// Defensive deserialization: fill any missing/malformed field from defaults,
-// migrate version 1 projects, and keep valid version 2 projects round-trip
+// Convert a layer's steps between the two step kinds when its role changes
+// (e.g. motif -> harmony): degrees collapse to on/off, hits become the tonic.
+export function convertStepsForRole(steps, fromRole, toRole) {
+  const fromKind = LAYER_ROLES[fromRole].kind;
+  const toKind = LAYER_ROLES[toRole].kind;
+  if (fromKind === toKind) return [...steps];
+  if (toKind === "steps") return steps.map((step) => step !== null);
+  return steps.map((step) => (step ? 0 : null));
+}
+
+// Defensive deserialization: fill any missing/malformed field from defaults,// migrate version 1 projects, and keep valid version 2 projects round-trip
 // stable.
 export function hydrateProject(value) {
   const source = value && typeof value === "object" ? value : {};
