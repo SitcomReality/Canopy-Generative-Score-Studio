@@ -25,3 +25,15 @@ export function composeMelody(project, layer) {
 export function makeSparser(melody) {
   return melody.map((note, index) => (index % 4 !== 0 && Math.random() < 0.38 ? null : note));
 }
+
+// Generate an on/off pattern for a steps-kind layer, shaped by its role.
+// Harmony and bass anchor on the bar starts; percussion gets a livelier
+// skeleton. Density (the layer's own) drives how busy the result is.
+export function composePattern(layer) {
+  const density = (layer.density ?? 50) / 100;
+  return Array.from({ length: 16 }, (_, step) => {
+    if (layer.role === "harmony") return step % 4 === 0 || Math.random() < 0.12 * density;
+    if (layer.role === "bass") return step % 4 === 0 || Math.random() < 0.25 * density;
+    return step % 4 === 0 ? Math.random() < 0.9 : Math.random() < 0.45 * density;
+  });
+}

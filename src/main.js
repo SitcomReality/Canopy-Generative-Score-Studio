@@ -4,7 +4,7 @@
 import { hydrateProject, DEFAULT_LAYERS, LAYER_ROLES, convertStepsForRole } from "./music/default-project.js";
 
 import { PROGRESSIONS } from "./music/progressions.js";
-import { composeMelody, makeSparser } from "./music/melody-composer.js";
+import { composeMelody, composePattern, makeSparser } from "./music/melody-composer.js";
 import { runtimeModule } from "./music/runtime-module.js";
 import { buildMidi, melodyFromMidi } from "./music/midi-adapter.js";
 import { createAudioEngine } from "./audio/audio-engine.js";
@@ -39,6 +39,11 @@ function rebuildEngine() {
 }
 
 const LAYER_PALETTE = ["#9dc98d", "#f1c97a", "#d98868", "#b8a5d7", "#7fb8c9", "#c9a3b8"];
+
+// Route a compose request to the right generator for the layer's kind.
+function composeLayerSteps(project, layer) {
+  return LAYER_ROLES[layer.role].kind === "degrees" ? composeMelody(project, layer) : composePattern(layer);
+}
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -154,19 +159,24 @@ const actions = {
     store.updateProject({ layers });
   },
 
-  composeMelody() {
+  // target: "selected" | "all" | a layer id. Degree layers get a composed
+  // motif; on/off layers get a role-shaped pattern. Harmony guard holds
+  // because degrees only ever come from composeMelody (scale-wrapped).
+  composeLayers(target) {
     const { project, selectedTrack } = store.get();
-    const target = project.layers.find((layer) => layer.id === selectedTrack && layer.role === "motif")
-      ?? project.layers.find((layer) => layer.role === "motif");
-    if (!target) {
-      notify("Add a motif layer to compose a melody");
-      return;
-    }
+    const chosen = target === "all"
+      ? project.layers
+      : target === "selected"
+        ? project.layers.filter((layer) => layer.id === selectedTrack)
+        : project.layers.filter((layer) => layer.id === target);
+    if (chosen.length === 0) return;
+    const chosenIds = new Set(chosen.map((layer) => layer.id));
     const layers = project.layers.map((layer) =>
-      layer.id === target.id ? { ...layer, steps: composeMelody(project, layer) } : layer);
+      chosenIds.has(layer.id)
+        ? { ...layer, steps: composeLayerSteps(project, layer) }
+        : layer);
     store.updateProject({ layers });
-    store.set({ selectedTrack: target.id });
-    notify(`New in-key motif composed for ${target.name}`);
+    notify(`Composed: ${chosen.map((layer) => layer.name).join(", ")}`);
   },
 
   makeSparser() {

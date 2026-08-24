@@ -2,7 +2,7 @@
 // assert structural invariants over many runs rather than exact output.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { composeMelody, makeSparser } from "../../src/music/melody-composer.js";
+import { composeMelody, composePattern, makeSparser } from "../../src/music/melody-composer.js";
 import { SCALES } from "../../src/music/scales.js";
 import { DEFAULT_PROJECT } from "../../src/music/default-project.js";
 
@@ -39,6 +39,20 @@ test("composeMelody anchors phrase starts on chord degrees", () => {
 test("composeMelody always resolves the final step to the tonic", () => {
   for (let run = 0; run < 20; run += 1) {
     assert.equal(composeMelody(DEFAULT_PROJECT, DEFAULT_PROJECT.layers.find((l) => l.id === "melody"))[15], 0);
+  }
+});
+
+test("composePattern returns 16 booleans shaped by role and density", () => {
+  const base = { density: 100 };
+  for (const role of ["harmony", "bass", "percussion"]) {
+    for (let run = 0; run < 20; run += 1) {
+      const pattern = composePattern({ ...base, role });
+      assert.equal(pattern.length, 16);
+      for (const step of pattern) assert.equal(typeof step, "boolean");
+      if (role !== "percussion") {
+        assert.ok(pattern[0] && pattern[4] && pattern[8] && pattern[12], `${role} anchors bar starts`);
+      }
+    }
   }
 });
 

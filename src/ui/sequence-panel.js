@@ -8,7 +8,21 @@ import { chordLabel, scaleMidi } from "../music/scale-math.js";
 import { LAYER_ROLES } from "../music/default-project.js";
 
 export function initSequencePanel(store, actions) {
-  document.getElementById("compose-melody-button").addEventListener("click", actions.composeMelody);
+  const composeButton = document.getElementById("compose-melody-button");
+  const composeMenu = document.getElementById("compose-menu");
+  composeButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    composeMenu.hidden = !composeMenu.hidden;
+  });
+  composeMenu.addEventListener("click", (event) => {
+    const item = event.target.closest("[data-compose]");
+    if (!item) return;
+    composeMenu.hidden = true;
+    actions.composeLayers(item.dataset.compose);
+  });
+  document.addEventListener("click", (event) => {
+    if (!composeMenu.hidden && !event.target.closest(".compose-menu-anchor")) composeMenu.hidden = true;
+  });
   document.getElementById("sparser-button").addEventListener("click", actions.makeSparser);
 
   const roll = document.getElementById("piano-roll");
@@ -77,4 +91,15 @@ function render(roll, state) {
 
   roll.innerHTML = `<div class="roll-corner"><span>NOTE</span></div>${heads}${rows}
     <div class="roll-row chord-row"><div class="automation-label"><span>CHORDS</span></div>${chordCells}</div>`;
+
+  // Per-layer compose targets: one menu row per layer.
+  const menu = document.getElementById("compose-menu");
+  const perLayer = menu.querySelectorAll("[data-compose-layer]");
+  perLayer.forEach((node) => node.remove());
+  project.layers.forEach((entry) => {
+    const item = document.createElement("button");
+    item.dataset.composeLayer = entry.id;
+    item.textContent = entry.name;
+    menu.appendChild(item);
+  });
 }

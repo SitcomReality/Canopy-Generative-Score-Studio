@@ -75,7 +75,13 @@
           </div>
           <div class="sequence-tools">
             <button id="sparser-button">Make sparser</button>
-            <button class="magic-button" id="compose-melody-button"><i data-icon="wand-sparkles" data-size="15"></i> Compose for me</button>
+            <div class="compose-menu-anchor">
+              <button class="magic-button" id="compose-melody-button"><i data-icon="wand-sparkles" data-size="15"></i> Compose for me</button>
+              <div class="layer-menu compose-menu" id="compose-menu" hidden>
+                <button data-compose="selected">Selected layer</button>
+                <button data-compose="all">All layers</button>
+              </div>
+            </div>
           </div>
         </div>
 
