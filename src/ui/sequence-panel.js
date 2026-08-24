@@ -2,7 +2,8 @@
 // bass/rhythm automation rows. Fully re-rendered on project/step changes —
 // the grid is small enough that wholesale rebuilds stay cheap.
 import { SCALES } from "../music/scales.js";
-import { chordLabel, midiToNote, scaleMidi } from "../music/scale-math.js";
+import { midiToNote } from "../music/note-names.js";
+import { chordLabel, scaleMidi } from "../music/scale-math.js";
 
 export function initSequencePanel(store, actions) {
   document.getElementById("compose-melody-button").addEventListener("click", actions.composeMelody);
