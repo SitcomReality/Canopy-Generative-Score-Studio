@@ -5,7 +5,7 @@
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
 
-export function createAudioEngine(store, hooks) {
+export function createAudioEngine(store) {
   const project = store.get().project;
 
   const master = new Tone.Gain(0.74).toDestination();
@@ -111,7 +111,6 @@ export function createAudioEngine(store, hooks) {
       store.set({ victoryQueued: false });
     }
 
-    hooks.onStep(step);
     store.set({ step: (step + 1) % 16 });
   }
 

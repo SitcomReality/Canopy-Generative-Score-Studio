@@ -23,7 +23,7 @@ const store = createAppState();
 let engine = null;
 
 function initializeAudio() {
-  if (!engine) engine = createAudioEngine(store, {});
+  if (!engine) engine = createAudioEngine(store);
   return engine;
 }
 
