@@ -2,9 +2,9 @@
 
 This document explains how Canopy's music system works end-to-end, precisely
 enough that an LLM (or a human) can author a complete `.canopy.json` song
-file without reading the source. It complements `systemArchitecture.md`
-(engine/layout invariants) and `dynamicsConvention.md` (the v4 reactive
-import/export contract).
+file without reading the source. For consuming exported songs inside a game,
+see `gameIntegrationGuide.md`; `systemArchitecture.md` covers engine/layout
+invariants and `dynamicsConvention.md` the formal v4 reactive contract.
 
 The authoritative sources, if anything here seems ambiguous:
 

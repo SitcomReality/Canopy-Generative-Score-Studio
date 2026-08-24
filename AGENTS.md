@@ -43,6 +43,7 @@ dev/scripts/check_imports.py  import/symbol checker + informational layer report
 dev/tests/             node:test suite for the pure music modules (npm test)
 dev/docs/systemArchitecture.md layout, layer rules, invariants
 dev/docs/songAuthoringGuide.md  how the system works + the .canopy.json authoring contract
+dev/docs/gameIntegrationGuide.md  how to consume exported .score.js files in a game
 dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 src/
