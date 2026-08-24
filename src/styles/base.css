@@ -11,6 +11,9 @@ html { background: #0d1411; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #0d1411; }
 button, input, select { font: inherit; }
 button { color: inherit; }
+/* Hide native number-input spinners; they overlap compact values like BPM. */
+input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #d6ee9a; outline-offset: 2px; }
 ::selection { color: #10150f; background: #d6ee9a; }
 

@@ -2,7 +2,6 @@
 // note density, safe variation, human feel) and song-level shared controls
 // (reverb, rhythmic sway, chord path with roman numerals).
 import { PROGRESSIONS, ROMAN_NUMERALS } from "../music/progressions.js";
-import { INSTRUMENT_NAMES } from "../music/instruments.js";
 import { createParameterSlider } from "./parameter-slider.js";
 
 export function initRefinePanel(store, actions) {
@@ -29,10 +28,6 @@ export function initRefinePanel(store, actions) {
   const seedInput = document.getElementById("variation-seed-input");
   seedInput.addEventListener("change", () => actions.setVariationSeed(Number(seedInput.value)));
 
-  const instrumentSelect = document.getElementById("instrument-select");
-  INSTRUMENT_NAMES.forEach((name) => instrumentSelect.add(new Option(name, name)));
-  instrumentSelect.addEventListener("change", (event) => actions.setInstrument(selectedLayerId, event.target.value));
-
   // Layer name editing: commit on blur or Enter.
   const nameInput = document.getElementById("refine-track-name");
   nameInput.addEventListener("change", () => actions.renameLayer(selectedLayerId, nameInput.value));
@@ -40,9 +35,7 @@ export function initRefinePanel(store, actions) {
     if (event.key === "Enter") nameInput.blur();
   });
 
-  const roleSelect = document.getElementById("role-select");
   let selectedLayerId = null;
-  roleSelect.addEventListener("change", (event) => actions.setLayerRole(selectedLayerId, event.target.value));
 
   const progressionSelect = document.getElementById("progression-select");
   PROGRESSIONS.forEach((item) => progressionSelect.add(new Option(item.name, item.name)));
@@ -52,8 +45,6 @@ export function initRefinePanel(store, actions) {
     const layer = project.layers.find((item) => item.id === trackId) ?? project.layers[0];
     selectedLayerId = layer.id;
     Object.keys(layerSliders).forEach((key) => layerSliders[key].set(layer[key]));
-    instrumentSelect.value = layer.instrument;
-    roleSelect.value = layer.role;
     restWindowSelect.value = String(layer.restWindow ?? 0);
     if (document.activeElement !== nameInput) nameInput.value = layer.name;
   }

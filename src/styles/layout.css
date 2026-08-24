@@ -6,13 +6,13 @@
 .brand-lockup { width: 280px; display: flex; align-items: center; gap: 11px; cursor: pointer; flex: none; }
 .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #718261; color: #d8edaa; transform: rotate(-3deg); }
 .brand-name { font-family: Georgia, "Times New Roman", serif; font-size: 22px; letter-spacing: .17em; line-height: 1; color: #f1f2e9; }
-.brand-caption { margin-top: 5px; color: #78867d; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; }
+.brand-caption { margin-top: 5px; color: #78867d; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
 .main-tabs { height: 100%; display: flex; align-items: stretch; gap: 28px; }
 .main-tab { position: relative; display: flex; align-items: center; gap: 7px; border: 0; background: none; color: #849087; font-size: 12px; cursor: pointer; padding: 0 2px; }
 .main-tab:hover, .main-tab.active { color: #eef2e8; }
 .tab-underline { position: absolute; height: 2px; left: 0; right: 0; bottom: -1px; background: #cee598; }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.save-state { display: flex; align-items: center; gap: 5px; color: #66736b; font-size: 10px; margin-right: 4px; }
+.save-state { display: flex; align-items: center; gap: 5px; color: #66736b; font-size: 11px; margin-right: 4px; }
 .icon-action, .export-button { border: 1px solid #303b34; background: #121b16; height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
 .icon-action { width: 34px; color: #9ba79e; }
 .icon-action.labeled { width: auto; padding: 0 11px; }
@@ -25,7 +25,7 @@
 .export-menu button:hover { background: #212d25; color: #f2f4ed; }
 .export-menu button > span { display: flex; flex-direction: column; gap: 2px; }
 .export-menu strong { font-size: 11px; }
-.export-menu small { color: #6f7d73; font-size: 9px; }
+.export-menu small { color: #6f7d73; font-size: 10px; }
 
 
 /* Toast */

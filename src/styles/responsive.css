@@ -1,5 +1,5 @@
 @media (max-width: 1180px) {
-  .composer-grid { grid-template-columns: 190px minmax(610px, 1fr) 230px; }
+  .composer-grid { grid-template-columns: 200px minmax(610px, 1fr) 244px; }
   .brand-lockup { width: 220px; }
   .transport-wave { display: none; }
   .context-label { width: 180px; }
@@ -25,7 +25,7 @@
   .composer-grid { display: block; }
   .layers-panel { border-right: 0; border-bottom: 1px solid #29332d; }
   .layer-list { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0; }
-  .layer-row { min-height: 64px; }
+  .layer-row { min-height: 84px; }
   .layer-note, .reset-link, .layers-panel .panel-heading { display: none; }
   .refine-panel { border-left: 0; border-top: 1px solid #29332d; display: grid; grid-template-columns: 180px 1fr 1fr 1fr; }
   .refine-panel > * { border-right: 1px solid #29332d; }
