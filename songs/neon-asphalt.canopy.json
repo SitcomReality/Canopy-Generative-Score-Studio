@@ -1,0 +1,143 @@
+{
+  "version": 4,
+  "name": "Neon Asphalt",
+  "bpm": 82,
+  "key": "C#",
+  "scale": "Dorian",
+  "progression": [0, 3, 4, 3],
+  "progressionName": "Shadow Drift",
+  "reverb": 68,
+  "swing": 5,
+  "journey": { "shape": "tide", "length": 16, "depth": 42 },
+  "variationSeed": 42,
+  "axes": {
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
+  },
+  "contexts": [
+    { "id": "explore", "label": "Dawn Fog", "targets": { "intensity": 0.2, "tension": 0.25, "brightness": 0.3 } },
+    { "id": "unease", "label": "Neon Shadows", "targets": { "intensity": 0.5, "tension": 0.65, "brightness": 0.45 } },
+    { "id": "combat", "label": "Alleyway Chase", "targets": { "intensity": 0.9, "tension": 0.85, "brightness": 0.2 } }
+  ],
+  "bindings": [
+    { "target": "tempo.offset", "axis": "intensity", "domain": [0, 24] }
+  ],
+  "layers": [
+    {
+      "id": "fog-pad",
+      "name": "Slick Wetness",
+      "detail": "Slow-filtering atmosphere chords",
+      "role": "harmony",
+      "color": "#4a7a96",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "density": 50,
+      "variation": 10,
+      "humanize": 5,
+      "restWindow": 0,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.22, 0.35] },
+        { "param": "duration", "axis": "tension", "domain": ["1m", "2n"] }
+      ],
+      "steps": [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false]
+    },
+    {
+      "id": "neon-arpeggio",
+      "name": "Neon Spark",
+      "detail": "Glassy reflections on puddles",
+      "role": "motif",
+      "color": "#f72585",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "density": 45,
+      "variation": 40,
+      "humanize": 20,
+      "restWindow": 0,
+      "energyRole": "forward",
+      "activity": { "axis": "tension", "range": [0.35, 1.0] },
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.15, 0.45] },
+        { "param": "density", "axis": "tension", "domain": [0.4, 0.85] }
+      ],
+      "steps": [null, 2, 4, 5, null, 4, 2, 0, null, 2, 4, 7, 6, null, 4, null]
+    },
+    {
+      "id": "lead-synth",
+      "name": "The Rider",
+      "detail": "Sullen melodic motif",
+      "role": "motif",
+      "color": "#72efdd",
+      "muted": false,
+      "instrument": "Warm reed",
+      "density": 62,
+      "variation": 30,
+      "humanize": 12,
+      "restWindow": 0,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "tension", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.38, 0.62] },
+        { "param": "duration", "axis": "intensity", "domain": ["2n", "8n"] },
+        { "param": "octave", "axis": "tension", "domain": [3, 4] }
+      ],
+      "steps": [0, null, 2, 3, 2, null, 0, null, 4, null, 3, 2, 1, 2, null, 0]
+    },
+    {
+      "id": "sub-pulse",
+      "name": "Engine Thrum",
+      "detail": "Heavy low-end tires",
+      "role": "bass",
+      "color": "#3f37c9",
+      "muted": false,
+      "instrument": "Deep root",
+      "density": 85,
+      "variation": 5,
+      "humanize": 8,
+      "restWindow": 0,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "intensity", "threshold": 0.5 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.35, 0.65] },
+        { "param": "duration", "axis": "tension", "domain": ["4n", "8n"] }
+      ],
+      "steps": [true, false, false, true, true, false, false, true, true, false, false, true, true, false, true, false]
+    },
+    {
+      "id": "cyber-drums",
+      "name": "Asphalt Beat",
+      "detail": "Drum machine pulse",
+      "role": "percussion",
+      "color": "#4cc9f0",
+      "muted": false,
+      "instrument": "Soft pluck",
+      "density": 75,
+      "variation": 10,
+      "humanize": 10,
+      "restWindow": 6,
+      "energyRole": "recessive",
+      "activity": { "axis": "intensity", "range": [0.4, 1.0] },
+      "fills": [
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.5 },
+        { "at": [12], "axis": "intensity", "threshold": 0.75 }
+      ],
+      "automation": [
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "D1", "vel": 0.28 }, { "midi": "C1", "vel": 0.72 }] },
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.28, 0.72] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.12, 0.28] },
+        { "param": "hat.variation", "axis": "intensity", "domain": [0.0, 0.45] }
+      ],
+      "steps": [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false]
+    }
+  ]
+}
