@@ -52,7 +52,7 @@ function composeLayerSteps(project, layer) {
 const actions = {
   setTab(tab) {
     store.set({ tab });
-    ["compose", "runtime", "guide"].forEach((id) => {
+    ["compose", "runtime"].forEach((id) => {
       const view = document.getElementById(`view-${id}`);
       const active = id === tab;
       view.hidden = !active;

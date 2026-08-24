@@ -19,11 +19,11 @@
           <span>Tempo</span>
           <div><input type="number" min="48" max="150" id="bpm-input" /><small>BPM</small></div>
         </label>
-        <label>
+        <label title="Major and Lydian feel bright; Dorian feels ancient; Minor feels shadowed.">
           <span>Key</span>
           <select id="key-select"></select>
         </label>
-        <label>
+        <label title="The safe palette of notes — the harmony guard never leaves it. Major and Lydian feel bright; Dorian ancient; Minor shadowed.">
           <span>Scale</span>
           <select id="scale-select"></select>
         </label>
@@ -111,7 +111,7 @@
               <option value="percussion">Rhythm</option>
             </select>
           </label>
-          <label class="select-label">Voice character
+          <label class="select-label">Instrument
             <select id="instrument-select">
               <option>Glass bell</option><option>Warm reed</option><option>Soft pluck</option>
             </select>
@@ -128,7 +128,7 @@
         </div>
 
         <div class="progression-control">
-          <div class="group-title"><span>Chord path</span><i data-icon="circle-question-mark" data-size="14"></i></div>
+          <div class="group-title" title="A four-chord loop, written as movable scale positions (roman numerals). These progressions are chosen to loop smoothly, so you can change key or scale without rebuilding them."><span>Chord path</span><i data-icon="circle-question-mark" data-size="14"></i></div>
           <select id="progression-select"></select>
           <div class="roman-progression" id="roman-progression"></div>
           <p>These progressions are chosen to loop smoothly. You can change key without rebuilding them.</p>

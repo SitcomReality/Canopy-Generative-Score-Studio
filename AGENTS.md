@@ -58,7 +58,7 @@ src/
   utils/               download helpers, cn() class joiner
   styles/              base, layout, compose, piano-roll, side-panels,
                        content, responsive
-  partials/            header/compose/runtime/guide/toast .inc.html markup
+  partials/            header/compose/runtime/toast .inc.html markup
 ```
 
 Keep new code modular with descriptive single-purpose filenames. Pure music-theory functions stay side-effect free under `music/`. Static page structure goes into partials; only data-driven markup is rendered from JS.

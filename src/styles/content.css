@@ -42,29 +42,6 @@
 .handoff-strip p { margin: 7px 0 0; color: #5f6d64; font-size: 9px; line-height: 1.6; }
 .handoff-strip code { color: #8ba16f; }
 
-.guide-intro { max-width: 900px; }
-.workflow-section, .glossary-section { border-top: 1px solid #344038; padding-top: 24px; }
-.workflow-steps { display: grid; grid-template-columns: repeat(5, 1fr); }
-.workflow-step { min-height: 205px; padding: 28px 22px 20px 0; margin-right: 22px; border-right: 1px solid #2c3830; }
-.workflow-step:last-child { border-right: 0; margin-right: 0; }
-.workflow-step > span { color: #6f8064; font-family: "Courier New", monospace; font-size: 9px; }
-.workflow-step strong { display: block; margin-top: 27px; color: #d1d8d0; font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: 400; }
-.workflow-step p { color: #65726a; font-size: 9px; line-height: 1.7; }
-.hybrid-section { margin: 72px -6vw; padding: 62px 6vw; display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 8vw; background: #dce4d4; color: #152017; }
-.hybrid-copy .section-kicker { color: #596e45; }
-.hybrid-copy h2 { margin: 12px 0 20px; font-family: Georgia, "Times New Roman", serif; font-size: 42px; font-weight: 400; letter-spacing: -.03em; }
-.hybrid-copy p { color: #4f5e51; font-size: 11px; line-height: 1.75; }
-.hybrid-diagram { display: flex; align-items: center; gap: 14px; }
-.hybrid-diagram > div { min-height: 150px; flex: 1; padding: 24px 18px; display: flex; flex-direction: column; justify-content: center; border: 1px solid #aab6a5; }
-.hybrid-diagram > div.result { background: #1d2b21; border-color: #1d2b21; color: #d8e9b4; }
-.hybrid-diagram > div strong { margin: 18px 0 6px; font-family: Georgia, "Times New Roman", serif; font-size: 15px; font-weight: 400; }
-.hybrid-diagram > div span { color: #718074; font-size: 8px; }
-.hybrid-diagram > i { color: #758171; font-family: Georgia, serif; font-size: 18px; font-style: normal; }
-.glossary-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
-.glossary-grid > div { min-height: 135px; padding: 26px 30px 20px 0; margin-right: 30px; border-bottom: 1px solid #2c3830; }
-.glossary-grid strong { color: #ccd5cb; font-family: Georgia, "Times New Roman", serif; font-size: 17px; font-weight: 400; }
-.glossary-grid p { color: #647169; font-size: 9px; line-height: 1.7; }
-
 /* Orbit core pulse while the score is running (replaces framer-motion loop) */
 @keyframes corePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
 .orbit-core.pulsing { animation: corePulse 3.4s ease-in-out infinite; }

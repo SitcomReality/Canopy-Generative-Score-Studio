@@ -30,9 +30,8 @@
   .refine-panel { border-left: 0; border-top: 1px solid #29332d; display: grid; grid-template-columns: 180px 1fr 1fr 1fr; }
   .refine-panel > * { border-right: 1px solid #29332d; }
   .progression-control { border-right: 0; }
-  .runtime-view, .guide-view { padding-left: 24px; padding-right: 24px; }
-  .handoff-strip, .workflow-steps, .glossary-grid { grid-template-columns: repeat(2, 1fr); }
-  .hybrid-section { margin-left: -24px; margin-right: -24px; padding-left: 24px; padding-right: 24px; grid-template-columns: 1fr; }
+  .runtime-view { padding-left: 24px; padding-right: 24px; }
+  .handoff-strip { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 640px) {
