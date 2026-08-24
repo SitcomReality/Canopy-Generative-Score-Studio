@@ -3,10 +3,260 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arena Web Dev App</title>
+    <title>Canopy — Generative Score Studio</title>
+    <link rel="stylesheet" href="./src/styles/base.css" />
+    <link rel="stylesheet" href="./src/styles/layout.css" />
+    <link rel="stylesheet" href="./src/styles/compose.css" />
+    <link rel="stylesheet" href="./src/styles/piano-roll.css" />
+    <link rel="stylesheet" href="./src/styles/side-panels.css" />
+    <link rel="stylesheet" href="./src/styles/content.css" />
+    <link rel="stylesheet" href="./src/styles/responsive.css" />
+    <!-- Tone.js and @tonejs/midi, vendored as UMD globals (Tone, Midi). -->
+    <script src="./vendor/tone.js"></script>
+    <script src="./vendor/midi.js"></script>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="brand-lockup" id="brand-lockup" role="button" tabindex="0">
+      <div class="brand-mark"><i data-icon="audio-lines" data-size="19"></i></div>
+      <div>
+        <div class="brand-name">CANOPY</div>
+        <div class="brand-caption">Generative score studio</div>
+      </div>
+    </div>
+
+    <nav class="main-tabs" aria-label="Main sections" id="main-tabs">
+      <button class="main-tab active" data-tab="compose"><i data-icon="audio-lines" data-size="15"></i><span>Compose</span></button>
+      <button class="main-tab" data-tab="runtime"><i data-icon="code-xml" data-size="15"></i><span>Runtime</span></button>
+      <button class="main-tab" data-tab="guide"><i data-icon="book-open" data-size="15"></i><span>Field guide</span></button>
+    </nav>
+
+    <div class="header-actions">
+      <span class="save-state"><i data-icon="check" data-size="12"></i> <span id="save-state-text">Local draft</span></span>
+      <button class="icon-action labeled" id="import-button" title="Import project or MIDI"><i data-icon="folder-open" data-size="16"></i> <span>Import</span></button>
+      <button class="icon-action" id="save-button" title="Save in this browser"><i data-icon="save" data-size="16"></i></button>
+      <div class="export-wrap">
+        <button class="export-button" id="export-toggle">Export <i data-icon="chevron-down" data-size="14"></i></button>
+        <div class="export-menu" id="export-menu" hidden>
+          <button id="export-project"><i data-icon="file-json" data-size="16"></i><span><strong>Editable project</strong><small>Open again in Canopy</small></span></button>
+          <button id="export-runtime"><i data-icon="code-xml" data-size="16"></i><span><strong>Tone.js runtime</strong><small>Drop into a web game</small></span></button>
+          <button id="export-midi"><i data-icon="download" data-size="16"></i><span><strong>MIDI sketch</strong><small>Open in any DAW</small></span></button>
+        </div>
+      </div>
+      <input type="file" id="import-file" hidden accept=".json,.canopy,.mid,.midi,application/json,audio/midi" />
+    </div>
+  </header>
+
+  <main class="compose-view main-view" id="view-compose">
+    <section class="transport-bar" aria-label="Playback controls">
+      <div class="project-identity">
+        <input id="project-name" aria-label="Project name" />
+        <span>2 bars / adaptive loop</span>
+      </div>
+      <div class="transport-controls">
+        <button class="play-button" id="play-button" aria-label="Play"></button>
+        <button class="stop-button" id="stop-button" aria-label="Stop"><i data-icon="square" data-size="14"></i></button>
+        <div class="transport-readout" id="transport-readout">
+          <span id="readout-bar">01</span>
+          <i></i>
+          <span id="readout-beat">01</span>
+          <small>BAR&nbsp;&nbsp;&nbsp;BEAT</small>
+        </div>
+      </div>
+      <div class="tempo-controls">
+        <label>
+          <span>Tempo</span>
+          <div><input type="number" min="48" max="150" id="bpm-input" /><small>BPM</small></div>
+        </label>
+        <label>
+          <span>Key</span>
+          <select id="key-select"></select>
+        </label>
+        <label>
+          <span>Scale</span>
+          <select id="scale-select"></select>
+        </label>
+      </div>
+      <div class="transport-wave" aria-hidden="true" id="transport-wave"></div>
+    </section>
+
+    <section class="context-ribbon">
+      <div class="context-label">
+        <span>Live game state</span>
+        <strong id="context-status"></strong>
+      </div>
+      <div class="context-switcher" id="context-switcher"></div>
+      <div class="threat-control">
+        <span>Threat</span>
+        <input type="range" min="0" max="100" id="threat-slider" />
+        <strong id="threat-value">12%</strong>
+      </div>
+      <button class="event-button" id="victory-button"><i data-icon="flag" data-size="15"></i> <span id="victory-label">Trigger victory</span></button>
+    </section>
+
+    <section class="composer-grid">
+      <aside class="layers-panel">
+        <div class="panel-heading">
+          <div><span>Sound world</span><strong>Layers</strong></div>
+          <button title="More layer options"><i data-icon="ellipsis" data-size="17"></i></button>
+        </div>
+        <div class="layer-list" id="layer-list"></div>
+        <div class="layer-note">
+          <i data-icon="shield-check" data-size="15"></i>
+          <div><strong>Harmony guard is on</strong><span id="harmony-guard-text"></span></div>
+        </div>
+        <button class="reset-link" id="reset-project"><i data-icon="rotate-ccw" data-size="13"></i> Restore starter score</button>
+      </aside>
+
+      <section class="sequence-panel">
+        <div class="sequence-heading">
+          <div>
+            <span>Phrase editor</span>
+            <h1>Shape the motif</h1>
+            <p>Click notes and beats. The engine adds variation without leaving your scale.</p>
+          </div>
+          <div class="sequence-tools">
+            <button id="sparser-button">Make sparser</button>
+            <button class="magic-button" id="compose-melody-button"><i data-icon="wand-sparkles" data-size="15"></i> Compose for me</button>
+          </div>
+        </div>
+
+        <div class="roll-scroll">
+          <div class="piano-roll" id="piano-roll"></div>
+        </div>
+        <div class="roll-footer">
+          <span><i class="legend-note"></i> Written note</span>
+          <span><i class="legend-variation"></i> Generated variation</span>
+          <p>Tip: fewer notes often feel more serene. Leave space for the reverb.</p>
+        </div>
+      </section>
+
+      <aside class="refine-panel">
+        <div class="panel-heading refine-heading">
+          <div><span>Selected layer</span><strong id="refine-track-name"></strong></div>
+          <span class="selected-dot" id="selected-dot"></span>
+        </div>
+
+        <div class="control-group">
+          <label class="select-label">Voice character
+            <select id="instrument-select">
+              <option>Glass bell</option><option>Warm reed</option><option>Soft pluck</option>
+            </select>
+          </label>
+          <div id="slider-density"></div>
+          <div id="slider-variation"></div>
+          <div id="slider-humanize"></div>
+        </div>
+
+        <div class="control-group atmosphere-group">
+          <div class="group-title"><span>Shared atmosphere</span><i data-icon="sparkles" data-size="14"></i></div>
+          <div id="slider-reverb"></div>
+          <div id="slider-swing"></div>
+        </div>
+
+        <div class="progression-control">
+          <div class="group-title"><span>Chord path</span><i data-icon="circle-question-mark" data-size="14"></i></div>
+          <select id="progression-select"></select>
+          <div class="roman-progression" id="roman-progression"></div>
+          <p>These progressions are chosen to loop smoothly. You can change key without rebuilding them.</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <main class="content-view runtime-view main-view" id="view-runtime" hidden>
+    <section class="content-intro">
+      <span class="section-kicker">From editor to game</span>
+      <h1>Let the world conduct.</h1>
+      <p>Canopy waits for safe musical boundaries, then changes tempo, density, bass, and percussion in response to your game state.</p>
+    </section>
+
+    <section class="runtime-layout">
+      <div class="event-lab">
+        <div class="section-label"><span>01</span><strong>Test your event map</strong><small>Changes are heard live in the composer too</small></div>
+        <div class="event-stage">
+          <div class="world-orbit">
+            <div class="orbit-core state-explore" id="orbit-core"></div>
+          </div>
+          <div class="event-actions">
+            <button data-context="explore"><i data-icon="leaf" data-size="16"></i><span><strong>player.safe</strong><small>Return to exploration</small></span></button>
+            <button data-context="unease"><i data-icon="zap" data-size="16"></i><span><strong>enemy.nearby</strong><small>Raise musical tension</small></span></button>
+            <button data-context="combat"><i data-icon="sword" data-size="16"></i><span><strong>combat.started</strong><small>Add pulse and energy</small></span></button>
+            <button id="runtime-victory"><i data-icon="flag" data-size="16"></i><span><strong>combat.won</strong><small>Queue a one-bar flourish</small></span></button>
+          </div>
+          <button class="runtime-play" id="runtime-play"></button>
+        </div>
+      </div>
+
+      <div class="implementation-panel">
+        <div class="section-label"><span>02</span><strong>Wire it into your loop</strong><small>Export the runtime module first</small></div>
+        <div class="install-line"><span>$</span><code>npm install tone</code><button id="copy-install"><i data-icon="copy" data-size="14"></i></button></div>
+        <div class="code-block">
+          <div class="code-heading"><span>game-music.js</span><button id="copy-snippet"><i data-icon="copy" data-size="14"></i> <span id="copy-snippet-label">Copy</span></button></div>
+          <pre id="integration-snippet"></pre>
+        </div>
+        <button class="download-runtime" id="download-runtime"><i data-icon="download" data-size="15"></i> <span id="download-runtime-label"></span></button>
+      </div>
+    </section>
+
+    <section class="handoff-strip">
+      <div><span>Browser audio rule</span><p>Call <code>startScore()</code> from a click, tap, or keypress. Browsers block audio before user interaction.</p></div>
+      <div><span>Transition rule</span><p>State changes wait until the next bar, so combat never enters with an ugly mid-chord cut.</p></div>
+      <div><span>Performance rule</span><p>Reuse one score instance. Call <code>disposeScore()</code> only when leaving the game entirely.</p></div>
+    </section>
+  </main>
+
+  <main class="content-view guide-view main-view" id="view-guide" hidden>
+    <section class="content-intro guide-intro">
+      <span class="section-kicker">A field guide for non-musicians</span>
+      <h1>You do not need theory.<br />You need good constraints.</h1>
+      <p>Canopy keeps notes in one scale, uses proven chord paths, and changes only a few musical dimensions at once. Your job is to choose the feeling.</p>
+    </section>
+
+    <section class="workflow-section">
+      <div class="section-label"><span>01</span><strong>A reliable five-minute workflow</strong><small>Start here for every new game area</small></div>
+      <div class="workflow-steps">
+        <div class="workflow-step"><span>01</span><strong>Choose a world</strong><p>Pick a key and scale. Major or Lydian feels bright; Dorian feels ancient; Minor feels shadowed.</p></div>
+        <div class="workflow-step"><span>02</span><strong>Choose a chord path</strong><p>Open sky and Homeward are dependable. The Roman numerals are just movable chord positions.</p></div>
+        <div class="workflow-step"><span>03</span><strong>Compose for me</strong><p>Generate a motif, then remove notes you dislike. Space usually sounds better than complexity.</p></div>
+        <div class="workflow-step"><span>04</span><strong>Test danger</strong><p>Move the Threat control slowly. Listen for the same identity surviving as the energy rises.</p></div>
+        <div class="workflow-step"><span>05</span><strong>Export both</strong><p>Use the Tone.js runtime in your game and MIDI if you want to polish the idea in a DAW later.</p></div>
+      </div>
+    </section>
+
+    <section class="hybrid-section">
+      <div class="hybrid-copy">
+        <span class="section-kicker">MIDI or Tone.js?</span>
+        <h2>Use both, for different jobs.</h2>
+        <p>MIDI is a compact list of notes, timing, and velocity. It is excellent for importing melodies and moving sketches between music tools, but it does not define the sound or how a score should react to danger.</p>
+        <p>Tone.js is the realtime instrument and conductor. It schedules notes precisely, runs effects, and lets your game change layers and parameters while the music is playing.</p>
+      </div>
+      <div class="hybrid-diagram" aria-label="Recommended music architecture">
+        <div><i data-icon="file-json" data-size="20"></i><strong>Canopy project</strong><span>Motif, harmony, rules</span></div>
+        <i>+</i>
+        <div><i data-icon="code-xml" data-size="20"></i><strong>Tone.js runtime</strong><span>Synths, effects, context</span></div>
+        <i>=</i>
+        <div class="result"><i data-icon="sparkles" data-size="20"></i><strong>Adaptive score</strong><span>Infinite, but recognizable</span></div>
+      </div>
+    </section>
+
+    <section class="glossary-section">
+      <div class="section-label"><span>02</span><strong>Only the words you need</strong><small>No conservatory required</small></div>
+      <div class="glossary-grid">
+        <div><strong>Key</strong><p>The note that feels like home. Changing it moves the whole song higher or lower.</p></div>
+        <div><strong>Scale</strong><p>A safe palette of notes. Harmony guard prevents notes outside this palette.</p></div>
+        <div><strong>Chord</strong><p>Several notes heard together. Chords create the emotional landscape beneath a melody.</p></div>
+        <div><strong>Motif</strong><p>A short, memorable musical idea. Repetition makes it recognizable; variation keeps it alive.</p></div>
+        <div><strong>Density</strong><p>How often notes happen. Low density is spacious; high density adds urgency.</p></div>
+        <div><strong>Reverb</strong><p>The impression of a physical space. More reverb feels distant, dreamlike, or vast.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-host"></div>
+</div>
+
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

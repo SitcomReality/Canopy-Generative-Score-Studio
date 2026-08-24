@@ -1,0 +1,31 @@
+<div class="app-shell">
+  <header class="app-header">
+    <div class="brand-lockup" id="brand-lockup" role="button" tabindex="0">
+      <div class="brand-mark"><i data-icon="audio-lines" data-size="19"></i></div>
+      <div>
+        <div class="brand-name">CANOPY</div>
+        <div class="brand-caption">Generative score studio</div>
+      </div>
+    </div>
+
+    <nav class="main-tabs" aria-label="Main sections" id="main-tabs">
+      <button class="main-tab active" data-tab="compose"><i data-icon="audio-lines" data-size="15"></i><span>Compose</span></button>
+      <button class="main-tab" data-tab="runtime"><i data-icon="code-xml" data-size="15"></i><span>Runtime</span></button>
+      <button class="main-tab" data-tab="guide"><i data-icon="book-open" data-size="15"></i><span>Field guide</span></button>
+    </nav>
+
+    <div class="header-actions">
+      <span class="save-state"><i data-icon="check" data-size="12"></i> <span id="save-state-text">Local draft</span></span>
+      <button class="icon-action labeled" id="import-button" title="Import project or MIDI"><i data-icon="folder-open" data-size="16"></i> <span>Import</span></button>
+      <button class="icon-action" id="save-button" title="Save in this browser"><i data-icon="save" data-size="16"></i></button>
+      <div class="export-wrap">
+        <button class="export-button" id="export-toggle">Export <i data-icon="chevron-down" data-size="14"></i></button>
+        <div class="export-menu" id="export-menu" hidden>
+          <button id="export-project"><i data-icon="file-json" data-size="16"></i><span><strong>Editable project</strong><small>Open again in Canopy</small></span></button>
+          <button id="export-runtime"><i data-icon="code-xml" data-size="16"></i><span><strong>Tone.js runtime</strong><small>Drop into a web game</small></span></button>
+          <button id="export-midi"><i data-icon="download" data-size="16"></i><span><strong>MIDI sketch</strong><small>Open in any DAW</small></span></button>
+        </div>
+      </div>
+      <input type="file" id="import-file" hidden accept=".json,.canopy,.mid,.midi,application/json,audio/midi" />
+    </div>
+  </header>

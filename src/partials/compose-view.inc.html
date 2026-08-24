@@ -1,0 +1,116 @@
+  <main class="compose-view main-view" id="view-compose">
+    <section class="transport-bar" aria-label="Playback controls">
+      <div class="project-identity">
+        <input id="project-name" aria-label="Project name" />
+        <span>2 bars / adaptive loop</span>
+      </div>
+      <div class="transport-controls">
+        <button class="play-button" id="play-button" aria-label="Play"></button>
+        <button class="stop-button" id="stop-button" aria-label="Stop"><i data-icon="square" data-size="14"></i></button>
+        <div class="transport-readout" id="transport-readout">
+          <span id="readout-bar">01</span>
+          <i></i>
+          <span id="readout-beat">01</span>
+          <small>BAR&nbsp;&nbsp;&nbsp;BEAT</small>
+        </div>
+      </div>
+      <div class="tempo-controls">
+        <label>
+          <span>Tempo</span>
+          <div><input type="number" min="48" max="150" id="bpm-input" /><small>BPM</small></div>
+        </label>
+        <label>
+          <span>Key</span>
+          <select id="key-select"></select>
+        </label>
+        <label>
+          <span>Scale</span>
+          <select id="scale-select"></select>
+        </label>
+      </div>
+      <div class="transport-wave" aria-hidden="true" id="transport-wave"></div>
+    </section>
+
+    <section class="context-ribbon">
+      <div class="context-label">
+        <span>Live game state</span>
+        <strong id="context-status"></strong>
+      </div>
+      <div class="context-switcher" id="context-switcher"></div>
+      <div class="threat-control">
+        <span>Threat</span>
+        <input type="range" min="0" max="100" id="threat-slider" />
+        <strong id="threat-value">12%</strong>
+      </div>
+      <button class="event-button" id="victory-button"><i data-icon="flag" data-size="15"></i> <span id="victory-label">Trigger victory</span></button>
+    </section>
+
+    <section class="composer-grid">
+      <aside class="layers-panel">
+        <div class="panel-heading">
+          <div><span>Sound world</span><strong>Layers</strong></div>
+          <button title="More layer options"><i data-icon="ellipsis" data-size="17"></i></button>
+        </div>
+        <div class="layer-list" id="layer-list"></div>
+        <div class="layer-note">
+          <i data-icon="shield-check" data-size="15"></i>
+          <div><strong>Harmony guard is on</strong><span id="harmony-guard-text"></span></div>
+        </div>
+        <button class="reset-link" id="reset-project"><i data-icon="rotate-ccw" data-size="13"></i> Restore starter score</button>
+      </aside>
+
+      <section class="sequence-panel">
+        <div class="sequence-heading">
+          <div>
+            <span>Phrase editor</span>
+            <h1>Shape the motif</h1>
+            <p>Click notes and beats. The engine adds variation without leaving your scale.</p>
+          </div>
+          <div class="sequence-tools">
+            <button id="sparser-button">Make sparser</button>
+            <button class="magic-button" id="compose-melody-button"><i data-icon="wand-sparkles" data-size="15"></i> Compose for me</button>
+          </div>
+        </div>
+
+        <div class="roll-scroll">
+          <div class="piano-roll" id="piano-roll"></div>
+        </div>
+        <div class="roll-footer">
+          <span><i class="legend-note"></i> Written note</span>
+          <span><i class="legend-variation"></i> Generated variation</span>
+          <p>Tip: fewer notes often feel more serene. Leave space for the reverb.</p>
+        </div>
+      </section>
+
+      <aside class="refine-panel">
+        <div class="panel-heading refine-heading">
+          <div><span>Selected layer</span><strong id="refine-track-name"></strong></div>
+          <span class="selected-dot" id="selected-dot"></span>
+        </div>
+
+        <div class="control-group">
+          <label class="select-label">Voice character
+            <select id="instrument-select">
+              <option>Glass bell</option><option>Warm reed</option><option>Soft pluck</option>
+            </select>
+          </label>
+          <div id="slider-density"></div>
+          <div id="slider-variation"></div>
+          <div id="slider-humanize"></div>
+        </div>
+
+        <div class="control-group atmosphere-group">
+          <div class="group-title"><span>Shared atmosphere</span><i data-icon="sparkles" data-size="14"></i></div>
+          <div id="slider-reverb"></div>
+          <div id="slider-swing"></div>
+        </div>
+
+        <div class="progression-control">
+          <div class="group-title"><span>Chord path</span><i data-icon="circle-question-mark" data-size="14"></i></div>
+          <select id="progression-select"></select>
+          <div class="roman-progression" id="roman-progression"></div>
+          <p>These progressions are chosen to loop smoothly. You can change key without rebuilding them.</p>
+        </div>
+      </aside>
+    </section>
+  </main>

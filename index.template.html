@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canopy — Generative Score Studio</title>
+    <link rel="stylesheet" href="./src/styles/base.css" />
+    <link rel="stylesheet" href="./src/styles/layout.css" />
+    <link rel="stylesheet" href="./src/styles/compose.css" />
+    <link rel="stylesheet" href="./src/styles/piano-roll.css" />
+    <link rel="stylesheet" href="./src/styles/side-panels.css" />
+    <link rel="stylesheet" href="./src/styles/content.css" />
+    <link rel="stylesheet" href="./src/styles/responsive.css" />
+    <!-- Tone.js and @tonejs/midi, vendored as UMD globals (Tone, Midi). -->
+    <script src="./vendor/tone.js"></script>
+    <script src="./vendor/midi.js"></script>
+  </head>
+  <body>
+<!--#include "src/partials/header.inc.html" -->
+<!--#include "src/partials/compose-view.inc.html" -->
+<!--#include "src/partials/runtime-view.inc.html" -->
+<!--#include "src/partials/guide-view.inc.html" -->
+<!--#include "src/partials/toast.inc.html" -->
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
