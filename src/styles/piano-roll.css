@@ -6,6 +6,7 @@
 .editor-toolbar { flex: none; height: 52px; padding: 0 20px; display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--line-strong); }
 .toolbar-title { display: flex; align-items: baseline; gap: 12px; }
 .toolbar-title h1 { margin: 0; font-family: var(--font-ui); font-size: 15px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+.editor-toolbar .kicker { color: var(--accent-editor); }
 .editor-toolbar > p { margin: 0; flex: 1; min-width: 0; color: var(--text-4); font-size: var(--kicker-size); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sequence-tools { flex: none; display: flex; align-items: center; gap: 7px; }
 .sequence-tools button { height: 30px; padding: 0 10px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-3); font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }

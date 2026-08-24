@@ -47,7 +47,7 @@
 .event-button:hover, .event-button.queued { background: #2a2819; border-color: #9d8a4d; color: #f1d780; }
 
 /* --- Workspace --------------------------------------------------------- */
-.workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0, 1fr); }
+.workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0, 1fr) 280px; }
 .workspace > * { min-height: 0; overflow: hidden; }
 
 /* --- Song bar ---------------------------------------------------------- */
@@ -55,7 +55,7 @@
 .song-group { min-width: 0; padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px; }
 .song-group + .song-group { border-left: 1px solid var(--line); }
 .song-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-4); }
-.song-heading svg { color: var(--text-4); }
+.song-heading svg { color: var(--accent-song); }
 .kicker { font-size: var(--kicker-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-4); }
-.song-heading .kicker { color: var(--text-3); }
+.song-heading .kicker { color: var(--accent-song); }
 .song-controls { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }

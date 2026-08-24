@@ -18,6 +18,10 @@
   /* Accent: interactive + active only */
   --accent: #cde596;
   --accent-ink: #101508;
+  /* Region accents: give each workspace region its own identity hue */
+  --accent-rail: #7fc4de;   /* sky — layers rail + layer inspector */
+  --accent-editor: #cde596; /* lime — phrase editor (global accent) */
+  --accent-song: #c9a6e8;   /* lilac — song bar */
   /* Written notes */
   --note: #e6cb84;
   /* Live-state hues (shared with the runtime view) */

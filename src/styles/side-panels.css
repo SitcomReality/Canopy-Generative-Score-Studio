@@ -1,18 +1,20 @@
-/* Left rail: layer list (scrolls) above the pinned per-layer inspector.
+/* Left rail: the layer list, now with the full rail height to itself.
+   The per-layer inspector lives in its own right sidebar (see .inspector).
    Compact shared controls: .parameter-slider = one 38px row,
    .field-row = 30px label/control pair (also used by the song bar). */
 .rail { background: var(--surface-1); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
 .rail-section { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.inspector { flex: none; max-height: 55%; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.inspector { background: var(--surface-1); border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 
 .rail-heading { flex: none; height: 52px; padding: 0 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
-.rail-heading > strong { color: var(--text-2); font-size: var(--label-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.rail-heading > strong { color: var(--accent-rail); font-size: var(--label-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .rail-heading button { margin-left: auto; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
 .rail-heading button:hover { color: var(--text-1); }
 .layer-menu-anchor { position: relative; }
 
 /* Inspector heading carries the editable layer name + colour dot. */
 .inspector-heading { justify-content: space-between; }
+.inspector-heading .kicker { color: var(--accent-rail); }
 #refine-track-name { flex: 1; min-width: 0; border: 0; border-bottom: 1px dashed transparent; background: transparent; color: var(--text-1); font-family: var(--font-serif); font-size: 15px; font-weight: 400; padding: 0 0 2px; text-align: right; }
 #refine-track-name:focus { outline: none; border-bottom-color: var(--accent); }
 .selected-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
@@ -22,7 +24,7 @@
 .layer-row::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 2px; background: transparent; }
 .layer-row:hover { background: var(--surface-3); }
 .layer-row.selected { background: var(--surface-4); }
-.layer-row.selected::before { background: var(--accent); }
+.layer-row.selected::before { background: var(--accent-rail); }
 .layer-color { grid-row: 1 / span 2; width: 7px; height: 100%; min-height: 40px; opacity: .9; }
 .layer-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .layer-copy strong { color: var(--text-2); font-size: var(--label-size); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -61,3 +63,7 @@
 
 /* Song bar reuses the compact controls without the rail's side gutters. */
 .song-bar .parameter-slider, .song-bar .field-row { margin: 0; }
+
+/* Song bar: progression select styled like every other control. */
+#progression-select { width: 100%; height: 30px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-2); padding: 0 7px; font-size: var(--label-size); cursor: pointer; }
+#progression-select:hover { border-color: var(--text-4); }

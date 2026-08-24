@@ -1,7 +1,7 @@
 /* Two breakpoints that matter. Above 1500px the app fits with no page scroll;
    below 1100px everything stacks and page scrolling returns. */
 @media (max-width: 1500px) {
-  .workspace { grid-template-columns: 280px minmax(0, 1fr); }
+  .workspace { grid-template-columns: 280px minmax(0, 1fr) 260px; }
   .song-bar { height: auto; min-height: 120px; grid-template-columns: 1fr 1fr; }
   .song-group:nth-child(3) { border-left: 0; }
   .deck-live > strong { display: none; }
@@ -28,8 +28,8 @@
 
   .workspace { display: block; overflow: visible; }
   .rail { border-right: 0; border-bottom: 1px solid var(--line); }
+  .inspector { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   .layer-list { display: grid; grid-template-columns: repeat(2, 1fr); padding: 0; overflow: visible; }
-  .inspector { max-height: none; overflow: visible; }
   .editor .roll-scroll { overflow-x: auto; }
 
   .song-bar { grid-template-columns: 1fr; }

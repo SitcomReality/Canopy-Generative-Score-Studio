@@ -111,35 +111,6 @@
           </header>
           <div class="layer-list" id="layer-list"></div>
         </section>
-
-        <section class="inspector">
-          <header class="rail-heading inspector-heading">
-            <span class="kicker">Selected layer</span>
-            <input id="refine-track-name" aria-label="Layer name" maxlength="24" />
-            <span class="selected-dot" id="selected-dot"></span>
-          </header>
-
-          <div class="inspector-body">
-            <div id="slider-density"></div>
-            <div id="slider-variation"></div>
-            <div id="slider-humanize"></div>
-            <div class="field-row" title="Guaranteed quiet pass so loops breathe: the layer drops out briefly on a fixed cycle.">
-              <span>Breathe</span>
-              <select id="rest-window-select">
-                <option value="0">Off</option>
-                <option value="1">Every 2nd bar</option>
-                <option value="2">Every 3rd bar</option>
-                <option value="4">Every 5th bar</option>
-                <option value="7">Every 8th bar</option>
-              </select>
-            </div>
-            <div class="layer-note">
-              <i data-icon="shield-check" data-size="15"></i>
-              <p><strong>Harmony guard is on</strong><span id="harmony-guard-text"></span></p>
-            </div>
-            <button class="reset-link" id="reset-project"><i data-icon="rotate-ccw" data-size="13"></i> Restore starter score</button>
-          </div>
-        </section>
       </aside>
 
       <section class="editor">
@@ -170,6 +141,34 @@
           <p>Tip: fewer notes often feel more serene.</p>
         </footer>
       </section>
+
+      <aside class="inspector">
+        <header class="rail-heading inspector-heading">
+          <span class="kicker">Selected layer</span>
+          <input id="refine-track-name" aria-label="Layer name" maxlength="24" />
+          <span class="selected-dot" id="selected-dot"></span>
+        </header>
+        <div class="inspector-body">
+          <div id="slider-density"></div>
+          <div id="slider-variation"></div>
+          <div id="slider-humanize"></div>
+          <div class="field-row" title="Guaranteed quiet pass so loops breathe: the layer drops out briefly on a fixed cycle.">
+            <span>Breathe</span>
+            <select id="rest-window-select">
+              <option value="0">Off</option>
+              <option value="1">Every 2nd bar</option>
+              <option value="2">Every 3rd bar</option>
+              <option value="4">Every 5th bar</option>
+              <option value="7">Every 8th bar</option>
+            </select>
+          </div>
+          <div class="layer-note">
+            <i data-icon="shield-check" data-size="15"></i>
+            <p><strong>Harmony guard is on</strong><span id="harmony-guard-text"></span></p>
+          </div>
+          <button class="reset-link" id="reset-project"><i data-icon="rotate-ccw" data-size="13"></i> Restore starter score</button>
+        </div>
+      </aside>
     </section>
 
     <!-- Song bar: song-level controls spread across the full width. -->
