@@ -11,6 +11,22 @@
 
 const clampDegree = (degree) => Math.max(0, Math.min(7, degree));
 
+// Deterministic PRNG (mulberry32) so an exported score can reproduce the
+// same drift sequence when the game wants predictability. A seed of 0 (or
+// any non-positive/invalid value) means fully random.
+export function makeRng(seed) {
+  const s = Math.floor(Number(seed));
+  if (!Number.isFinite(s) || s <= 0) return Math.random;
+  let a = s >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function mutateMotif(steps, rate, rng = Math.random) {
   const out = [...steps];
   const chance = (Math.max(0, Math.min(100, rate)) / 100) * 0.35;

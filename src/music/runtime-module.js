@@ -52,8 +52,7 @@ function chord(degree) {
 // spawn near neighbours. The journey returns energy 0..1 per bar.
 const clampDegree = (d) => Math.max(0, Math.min(7, d));
 
-function journeyEnergy(shape, depth, bar, length) {
-  const span = Math.max(4, Math.round(length));
+function journeyEnergy(shape, depth, bar, length) {  const span = Math.max(4, Math.round(length));
   const phase = (((bar % span) + span) % span) / span;
   let raw;
   if (shape === "arc") {
@@ -66,6 +65,22 @@ function journeyEnergy(shape, depth, bar, length) {
   const amount = Math.max(0, Math.min(100, depth)) / 100;
   return 0.5 + (raw - 0.5) * amount;
 }
+
+// Deterministic PRNG (mulberry32); seed 0 means fully random.
+function makeRng(seed) {
+  const s = Math.floor(Number(seed));
+  if (!Number.isFinite(s) || s <= 0) return Math.random;
+  let a = s >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let driftRng = Math.random;
 
 function mutateMotif(steps, rate, rng = Math.random) {
   const out = [...steps];
@@ -166,7 +181,7 @@ function setup() {
     if (boundary) {
       for (const layer of score.layers) {
         if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
-          perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation);
+          perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation, driftRng);
         }
       }
     }
@@ -203,12 +218,14 @@ function setup() {
 export async function startScore() {
   await Tone.start();
   if (!nodes) setup();
+  driftRng = makeRng(score.variationSeed || 0);
   Tone.getTransport().start();
 }
 
 export function stopScore() {
   Tone.getTransport().stop();
   step = 0;
+  driftRng = Math.random;
   // Discard drifted phrases so the next playback starts from the score
   // as written.
   barCount = 0;

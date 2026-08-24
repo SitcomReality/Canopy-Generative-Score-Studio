@@ -283,6 +283,12 @@ const actions = {
     store.updateProject({ journey });
   },
 
+  // 0 = fully random; a positive seed reproduces the same drift sequence.
+  setVariationSeed(value) {
+    const seed = Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+    store.updateProject({ variationSeed: seed });
+  },
+
   addLayer() {
     const { project } = store.get();
     const index = project.layers.length;

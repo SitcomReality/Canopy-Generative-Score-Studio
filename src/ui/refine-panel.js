@@ -26,6 +26,9 @@ export function initRefinePanel(store, actions) {
   const journeyLengthSelect = document.getElementById("journey-length-select");
   journeyLengthSelect.addEventListener("change", (event) => actions.setJourney({ length: Number(event.target.value) }));
 
+  const seedInput = document.getElementById("variation-seed-input");
+  seedInput.addEventListener("change", () => actions.setVariationSeed(Number(seedInput.value)));
+
   const instrumentSelect = document.getElementById("instrument-select");
   INSTRUMENT_NAMES.forEach((name) => instrumentSelect.add(new Option(name, name)));
   instrumentSelect.addEventListener("change", (event) => actions.setInstrument(selectedLayerId, event.target.value));
@@ -61,6 +64,7 @@ export function initRefinePanel(store, actions) {
     journeyShapeSelect.value = project.journey?.shape ?? "flat";
     journeyLengthSelect.value = String(project.journey?.length ?? 16);
     journeyDepthSlider.set(project.journey?.depth ?? 0);
+    if (document.activeElement !== seedInput) seedInput.value = String(project.variationSeed ?? 0);
     document.getElementById("roman-progression").innerHTML =
       project.progression.map((degree) => `<span>${ROMAN_NUMERALS[degree] ?? degree + 1}</span>`).join("");
   }

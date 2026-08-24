@@ -12,7 +12,7 @@ There is no backend, no server, no database. Projects persist in `localStorage` 
 
 The project schema (version 3) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/energyRole parameters. Song-level fields are bpm, key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth) and variationSeed.
 
-**Known future work:** long-form variation/dynamics (music that evolves over 30+ minutes without feeling looped) is designed but not implemented — see `dev/docs/longFormVariation.md`.
+**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/longFormVariation.md`, which now describes the shipped design.
 
 ## Tech stack
 

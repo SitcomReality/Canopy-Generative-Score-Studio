@@ -2,7 +2,7 @@
 // proportional to the variation rate. Runs against a deterministic rng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mutateMotif, journeyEnergy } from "../../src/music/variation.js";
+import { mutateMotif, journeyEnergy, makeRng } from "../../src/music/variation.js";
 
 const MOTIF = [4, null, 6, 5, 4, 2, null, 1, 2, null, 4, 3, 2, 1, null, 0];
 
@@ -41,6 +41,21 @@ test("same rng sequence yields the same phrase (seed-ready)", () => {
   const a = mutateMotif(MOTIF, 60, seqRng([0.3, 0.8, 0.1, 0.6]));
   const b = mutateMotif(MOTIF, 60, seqRng([0.3, 0.8, 0.1, 0.6]));
   assert.deepEqual(a, b);
+});
+
+test("makeRng is deterministic for a positive seed", () => {
+  const run = () => Array.from({ length: 8 }, () => makeRng(42)());
+  assert.deepEqual(run(), run());
+});
+
+test("different seeds produce different streams", () => {
+  const a = Array.from({ length: 8 }, () => makeRng(1)());
+  const b = Array.from({ length: 8 }, () => makeRng(2)());
+  assert.notDeepEqual(a, b);
+});
+
+test("seed 0 falls back to full randomness", () => {
+  assert.equal(makeRng(0), Math.random);
 });
 
 test("mutations stay close to home: shifts move at most one degree", () => {

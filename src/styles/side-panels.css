@@ -40,7 +40,7 @@
 .selected-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
 .control-group { padding: 16px 16px 3px; border-bottom: 1px solid #28332c; }
 .select-label { display: flex; flex-direction: column; gap: 7px; color: #69766d; font-size: 8px; text-transform: uppercase; letter-spacing: .11em; margin-bottom: 18px; }
-.select-label select, .progression-control select { width: 100%; height: 34px; border: 1px solid #344038; background: #18221c; color: #c4cec5; padding: 0 9px; font-size: 10px; text-transform: none; letter-spacing: normal; }
+.select-label select, .select-label input[type="number"], .progression-control select { width: 100%; height: 34px; border: 1px solid #344038; background: #18221c; color: #c4cec5; padding: 0 9px; font-size: 10px; text-transform: none; letter-spacing: normal; }
 .parameter-slider { display: block; margin-bottom: 18px; }
 .parameter-slider > span { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
 .parameter-slider > span strong { color: #9ba79e; font-size: 9px; font-weight: 500; }

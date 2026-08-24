@@ -6,7 +6,7 @@
 import { midiToNote } from "../music/note-names.js";
 import { scaleMidi, chordNotes } from "../music/scale-math.js";
 import { instrumentSettings } from "../music/instruments.js";
-import { mutateMotif, journeyEnergy } from "../music/variation.js";
+import { mutateMotif, journeyEnergy, makeRng } from "../music/variation.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -72,6 +72,9 @@ export function createAudioEngine(store) {
   let barCount = 0;
   const restCounter = {};
   const resting = {};
+  // Seeded determinism: a non-zero variationSeed reproduces the same drift
+  // sequence; 0 (the default) is fully random. Reset on each playback.
+  let driftRng = Math.random;
 
   const transport = Tone.getTransport();
   transport.bpm.value = project.bpm;
@@ -97,7 +100,7 @@ export function createAudioEngine(store) {
     if (isBar) {
       for (const layer of score.layers) {
         if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
-          perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation);
+          perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation, driftRng);
         }
       }
     }
@@ -228,6 +231,7 @@ export function createAudioEngine(store) {
       }
     },
     play() {
+      driftRng = makeRng(store.get().project.variationSeed ?? 0);
       transport.start("+0.05");
     },
     pause() {
@@ -239,6 +243,7 @@ export function createAudioEngine(store) {
       // Discard drifted phrases so the next playback starts from the score
       // as written.
       barCount = 0;
+      driftRng = Math.random;
       Object.keys(restCounter).forEach((id) => delete restCounter[id]);
       Object.keys(resting).forEach((id) => delete resting[id]);
       for (const layer of store.get().project.layers) {
