@@ -161,6 +161,9 @@ export function computeStepFrame(project, live, state, step, rng) {
       if (degree === null && rng() < 0.08 * (layer.variation ?? 0) / 100 * density) {
         degree = Math.max(0, Math.min(7, chordDegree + (rng() > 0.5 ? 2 : 4)));
       }
+      // Capture the base note's offset: the fill note must land strictly after
+      // it on the same voice or Tone rejects the duplicate start time.
+      const baseOffset = humanDelay(layer, rng);
       if (degree !== null && rng() < density + 0.24) {
         events.push({
           layerId: layer.id,
@@ -169,7 +172,7 @@ export function computeStepFrame(project, live, state, step, rng) {
           octave: Math.round(av("octave", 4)),
           duration: av("duration", "4n"),
           velocity: av("velocity", 0.4),
-          offset: humanDelay(layer, rng),
+          offset: baseOffset,
         });
         if (fillActive(layer, live, step)) {
           events.push({
@@ -179,7 +182,7 @@ export function computeStepFrame(project, live, state, step, rng) {
             octave: Math.round(av("octave", 4)),
             duration: "16n",
             velocity: av("velocity", 0.4),
-            offset: 0,
+            offset: baseOffset + 0.04,
           });
         }
       }
@@ -210,22 +213,26 @@ export function computeStepFrame(project, live, state, step, rng) {
       if (hit && !isDownbeat) {
         events.push({ layerId: layer.id, kind: "hat", duration: "32n", velocity: av("hat.velocity", 0.16), offset: humanDelay(layer, rng) * 0.7 });
       }
-      // Higher intensity: fills add off-beat kicks and probabilistic extra hats.
-      if (fillPush && step % 2 === 0) {
+      // Higher intensity: fills add off-beat kicks and probabilistic extra
+      // hats. Skip the fill kick when the straight downbeat kick already fired
+      // — two attacks on one MembraneSynth at the same time is a Tone error.
+      if (fillPush && step % 2 === 0 && !(hit && isDownbeat)) {
         events.push({ layerId: layer.id, kind: "kick", pitch, duration: "16n", velocity: av("kick.velocity", 0.25), offset: 0 });
       }
       // Fills also add snare accents; late-phrase fill steps close with a
       // short rising roll so transitions into the next half feel played, not
-      // switched. Offsets are fixed (not rng) to keep seeded determinism.
+      // switched. Offsets are fixed (not rng) to keep seeded determinism, and
+      // start slightly off the grid so a kit without a dedicated snare (the
+      // accent falls back to the hat synth) never collides with the hat hit.
       const snareVel = av("snare.velocity", null);
       if (fillPush) {
-        events.push({ layerId: layer.id, kind: "snare", duration: "16n", velocity: snareVel ?? Math.min(1, av("hat.velocity", 0.2) + 0.12), offset: 0 });
+        events.push({ layerId: layer.id, kind: "snare", duration: "16n", velocity: snareVel ?? Math.min(1, av("hat.velocity", 0.2) + 0.12), offset: 0.02 });
         if (step % 2 === 1) {
-          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.24, offset: 0.045 });
-          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.3, offset: 0.09 });
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.24, offset: 0.065 });
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.3, offset: 0.11 });
         }
         if (step >= 13) {
-          [0, 0.04, 0.08, 0.12].forEach((offset, index) => {
+          [0.02, 0.06, 0.1, 0.14].forEach((offset, index) => {
             events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: Math.min(1, (snareVel ?? 0.26) + index * 0.09), offset });
           });
         }
