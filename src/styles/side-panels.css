@@ -85,7 +85,17 @@
 .field-row select, .field-row input[type="number"] { flex: 1; min-width: 0; height: 26px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); padding: 0 7px; font-size: var(--label-size); text-transform: none; letter-spacing: normal; }
 .field-row input[type="number"] { font-family: var(--font-num); }
 
+/* Level trim: a raw range (dB scale, -24..6) styled like the other sliders;
+   refine-panel paints its --value fill. */
+#slider-level { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+#slider-level::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+
 .inspector-body { padding: 10px 0 0; }
+
+/* Reactive editor keeps the rail's 16px gutter; its embedded field-row opts
+   out of its own margin so nothing double-pads. */
+#layer-reactive { padding: 0 16px; }
+#layer-reactive .field-row { margin: 0; }
 
 /* Song bar reuses the compact controls without the rail's side gutters. */
 .song-bar .parameter-slider, .song-bar .field-row { margin: 0; }

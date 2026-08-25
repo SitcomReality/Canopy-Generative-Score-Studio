@@ -1,5 +1,5 @@
 /* App shell: full-height flex so the compose view fits the viewport with no
-   page scroll; header 56 + deck 84 + workspace (flex) + song bar 120. */
+   page scroll; header 56 + deck 84 + workspace (flex) + song bar 132. */
 .app-shell { height: 100vh; display: flex; flex-direction: column; background: var(--surface-0); }
 .main-view { flex: 1; min-height: 0; }
 /* The compose view fits without scrolling; longer views (runtime) scroll internally. */
