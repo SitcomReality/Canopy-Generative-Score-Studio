@@ -48,19 +48,31 @@ dev/docs/gameIntegrationGuide.md  how to consume exported .score.js files in a g
 dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 dev/docs/dynamicsConvention.md  the v4 reactive-dynamics import/export contract
 src/
-  main.js              composition root: store instance, all actions, view wiring
+  main.js              thin composition root: store + engine host, action
+                       assembly, view wiring — no logic of its own
+  actions/             user-facing actions grouped by concern: playback
+                       (transport/recording/contexts/flourishes/reset),
+                       song (tempo/key/scale/mix/journey/reactive schema),
+                       layer (selection/steps/compose/lifecycle/fills),
+                       project-io (save/export/import)
   music/               pure music-theory modules, one concern per file:
                        note-names, keys, scales, progressions, scale-math,
                        contexts, tracks, instruments (preset catalog),
                        default-project (schema + hydrate), dynamics,
                        variation, melody-composer, midi-adapter,
                        runtime-module (template)
-  audio/audio-engine.js  Tone graph + 16-step sequencer
+  audio/audio-engine.js  Tone graph + 16-step sequencer (UI-visible state is
+                       published via Tone.Draw; the step counter stays internal)
+  audio/engine-host.js owns the lazy engine instance; rebuilds only while
+                       the transport is stopped (heavy edits stop playback)
   state/app-state.js   pub/sub store + localStorage persistence
   ui/                  one module per view region (header, transport-bar,
                        context-ribbon, layers-panel, sequence-panel,
                        refine-panel, runtime-harness), plus icons/toast/
-                       parameter-slider/dom helpers as needed
+                       parameter-slider/dom helpers as needed. Views subscribe
+                       through ui/render-batch.js (rAF-coalesced) and split
+                       grid rebuilds from cheap playhead class toggles.
+                       ui/tab-actions.js holds the compose/runtime tab action.
   utils/               download helpers, cn() class joiner
   styles/              tokens (design-token palette), base, layout, compose,
                        piano-roll, side-panels, content, responsive
