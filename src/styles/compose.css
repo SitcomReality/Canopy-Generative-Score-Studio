@@ -80,3 +80,15 @@
 .target-row input::-webkit-slider-thumb, .binding-row input::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
 .binding-row { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
 .binding-row strong { color: var(--text-2); font-family: var(--font-num); white-space: nowrap; }
+
+/* Verses song group (v5): rotating arrangement sections. */
+.binding-note { margin: 0; color: var(--text-4); font-size: 11px; line-height: 1.4; }
+.verse-editor { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.verse-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border: 1px solid transparent; border-radius: 3px; }
+.verse-row.playing { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.verse-label { flex: 1; min-width: 0; width: auto; background: transparent; border: none; border-bottom: 1px solid var(--line-strong); color: var(--text-2); font-size: var(--kicker-size); letter-spacing: .06em; text-transform: uppercase; padding: 2px 0; }
+.verse-row select { max-width: 74px; }
+.verse-layer { appearance: none; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 6px; border-radius: 999px; cursor: pointer; }
+.verse-layer.off { opacity: .38; text-decoration: line-through; }
+.verse-remove { appearance: none; border: none; background: transparent; color: var(--text-4); font-size: 13px; cursor: pointer; padding: 0 2px; }
+.verse-remove:hover { color: var(--accent); }

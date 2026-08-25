@@ -8,7 +8,7 @@ export function initRuntimeView(store, actions) {
   document.querySelectorAll("#view-runtime .event-actions button[data-context]").forEach((button) => {
     button.addEventListener("click", () => actions.requestContext(button.dataset.context));
   });
-  document.getElementById("runtime-victory").addEventListener("click", actions.queueVictory);
+  document.getElementById("runtime-victory").addEventListener("click", () => actions.queueFlourish("victory"));
   document.getElementById("runtime-play").addEventListener("click", actions.togglePlayback);
 
   const installLine = "npm install tone";

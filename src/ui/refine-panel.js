@@ -19,6 +19,14 @@ export function initRefinePanel(store, actions) {
   const restWindowSelect = document.getElementById("rest-window-select");
   restWindowSelect.addEventListener("change", (event) => actions.setParameter("restWindow", Number(event.target.value)));
 
+  const levelSlider = document.getElementById("slider-level");
+  const levelValue = document.getElementById("level-value");
+  levelSlider.addEventListener("input", () => {
+    levelValue.textContent = `${levelSlider.value}dB`;
+    paintSliderFill(levelSlider);
+  });
+  levelSlider.addEventListener("change", () => actions.setLayerLevel(selectedLayerId, Number(levelSlider.value)));
+
   const journeyShapeSelect = document.getElementById("journey-shape-select");
   journeyShapeSelect.addEventListener("change", (event) => actions.setJourney({ shape: event.target.value }));
 
@@ -46,6 +54,11 @@ export function initRefinePanel(store, actions) {
     selectedLayerId = layer.id;
     Object.keys(layerSliders).forEach((key) => layerSliders[key].set(layer[key]));
     restWindowSelect.value = String(layer.restWindow ?? 0);
+    if (document.activeElement !== levelSlider) {
+      levelSlider.value = String(layer.level ?? 0);
+      levelValue.textContent = `${layer.level ?? 0}dB`;
+      paintSliderFill(levelSlider);
+    }
     if (document.activeElement !== nameInput) nameInput.value = layer.name;
   }
 
@@ -70,4 +83,12 @@ export function initRefinePanel(store, actions) {
   const { project, selectedTrack } = store.get();
   paintLayer(project, selectedTrack);
   paintShared(project);
+}
+
+// Raw range inputs draw their accent fill via a --value custom property.
+function paintSliderFill(input) {
+  const min = Number(input.min) || 0;
+  const max = Number(input.max) || 100;
+  const pct = ((Number(input.value) - min) / (max - min)) * 100;
+  input.style.setProperty("--value", `${pct}%`);
 }

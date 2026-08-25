@@ -19,7 +19,8 @@ export function createAppState() {
     currentContext: "explore",
     queuedContext: null,
     threat: 12,
-    victoryQueued: false,
+    flourishQueued: null,
+    sectionId: null,
     savedAt: "Local draft",
   };
   const subscribers = new Set();

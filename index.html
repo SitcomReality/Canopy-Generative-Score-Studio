@@ -90,7 +90,11 @@
           <input type="range" min="0" max="100" id="threat-slider" />
           <strong id="threat-value">12%</strong>
         </label>
-        <button class="event-button" id="victory-button"><i data-icon="flag" data-size="15"></i> <span id="victory-label">Trigger victory</span></button>
+        <label class="ribbon-field">
+          <span>Flourish</span>
+          <select id="flourish-select"></select>
+        </label>
+        <button class="event-button" id="flourish-button"><i data-icon="flag" data-size="15"></i> <span id="flourish-label">Queue flourish</span></button>
       </div>
     </section>
 
@@ -154,6 +158,11 @@
           <div id="slider-density"></div>
           <div id="slider-variation"></div>
           <div id="slider-humanize"></div>
+          <label class="field-row" title="Static loudness trim for this layer, in dB — its base voice level under all dynamics.">
+            <span>Level</span>
+            <input type="range" min="-24" max="6" step="1" id="slider-level" />
+            <strong id="level-value">0dB</strong>
+          </label>
           <div class="field-row" title="Guaranteed quiet pass so loops breathe: the layer drops out briefly on a fixed cycle.">
             <span>Breathe</span>
             <select id="rest-window-select">
@@ -222,11 +231,19 @@
           <i data-icon="zap" data-size="14"></i>
         </header>
         <div class="context-targets" id="context-targets"></div>
-        <label class="field-row binding-row" title="How many BPM the intensity axis can add at full tilt (the tempo.offset binding).">
-          <span>Tempo boost</span>
-          <input type="range" min="0" max="26" step="1" id="tempo-binding-input" />
-          <strong id="tempo-binding-value"></strong>
-        </label>
+        <p class="binding-note">Tempo is static while playing (v5): intensity now expresses itself through loudness, density and percussion.</p>
+      </div>
+
+      <div class="song-group">
+        <header class="song-heading" title="Verses: arrangement sections that rotate at bar boundaries. Toggle which layers play in each verse; length is in bars.">
+          <span class="kicker">Verses</span>
+          <i data-icon="layers" data-size="14"></i>
+        </header>
+        <div class="verse-editor" id="verse-editor"></div>
+        <div class="field-row">
+          <button class="event-button" id="verse-add">+ Add verse</button>
+          <button class="event-button" id="verse-clear">Reset</button>
+        </div>
       </div>
 
       <div class="song-group">

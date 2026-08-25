@@ -138,7 +138,7 @@ function mutateMotif(rate, steps, rng = Math.random) {
 
 let context = "explore";
 let queuedContext = null;
-let victoryQueued = false;
+let flourishQueued = null;
 let step = 0;
 let loopId = null;
 let nodes = null;
@@ -202,19 +202,21 @@ function setup() {
     }
     if (boundary) {
       liveAxes = easeToward(liveAxes, contextTargets(score, context), 0.5);
-      transport.bpm.rampTo(score.bpm + tempoOffset(score, liveAxes), 0.5);
     }
     if (step === 0) {
       barCount += 1;
       const journey = score.journey || { shape: "flat", length: 16, depth: 0 };
       const energy = journeyEnergy(journey.shape, journey.depth, barCount, journey.length);
+      // v5 verse rotation: per-section dB delta + layer drop-in/out.
+      const section = activeSection(score, barCount);
       for (const layer of score.layers) {
         restCounter[layer.id] = (restCounter[layer.id] || 0) + 1;
         const window = layer.restWindow || 0;
-        resting[layer.id] = window > 0 && restCounter[layer.id] % (window + 1) === 0;
+        resting[layer.id] =
+          (window > 0 && restCounter[layer.id] % (window + 1) === 0) || !sectionActive(section, layer.id);
         const voice = voices[layer.id];
         if (!voice || layer.muted || resting[layer.id] || !layerActive(layer, liveAxes)) continue;
-        const delta = journeyGain(layer, energy);
+        const delta = journeyGain(layer, energy) + layerLevel(layer) + sectionGain(section, layer.id);
         if (voice.kind === "drums") {
           voice.kick.volume.rampTo(-10 + delta, 0.8);
           voice.hat.volume.rampTo(-24 + delta, 0.8);
@@ -252,15 +254,22 @@ function setup() {
         target.triggerAttackRelease(ev.duration || "16n", time + (ev.offset || 0), ev.velocity);
       }
     }
-    if (boundary && victoryQueued) {
+    // One-shot flourish (v5): queued game milestones play across one bar via
+    // the lead voice, then resolve the context they narrate.
+    if (boundary && flourishQueued) {
       const lead = score.layers.find((layer) => layer.role === "motif" && !layer.muted);
       const synth = lead && voices[lead.id] ? voices[lead.id].synth : null;
-      if (synth) [0, 2, 4, 7].forEach((d, i) => synth.triggerAttackRelease(note(d, 5), "16n", time + i * 0.09, 0.65));
-      victoryQueued = false;
-      context = "explore";
+      if (synth) {
+        const spb = 60 / score.bpm;
+        for (const ev of flourishEvents(score, flourishQueued)) {
+          synth.triggerAttackRelease(note(ev.degree, ev.octave), ev.dur * spb, time + ev.at * spb, ev.vel);
+        }
+      }
+      const resolve = { victory: "explore", defeat: "explore", calm: "explore", relief: "explore", combat: "combat", unease: "unease" }[flourishQueued] || "explore";
+      context = resolve;
       queuedContext = null;
-      liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
-      transport.bpm.rampTo(score.bpm + tempoOffset(score, liveAxes), 0.5);
+      liveAxes = easeToward(liveAxes, contextTargets(score, resolve), 1);
+      flourishQueued = null;
     }
     step = (step + 1) % 16;
   }, "8n");
@@ -290,10 +299,11 @@ export function setGameMusicState({ threat = 0, inCombat = false } = {}) {
   queuedContext = inCombat || threat > 0.7 ? "combat" : threat > 0.3 ? "unease" : "explore";
 }
 
-// After a one-shot event such as "victory" the music resolves back to
-// exploration at the next bar boundary.
+// Queue a one-shot flourish by name: "victory", "defeat", "combat", "calm",
+// "relief" or "unease" (the legacy boolean-style "victory" call is kept).
+// The flourish plays at the next bar boundary and lasts a full bar.
 export function musicEvent(name) {
-  if (name === "victory") victoryQueued = true;
+  if (FLOURISH_NAMES.includes(name)) flourishQueued = name;
 }
 
 export function disposeScore() {

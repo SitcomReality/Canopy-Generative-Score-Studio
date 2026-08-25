@@ -8,6 +8,7 @@ import { composeMelody, composePattern, makeSparser } from "./music/melody-compo
 import { runtimeModule } from "./music/runtime-module.js";
 import { buildMidi, melodyFromMidi } from "./music/midi-adapter.js";
 import { createAudioEngine } from "./audio/audio-engine.js";
+import { FLOURISH_NAMES } from "./music/dynamics.js";
 import { createAppState } from "./state/app-state.js";
 import { downloadBlob, safeFileName } from "./utils/download.js";
 import { mountIcons } from "./ui/icons.js";
@@ -124,9 +125,10 @@ const actions = {
     if (next !== currentContext && next !== queuedContext) actions.requestContext(next);
   },
 
-  queueVictory() {
-    store.set({ victoryQueued: true });
-    notify(store.get().playing ? "Victory flourish queued for the next bar" : "Victory flourish will play after playback starts");
+  queueFlourish(name) {
+    if (!FLOURISH_NAMES.includes(name)) return;
+    store.set({ flourishQueued: name });
+    notify(store.get().playing ? `Flourish queued for the next bar` : "Flourish will play after playback starts");
   },
 
   toggleMute(layerId) {
@@ -296,15 +298,19 @@ const actions = {
     store.updateProject({ contexts });
   },
 
-  // The tempo.offset binding's top end (BPM added at full intensity).
-  setTempoBinding(maxOffset) {
-    const max = Math.max(0, Math.min(26, Math.round(maxOffset)));
-    const bindings = store.get().project.bindings.map((binding) =>
-      binding.target === "tempo.offset" ? { ...binding, domain: [binding.domain[0], max] } : binding);
-    store.updateProject({ bindings });
-    engine?.setTempo(store.get().project.bpm);
+  // --- Verses (schema v5) --------------------------------------------------
+
+  // Replace the whole sections list; the engine rotates it at bar boundaries.
+  setSections(sections) {
+    store.updateProject({ sections });
   },
 
+  // A layer's static loudness trim in dB (-24..6).
+  setLayerLevel(layerId, level) {
+    const layers = store.get().project.layers.map((layer) =>
+      layer.id === layerId ? { ...layer, level: Math.max(-24, Math.min(6, Number(level) || 0)) } : layer);
+    store.updateProject({ layers });
+  },
   // activity: null clears the gate; otherwise { axis, range:[min,max] }.
   setLayerActivity(layerId, activity) {
     const layers = store.get().project.layers.map((layer) =>

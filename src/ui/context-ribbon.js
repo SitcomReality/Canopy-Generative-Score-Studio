@@ -1,8 +1,18 @@
 // Context ribbon: live game-state label, context switcher, threat slider,
-// victory trigger. Context changes requested while playing are queued until
-// the next bar boundary by the audio engine.
+// one-shot flourish trigger. Context changes requested while playing are
+// queued until the next bar boundary by the audio engine.
 import { CONTEXTS } from "../music/contexts.js";
+import { FLOURISH_NAMES } from "../music/dynamics.js";
 import { iconSvg } from "./icons.js";
+
+const FLOURISH_LABELS = {
+  victory: "Victory",
+  defeat: "Defeat",
+  combat: "Combat enters",
+  calm: "Calm dissipates",
+  relief: "Relief",
+  unease: "Unease",
+};
 
 export function initContextRibbon(store, actions) {
   const switcher = document.getElementById("context-switcher");
@@ -16,10 +26,12 @@ export function initContextRibbon(store, actions) {
   });
 
   document.getElementById("threat-slider").addEventListener("input", (event) => actions.setThreat(Number(event.target.value)));
-  document.getElementById("victory-button").addEventListener("click", actions.queueVictory);
+  const flourishSelect = document.getElementById("flourish-select");
+  flourishSelect.innerHTML = FLOURISH_NAMES.map((name) => `<option value="${name}">${FLOURISH_LABELS[name] ?? name}</option>`).join("");
+  document.getElementById("flourish-button").addEventListener("click", () => actions.queueFlourish(flourishSelect.value));
 
   store.subscribe((changed) => {
-    const { currentContext, queuedContext, threat, victoryQueued } = store.get();
+    const { currentContext, queuedContext, threat, flourishQueued } = store.get();
     if (changed.includes("currentContext") || changed.includes("queuedContext")) {
       const active = CONTEXTS.find((item) => item.id === currentContext);
       document.getElementById("context-status").textContent = queuedContext
@@ -42,10 +54,13 @@ export function initContextRibbon(store, actions) {
       slider.style.setProperty("--value", `${threat}%`);
       document.getElementById("threat-value").textContent = `${threat}%`;
     }
-    if (changed.includes("victoryQueued")) {
-      const button = document.getElementById("victory-button");
-      button.classList.toggle("queued", victoryQueued);
-      document.getElementById("victory-label").textContent = victoryQueued ? "Flourish queued" : "Trigger victory";
+    if (changed.includes("flourishQueued")) {
+      const button = document.getElementById("flourish-button");
+      const label = document.getElementById("flourish-label");
+      button.classList.toggle("queued", Boolean(flourishQueued));
+      label.textContent = flourishQueued
+        ? `${FLOURISH_LABELS[flourishQueued] ?? flourishQueued} queued`
+        : "Queue flourish";
     }
   });
 }
