@@ -25,8 +25,16 @@ src/
   partials/           .inc.html markup included into the template
   dynamics.js         (in music/) shared reactive-dynamics decision core:
                       axes, context targets, bindings, layer activity/fills/
-                      automation resolution. Pure and Tone-free; consumed by
-                      audio-engine.js and spliced verbatim into runtime-module.js.
+                      automation resolution, humanization. Pure and Tone-free;
+                      consumed by audio-engine.js and spliced verbatim into
+                      runtime-module.js. The barrel re-exports single-purpose
+                      parts from music/dynamics/ (axes, sections, flourishes,
+                      gates, humanize, step-frame, arrangement); vendor_
+                      dynamics.mjs concatenates those parts for the splice.
+  audio/              master-chain.js (graph/buses/space sends), voices.js
+                      (instrument -> Tone nodes incl. pluck velocity path),
+                      sequencer.js (16-step callback); audio-engine.js is the
+                      thin composition root wiring all three.
 ```
 
 ## 2. Layer rules

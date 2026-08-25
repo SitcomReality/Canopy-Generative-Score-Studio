@@ -122,7 +122,7 @@ Each layer is one voice in the arrangement:
   "instrument": "Glass bell",      // must be an exact catalog name (§4)
   "density": 58,                   // 0..100 — chance written notes actually sound
   "variation": 34,                 // 0..100 — per-repeat phrase drift amount
-  "humanize": 18,                  // 0..100 — micro timing looseness (up to ~35ms)
+  "humanize": 18,                  // 0..100 — timing looseness + per-note velocity jitter
   "restWindow": 0,                 // 0=never rests; n = silent 1 bar every n+1 bars (max 8)
   "level": 0,                      // -24..6 dB — static loudness trim (v5)
   "energyRole": "balanced",        // balanced | forward (+3dB) | recessive (-3dB)
@@ -145,8 +145,13 @@ Parameter semantics, precisely:
   notes appearing in rests scaled by density). Phrase anchors (steps 0 and
   15) NEVER mutate, so the loop always starts and resolves identically.
   0–20 = essentially written-loop; 30–50 = gently evolving; 60+ = fluid.
-- **humanize** — deterministic-per-seed timing offset up to ~3.5% of the
-  value in seconds, applied to melody/bass/hats.
+- **humanize** — deterministic-per-seed performance looseness. Timing: a
+  random drag of up to `humanize% × 90 ms` on melody/bass/hats (chords get a
+  light quarter-strength offset), so typical settings land in the
+  perceptibly-loose ~10–30 ms band. Velocity: a bounded per-note jitter
+  (±`humanize% × 24%`) around whatever the automation resolved, so a tight
+  layer plays machine-uniform and a loose one breathes. Both draw from the
+  seeded rng, so playback replays identically.
 - **restWindow** — every `window + 1` bars the layer drops out entirely for
   one bar. Use it on busy layers (percussion especially) so the loop has
   guaranteed space.

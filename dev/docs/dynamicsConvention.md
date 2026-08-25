@@ -173,10 +173,12 @@ Hydration accepts v4 projects directly:
   through `scaleMidi()`, the runtime through its vendored `note()`. No event
   ever leaves the chosen key/scale — including flourish events.
 - **One source of truth.** The decision functions live in
-  `src/music/dynamics.js` (pure, no Tone/DOM). The studio preview and the
-  exported `.score.js` both use it — the exported file receives it spliced
-  verbatim, so they can't drift. `dev/tests/dynamics-parity.test.js` is the
-  anti-drift gate: it fails if the emitted copy ever differs.
+  `src/music/dynamics.js`, a barrel over the single-purpose parts in
+  `src/music/dynamics/` (pure, no Tone/DOM). The studio preview and the
+  exported `.score.js` both use it — the exported file receives the parts
+  concatenated and spliced verbatim, so they can't drift.
+  `dev/tests/dynamics-parity.test.js` is the anti-drift gate: it fails if the
+  emitted copy ever differs.
 - **Bar-boundary transitions** for context/axis/arrangement/flourish changes,
   matching the original design; the step loop sends events but never snaps
   tonal state mid-phrase.

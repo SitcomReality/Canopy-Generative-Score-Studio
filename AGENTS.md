@@ -60,9 +60,17 @@ src/
                        contexts, tracks, instruments (preset catalog),
                        default-project (schema + hydrate), dynamics,
                        variation, melody-composer, midi-adapter,
-                       runtime-module (template)
-  audio/audio-engine.js  Tone graph + 16-step sequencer (UI-visible state is
-                       published via Tone.Draw; the step counter stays internal)
+                       runtime-module (template). `dynamics.js` is a barrel
+                       re-exporting the single-purpose parts under
+                       `music/dynamics/` (axes, sections, flourishes, gates,
+                       humanize, step-frame, arrangement).
+  audio/               master-chain.js builds the graph/buses/space sends,
+                       voices.js turns instrument presets into Tone nodes
+                       (incl. the pluck velocity-gain path), sequencer.js
+                       runs the 16-step callback (UI-visible state is
+                       published via Tone.Draw; the step counter stays
+                       internal); audio-engine.js is the thin composition
+                       root wiring all three.
   audio/engine-host.js owns the lazy engine instance; rebuilds only while
                        the transport is stopped (heavy edits stop playback)
   state/app-state.js   pub/sub store + localStorage persistence
