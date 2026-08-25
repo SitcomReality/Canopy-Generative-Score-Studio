@@ -129,6 +129,9 @@ export function createAudioEngine(store) {
   // Seeded determinism: a non-zero variationSeed reproduces the same drift
   // sequence; 0 (the default) is fully random. Reset on each playback.
   let driftRng = Math.random;
+  // Authoritative step index for the sequencer; mirrored to the store on
+  // draw time purely for the UI.
+  let stepIndex = 0;
 
   const transport = Tone.getTransport();
   transport.bpm.value = project.bpm;
@@ -140,7 +143,10 @@ export function createAudioEngine(store) {
   function onStep(time) {
     const score = store.get().project;
     let context = store.get().currentContext;
-    const step = store.get().step;
+    // The step counter lives here, not in the store: UI publication happens
+    // later (on draw time), so reading it back from the store would let a
+    // delayed or dropped draw callback desync the music itself.
+    const step = stepIndex;
     const isBar = step === 0 || step === 8;
     const queuedContext = store.get().queuedContext;
 
@@ -261,8 +267,14 @@ export function createAudioEngine(store) {
     // Publish the drifted phrases and live reactive state on bar boundaries so
     // the UI can overlay ghost notes, meter the axes, place the journey
     // playhead ("Generated variation" legend) and show the active verse.
-    if (isBar) store.set({ perfSteps: { ...perfSteps }, liveAxes: { ...liveAxes }, bar: barCount, sectionId });
-    store.set({ step: (step + 1) % 16, sounding });
+    // UI-visible state goes through Tone.Draw: it fires on draw time (aligned
+    // with what is heard) off the audio-scheduling path, and Tone clears it on
+    // stop/pause so a stale callback can never resurrect an old step.
+    Tone.Draw.schedule(() => {
+      if (isBar) store.set({ perfSteps: { ...perfSteps }, liveAxes: { ...liveAxes }, bar: barCount, sectionId });
+      store.set({ step: (step + 1) % 16, sounding });
+    }, time);
+    stepIndex = (step + 1) % 16;
   }
 
   return {
@@ -308,6 +320,7 @@ export function createAudioEngine(store) {
       // Discard drifted phrases so the next playback starts from the score
       // as written.
       barCount = 0;
+      stepIndex = 0;
       driftRng = Math.random;
       Object.keys(restCounter).forEach((id) => delete restCounter[id]);
       Object.keys(resting).forEach((id) => delete resting[id]);

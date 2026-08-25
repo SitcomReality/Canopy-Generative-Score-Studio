@@ -1,11 +1,13 @@
 // Phrase editor: renders the selected layer as an editable grid — scale-lane
 // piano roll for degree layers, a beat lane for on/off layers — plus the
-// song-level chord row. Fully re-rendered on project/step changes; the grid
-// is small enough that wholesale rebuilds stay cheap.
+// song-level chord row. The grid rebuilds only on content changes (project,
+// selection, drifted phrases); the per-step playhead is a cheap class toggle
+// so playback never triggers wholesale DOM rebuilds on the scheduler's thread.
 import { SCALES } from "../music/scales.js";
 import { midiToNote } from "../music/note-names.js";
 import { chordLabel, scaleMidi } from "../music/scale-math.js";
 import { LAYER_ROLES } from "../music/default-project.js";
+import { renderOn } from "./render-batch.js";
 
 export function initSequencePanel(store, actions) {
   const composeButton = document.getElementById("compose-melody-button");
@@ -34,12 +36,14 @@ export function initSequencePanel(store, actions) {
     else if (cell.classList.contains("beat-cell")) actions.toggleLayerStep(step);
   });
 
-  store.subscribe((changed) => {
-    if (changed.includes("project") || changed.includes("step") || changed.includes("playing") || changed.includes("selectedTrack") || changed.includes("perfSteps")) {
-      render(roll, store.get());
-    }
+  renderOn(store, ["project", "selectedTrack", "playing", "perfSteps"], () => {
+    render(roll, store.get());
+    updatePlayhead(roll, store.get());
   });
+  // Step advances only move the playhead marker.
+  renderOn(store, ["step"], () => updatePlayhead(roll, store.get()));
   render(roll, store.get());
+  updatePlayhead(roll, store.get());
 }
 
 export function selectedLayer(project, selectedTrack) {
@@ -47,9 +51,8 @@ export function selectedLayer(project, selectedTrack) {
 }
 
 function render(roll, state) {
-  const { project, step, playing, selectedTrack } = state;
+  const { project, playing, selectedTrack } = state;
   const layer = selectedLayer(project, selectedTrack);
-  const current = (s) => `${s === step && playing ? " current" : ""}${s % 4 === 0 ? " strong" : ""}`;
 
   const title = document.getElementById("sequence-title");
   const subtitle = document.getElementById("sequence-subtitle");
@@ -75,25 +78,25 @@ function render(roll, state) {
         // nothing is written (the "Generated variation" legend swatch).
         const active = layer.steps[s] === degree;
         const ghost = !active && perf && perf[s] === degree;
-        return `<button class="note-cell${active ? " active" : ""}${ghost ? " ghost" : ""}${current(s)}" data-step="${s}" data-degree="${degree}" aria-label="${active ? "Remove" : "Add"} ${note} at step ${s + 1}">${active || ghost ? "<span></span>" : ""}</button>`;
+        return `<button class="note-cell${active ? " active" : ""}${ghost ? " ghost" : ""}${s % 4 === 0 ? " strong" : ""}" data-step="${s}" data-degree="${degree}" aria-label="${active ? "Remove" : "Add"} ${note} at step ${s + 1}">${active || ghost ? "<span></span>" : ""}</button>`;
       }).join("");
       return `<div class="roll-row">${label}${cells}</div>`;
     }).join("");
   } else {
     const cells = Array.from({ length: 16 }, (_, s) => {
       const active = Boolean(layer.steps[s]);
-      return `<button class="beat-cell${active ? " active" : ""}${current(s)}" data-step="${s}" aria-label="${active ? "Remove" : "Add"} hit at step ${s + 1}">${active ? "<span></span>" : ""}</button>`;
+      return `<button class="beat-cell${active ? " active" : ""}${s % 4 === 0 ? " strong" : ""}" data-step="${s}" aria-label="${active ? "Remove" : "Add"} hit at step ${s + 1}">${active ? "<span></span>" : ""}</button>`;
     }).join("");
     rows = `<div class="roll-row beat-row"><div class="note-label root"><span>${layer.name.toUpperCase().slice(0, 6)}</span></div>${cells}</div>`;
   }
 
   const chordCells = Array.from({ length: 16 }, (_, s) => {
     const degree = project.progression[Math.floor(s / 4)];
-    return `<div class="automation-cell${current(s)}" data-step="${s}">${s % 4 === 0 ? `<span>${chordLabel(project, degree)}</span>` : ""}</div>`;
+    return `<div class="automation-cell${s % 4 === 0 ? " strong" : ""}" data-step="${s}">${s % 4 === 0 ? `<span>${chordLabel(project, degree)}</span>` : ""}</div>`;
   }).join("");
 
   const heads = Array.from({ length: 16 }, (_, s) =>
-    `<div class="step-head${current(s)}"><span>${s + 1}</span></div>`).join("");
+    `<div class="step-head${s % 4 === 0 ? " strong" : ""}" data-step="${s}"><span>${s + 1}</span></div>`).join("");
   // Lanes stretch to fill the editor height; the count drives the row template.
   roll.style.setProperty("--lanes", String(laneCount));
   roll.innerHTML = `<div class="roll-corner"><span>NOTE</span></div>${heads}${rows}
@@ -108,5 +111,14 @@ function render(roll, state) {
     item.dataset.composeLayer = entry.id;
     item.textContent = entry.name;
     menu.appendChild(item);
+  });
+}
+
+// Playhead: toggle the .current class on every timed cell instead of
+// re-rendering the grid each step.
+function updatePlayhead(roll, state) {
+  const { step, playing } = state;
+  roll.querySelectorAll("[data-step]").forEach((cell) => {
+    cell.classList.toggle("current", playing && Number(cell.dataset.step) === step);
   });
 }
