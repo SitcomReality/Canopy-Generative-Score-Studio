@@ -5,7 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { INSTRUMENTS, INSTRUMENT_NAMES, instrumentSettings } from "../../src/music/instruments.js";
 import { resolveInstrumentConfig, sanitizeInstrumentConfig } from "../../src/music/instrument-override.js";
-import { DEFAULT_LAYERS, LAYER_ROLES, hydrateProject } from "../../src/music/default-project.js";
+import { DEFAULT_LAYERS, LAYER_ROLES, hydrateProject, DEFAULT_PROJECT } from "../../src/music/default-project.js";
+import { runtimeModule } from "../../src/music/runtime-module.js";
 
 test("every instrument has a config for every layer role", () => {
   for (const name of INSTRUMENT_NAMES) {
@@ -41,6 +42,17 @@ test("default layers only use catalog instruments", () => {
   for (const layer of DEFAULT_LAYERS) {
     assert.ok(INSTRUMENT_NAMES.includes(layer.instrument), `${layer.id} uses unknown instrument`);
   }
+});
+
+test("emitted runtime embeds per-layer overrides and their resolver", () => {
+  const layer = { ...DEFAULT_LAYERS[0], instrumentConfig: { oscillator: "sawtooth", envelope: { attack: 0.3 } } };
+  const emitted = runtimeModule({ ...DEFAULT_PROJECT, layers: [layer, ...DEFAULT_PROJECT.layers.slice(1)] });
+  // The override travels inside the embedded score JSON...
+  assert.ok(emitted.includes('"instrumentConfig"'), "score JSON carries the override");
+  assert.ok(emitted.includes('"attack": 0.3'), "override values are embedded");
+  // ...and the emitted template ships the same resolution logic.
+  assert.ok(emitted.includes("function sanitizeInstrumentConfig"), "resolver is spliced");
+  assert.ok(emitted.includes("resolveInstrumentConfig(layer, \"harmony\")"), "setup consumes resolved configs");
 });
 
 test("hydrateProject rejects unknown instruments", () => {

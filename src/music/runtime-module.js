@@ -31,6 +31,45 @@ function instrumentSettings(instrument, role) {
   return preset[role];
 }
 
+// ---- per-layer instrument overrides (mirror of instrument-override.js) ---
+const OVERRIDE_WAVEFORMS = ["sine", "triangle", "square", "sawtooth"];
+const ENVELOPE_RANGES = { attack: [0, 4], decay: [0.01, 6], sustain: [0, 1], release: [0, 12] };
+function clampRange(value, range) {
+  const num = Number(value);
+  return Number.isFinite(num) ? Math.max(range[0], Math.min(range[1], num)) : num;
+}
+function sanitizeInstrumentConfig(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const out = {};
+  if (OVERRIDE_WAVEFORMS.includes(raw.oscillator)) out.oscillator = raw.oscillator;
+  if (raw.envelope && typeof raw.envelope === "object") {
+    const envelope = {};
+    for (const key of Object.keys(ENVELOPE_RANGES)) {
+      const value = Number(raw.envelope[key]);
+      if (Number.isFinite(value)) envelope[key] = clampRange(value, ENVELOPE_RANGES[key]);
+    }
+    if (Object.keys(envelope).length > 0) out.envelope = envelope;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+function resolveInstrumentConfig(layer, role) {
+  const base = instrumentSettings(layer.instrument, role);
+  const override = sanitizeInstrumentConfig(layer.instrumentConfig);
+  if (!override) return base;
+  const oscillator = override.oscillator, envelope = override.envelope;
+  const merged = Object.assign({}, base, override);
+  delete merged.oscillator;
+  delete merged.envelope;
+  if (oscillator !== undefined) {
+    const shape = typeof base.oscillator === "object" && base.oscillator !== null ? base.oscillator : {};
+    merged.oscillator = Object.assign({}, shape, { type: oscillator });
+  }
+  if (envelope !== undefined || base.envelope) {
+    merged.envelope = Object.assign({}, base.envelope || {}, envelope || {});
+  }
+  return merged;
+}
+
 // ---- voice builders (mirror of audio-engine/voices.js) -------------------
 const ROLE_VOLUME = { melody: -9, chords: -13, bass: -11 };
 function makePitched(roleKey, cfg) {
@@ -194,7 +233,7 @@ function setup() {
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
     if (layer.role === "harmony") {
-      const cfg = instrumentSettings(layer.instrument, "harmony");
+      const cfg = resolveInstrumentConfig(layer, "harmony");
       const synth = makePitched("chords", cfg);
       let bundle;
       if (cfg.voice === "pluck") {
@@ -207,7 +246,7 @@ function setup() {
       }
       voices[layer.id] = bundle;
     } else if (layer.role === "motif") {
-      const cfg = instrumentSettings(layer.instrument, "motif");
+      const cfg = resolveInstrumentConfig(layer, "motif");
       const synth = makePitched("melody", cfg);
       let bundle;
       if (cfg.voice === "pluck") {
@@ -220,7 +259,7 @@ function setup() {
       }
       voices[layer.id] = bundle;
     } else if (layer.role === "bass") {
-      const cfg = instrumentSettings(layer.instrument, "bass");
+      const cfg = resolveInstrumentConfig(layer, "bass");
       const synth = cfg.voice === "pluck" ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
       let bundle;
       if (cfg.voice === "pluck") {
