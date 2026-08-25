@@ -59,9 +59,8 @@ async function ensureProcessorLoaded(rawContext) {
   }
 }
 
-// Tone's Context wraps the native one; unwrap (starting from the destination's
-// own context so the tap node and the mix share one context) until we reach a
-// real BaseAudioContext for the worklet.
+// Tone's Context wraps the native one via standardized-audio-context; unwrap
+// until we reach the real BaseAudioContext the worklet node must live in.
 function nativeContext() {
   let candidate = Tone.getDestination().context?.rawContext ?? Tone.getContext().rawContext;
   while (candidate && !(candidate instanceof BaseAudioContext)) {
@@ -69,6 +68,28 @@ function nativeContext() {
   }
   if (!candidate) throw new Error("Could not reach the native audio context");
   return candidate;
+}
+
+// Tone's connect-time checks compare *wrapped* contexts and reject our
+// natively-created worklet node (InvalidAccessError), so make the final edge
+// at the pure native level: walk the destination graph to its underlying
+// GainNode and connect from there.
+function findNativeTap(destination, nativeCtx) {
+  const seen = new Set();
+  const walk = (node, depth) => {
+    if (!node || depth > 6 || seen.has(node)) return null;
+    seen.add(node);
+    const native = node._nativeAudioNode;
+    if (native instanceof AudioNode && native.context === nativeCtx) return native;
+    for (const key of ["output", "input"]) {
+      try {
+        const tap = walk(node[key], depth + 1);
+        if (tap) return tap;
+      } catch { /* private or disposed member — keep walking */ }
+    }
+    return null;
+  };
+  return walk(destination, 0);
 }
 
 export function isRecording() {
@@ -81,16 +102,15 @@ export async function startRecording() {
   if (session) throw new Error("A recording is already running");
   const rawContext = nativeContext();
   await ensureProcessorLoaded(rawContext);
-  const destination = Tone.getDestination();
+  const tap = findNativeTap(Tone.getDestination(), rawContext);
+  if (!tap) throw new Error("Could not reach the destination's native audio node");
   const node = new AudioWorkletNode(rawContext, PROCESSOR_NAME);
   // channelCount may only be pinned once the mode is "explicit" (the default
   // "max" rejects the assignment).
   node.channelCountMode = "explicit";
   node.channelCount = 2;
-  // Tone.connect handles Tone -> native AudioNode wiring across wrappers;
-  // Destination.connect() itself rejects foreign nodes with InvalidAccessError.
-  Tone.connect(destination, node);
-  session = { node };
+  tap.connect(node);
+  session = { node, tap };
 }
 
 // Stops the capture and resolves with one Float32Array per channel plus the
@@ -99,13 +119,13 @@ export async function stopRecording() {
   const current = session;
   if (!current) throw new Error("No recording is running");
   session = null;
-  const { node } = current;
+  const { node, tap } = current;
   const result = await new Promise((resolve) => {
     node.port.onmessage = (event) => resolve(event.data);
     node.port.postMessage("stop");
   });
   node.port.onmessage = null;
-  Tone.disconnect(Tone.getDestination(), node);
+  tap.disconnect(node);
   node.disconnect();
   return { channels: mergeChannels(result), sampleRate: node.context.sampleRate, capped: result.capped };
 }
