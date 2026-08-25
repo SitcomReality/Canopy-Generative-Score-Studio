@@ -23,7 +23,6 @@ import { initLayersOverview } from "./ui/layers-overview.js";
 import { initJourneyStrip } from "./ui/journey-strip.js";
 import { initDynamicsPanel } from "./ui/dynamics-panel.js";
 import { initLayerReactive } from "./ui/layer-reactive.js";
-import { initRuntimeView } from "./ui/runtime-view.js";
 import { initRuntimeHarness } from "./ui/runtime-harness.js";
 
 const store = createAppState();
@@ -460,7 +459,6 @@ initRefinePanel(store, actions);
 initJourneyStrip(store);
 initDynamicsPanel(store, actions);
 initLayerReactive(store, actions);
-initRuntimeView(store, actions);
 initRuntimeHarness(store);
 mountIcons(document);
 

@@ -36,8 +36,5 @@
   .song-group + .song-group { border-left: 0; border-top: 1px solid var(--line); }
 
   .runtime-view { padding-left: 24px; padding-right: 24px; }
-  .runtime-layout { grid-template-columns: 1fr; }
-  .event-lab { border-right: 0; border-bottom: 1px solid var(--line-strong); padding-right: 0; }
-  .implementation-panel { padding-left: 0; }
-  .handoff-strip { grid-template-columns: 1fr; }
+  .event-stage { grid-template-columns: 1fr; }
 }

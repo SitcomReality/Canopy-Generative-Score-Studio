@@ -28,6 +28,8 @@ export function initRuntimeHarness(store) {
     threatValue: document.getElementById("harness-threat-value"),
     combat: document.getElementById("harness-combat"),
     flourishes: document.getElementById("harness-flourishes"),
+    axesOverride: document.getElementById("harness-axes-override"),
+    axesClear: document.getElementById("harness-axes-clear"),
     core: document.getElementById("orbit-core"),
     bar: document.getElementById("harness-bar"),
     axes: document.getElementById("harness-axes"),
@@ -52,7 +54,7 @@ export function initRuntimeHarness(store) {
   const call = async (label, fn) => {
     if (!module) return;
     try {
-      await fn();
+      await fn(module);
       log(`→ ${label}`);
     } catch (error) {
       notify(`${label} failed: ${error instanceof Error ? error.message : error}`);
@@ -172,6 +174,22 @@ export function initRuntimeHarness(store) {
     const button = event.target.closest("button[data-flourish]");
     if (!button) return;
     call(`musicEvent("${button.dataset.flourish}")`, (m) => m.musicEvent(button.dataset.flourish));
+  });
+
+  // Manual axis targets: send all three sliders as one setGameAxes call.
+  const paintAxisFill = (input) => input.style.setProperty("--value", `${input.value}%`);
+  const sendAxes = () => {
+    const axes = {};
+    els.axesOverride.querySelectorAll("input[data-harness-axis]").forEach((input) => {
+      axes[input.dataset.harnessAxis] = Number(input.value) / 100;
+      paintAxisFill(input);
+    });
+    call(`setGameAxes({ ${Object.entries(axes).map(([k, v]) => `${k}: ${v.toFixed(2)}`).join(", ")} })`,
+      (m) => m.setGameAxes(axes));
+  };
+  els.axesOverride.addEventListener("input", sendAxes);
+  els.axesClear.addEventListener("click", () => {
+    call("setGameAxes(null)", (m) => m.setGameAxes(null));
   });
 
   // Editing the project invalidates the generated module: reload it so the

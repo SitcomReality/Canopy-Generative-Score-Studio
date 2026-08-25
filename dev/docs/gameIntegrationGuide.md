@@ -38,7 +38,8 @@ object — regenerate it from the studio instead.
 | `stopScore` | `() => void` | Stop transport and reset to bar 0 (written phrases, journey position, live axes). Nodes stay alive for a fast restart. |
 | `setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
 | `musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
-| `getRuntimeInfo` | `() => { playing, context, bar, liveAxes, sectionId }` | Read-only snapshot of the live state — context, bar count, eased axis values, current verse id. Additive; handy for game HUDs and the studio's Runtime-tab harness. |
+| `getRuntimeInfo` | `() => { playing, context, bar, liveAxes, axisOverride, sectionId }` | Read-only snapshot of the live state — context, bar count, eased axis values, any manual axis override, current verse id. Additive; handy for game HUDs and the studio's Runtime-tab harness. |
+| `setGameAxes` | `(axes: { intensity?, tension?, brightness? } \| null) => void` | Manually steer axes: listed entries (0..1) override the active context's targets at each bar boundary; unlisted axes keep following the context. `null` restores full context control. |
 | `disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
 
 ## 2. Minimal integration
@@ -181,9 +182,9 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
 
 ## 7. Known limits (as of schema v5)
 
-- Games cannot drive axes directly; only the three context presets via
-  `setGameMusicState`. A future `setGameAxes({...})` method is planned —
-  design your state layer around coarse bands now and it will upgrade cleanly.
+- Games cannot drive axes per-frame; use coarse context bands via
+  `setGameMusicState`, or pin specific axes with `setGameAxes({...})` (eased in
+  at bar boundaries like everything else — not a per-frame fader).
 - Tempo never changes during playback (v5 removed tempo modulation). If your
   old v4 song sped up with intensity, re-export it: intensity now expresses
   itself through loudness, density and percussion instead.

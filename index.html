@@ -260,15 +260,7 @@
   </main>
 
   <main class="content-view runtime-view main-view" id="view-runtime" hidden>
-    <section class="content-intro">
-      <span class="section-kicker">From editor to game</span>
-      <h1>Test what you ship.</h1>
-      <p>This harness runs the actual exported <code>.score.js</code> module in this page — the same file your game will import — and drives it only through its public API. Start it, steer it with game-state calls, and watch transitions land on bar boundaries.</p>
-    </section>
-
-    <section class="runtime-layout">
-      <div class="event-lab">
-        <div class="section-label"><span>01</span><strong>Live score harness</strong><small>Drives the exported module's public API</small></div>
+    <section class="event-lab">
         <div class="harness-source">
           <button class="icon-action labeled" id="harness-use-project"><i data-icon="rotate-ccw" data-size="14"></i> Use current project</button>
           <button class="icon-action labeled" id="harness-load-file"><i data-icon="folder-open" data-size="14"></i> Load .score.js file</button>
@@ -299,9 +291,18 @@
               <span>In combat</span>
               <input type="checkbox" id="harness-combat" />
             </label>
-            <div class="harness-flourish-row">
+            <div class="harness-flourish-row" title="One-shot flourish calls; each plays across the next bar and resolves its context">
               <span>musicEvent</span>
               <div id="harness-flourishes"></div>
+            </div>
+            <div class="harness-flourish-row" title="setGameAxes — manual axis targets; eased in at bar boundaries instead of the context's targets until cleared">
+              <span>setGameAxes</span>
+              <div class="harness-axes-override" id="harness-axes-override">
+                <label><span>Int</span><input type="range" min="0" max="100" value="50" data-harness-axis="intensity" /></label>
+                <label><span>Ten</span><input type="range" min="0" max="100" value="50" data-harness-axis="tension" /></label>
+                <label><span>Bri</span><input type="range" min="0" max="100" value="50" data-harness-axis="brightness" /></label>
+                <button type="button" class="event-button" id="harness-axes-clear">Follow context</button>
+              </div>
             </div>
           </div>
         </div>
@@ -309,23 +310,6 @@
           <div class="code-heading"><span>API call log</span></div>
           <div class="harness-log" id="harness-log"></div>
         </div>
-      </div>
-
-      <div class="implementation-panel">
-        <div class="section-label"><span>02</span><strong>Wire it into your loop</strong><small>Export the runtime module first</small></div>
-        <div class="install-line"><span>$</span><code>npm install tone</code><button id="copy-install"><i data-icon="copy" data-size="14"></i></button></div>
-        <div class="code-block">
-          <div class="code-heading"><span>game-music.js</span><button id="copy-snippet"><i data-icon="copy" data-size="14"></i> <span id="copy-snippet-label">Copy</span></button></div>
-          <pre id="integration-snippet"></pre>
-        </div>
-        <button class="download-runtime" id="download-runtime"><i data-icon="download" data-size="15"></i> <span id="download-runtime-label"></span></button>
-      </div>
-    </section>
-
-    <section class="handoff-strip">
-      <div><span>Browser audio rule</span><p>Call <code>startScore()</code> from a click, tap, or keypress. Browsers block audio before user interaction.</p></div>
-      <div><span>Transition rule</span><p>State changes wait until the next bar, so combat never enters with an ugly mid-chord cut. The log above shows exactly when each change lands.</p></div>
-      <div><span>Performance rule</span><p>Reuse one score instance. Call <code>disposeScore()</code> only when leaving the game entirely.</p></div>
     </section>
   </main>
 

@@ -58,7 +58,7 @@ src/
   state/app-state.js   pub/sub store + localStorage persistence
   ui/                  one module per view region (header, transport-bar,
                        context-ribbon, layers-panel, sequence-panel,
-                       refine-panel, runtime-view, runtime-harness), plus icons/toast/
+                       refine-panel, runtime-harness), plus icons/toast/
                        parameter-slider/dom helpers as needed
   utils/               download helpers, cn() class joiner
   styles/              tokens (design-token palette), base, layout, compose,
@@ -85,7 +85,7 @@ Keep new code modular with descriptive single-purpose filenames. Pure music-theo
 - Musical logic must respect the "harmony guard": every generated note derives from `scaleMidi()` / `chordNotes()` in `src/music/scale-math.js` (studio) or the vendored `note()`/`chord()` in the runtime. Nothing ever leaves the chosen key/scale; `src/music/dynamics.js` only ever emits scale degrees.
 - Adaptive transitions are queued and applied only on bar boundaries (steps 0 and 8) inside `audio-engine.js`; keep state changes musical, never mid-chord cuts.
 - **Reactive dynamics live in `src/music/dynamics.js`** (pure, Tone-free) and are driven entirely by the JSON schema (axes/contexts/bindings/activity/fills/automation) — do not hardcode context-dependent rules in the engines. The exported runtime splices `dynamics.js` verbatim (see `runtimeModule()` in `music/runtime-module.js`).
-- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameMusicState`, `musicEvent`, `disposeScore`, plus the read-only `getRuntimeInfo`) because exported files are consumed in users' games. Do not hand-edit the spliced block — edit `dynamics.js` instead, and keep `dev/tests/dynamics-parity.test.js` green. The Runtime tab's harness (`src/ui/runtime-harness.js`) loads the actual exported module in-page via a blob import and must drive it only through that public API.
+- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameMusicState`, `musicEvent`, `setGameAxes`, `disposeScore`, plus the read-only `getRuntimeInfo`) because exported files are consumed in users' games. Do not hand-edit the spliced block — edit `dynamics.js` instead, and keep `dev/tests/dynamics-parity.test.js` green. The Runtime tab's harness (`src/ui/runtime-harness.js`) loads the actual exported module in-page via a blob import and must drive it only through that public API.
 - After editing any partial or the template, run `build.py` (or keep `--watch` running) before verifying changes.
 
 ## Testing

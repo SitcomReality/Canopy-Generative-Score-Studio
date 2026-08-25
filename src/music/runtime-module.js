@@ -149,6 +149,9 @@ let barCount = 0;
 const restCounter = {};
 const resting = {};
 let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
+// Manual axis targets (setGameAxes). When present, its entries override the
+// active context's targets at each boundary; null restores context control.
+let axisOverride = null;
 let driftRng = Math.random;
 
 function setup() {
@@ -201,7 +204,8 @@ function setup() {
       queuedContext = null;
     }
     if (boundary) {
-      liveAxes = easeToward(liveAxes, contextTargets(score, context), 0.5);
+      const target = { ...contextTargets(score, context), ...(axisOverride ?? {}) };
+      liveAxes = easeToward(liveAxes, target, 0.5);
     }
     if (step === 0) {
       barCount += 1;
@@ -315,8 +319,18 @@ export function getRuntimeInfo() {
     context,
     bar: barCount,
     liveAxes: { ...liveAxes },
+    axisOverride: axisOverride ? { ...axisOverride } : null,
     sectionId: activeSection(score, barCount)?.id ?? null,
   };
+}
+
+// Manually steer the reactive axes: pass any subset of { intensity, tension,
+// brightness } in 0..1 and those axes ease toward your values at each bar
+// boundary instead of the active context's targets. Unlisted axes (and the
+// context itself) keep behaving normally; call setGameAxes(null) to hand
+// control fully back to the context.
+export function setGameAxes(axes) {
+  axisOverride = axes && typeof axes === "object" ? { ...axes } : null;
 }
 
 export function disposeScore() {

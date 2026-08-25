@@ -1,17 +1,7 @@
-/* Runtime tab: layout unchanged, colours retokenised for contrast.
+/* Runtime tab: single-column harness page.
    Minimum text size is 10px (no 8px anywhere). */
-.content-view { min-height: calc(100vh - 56px); background: var(--surface-1); padding: 0 6vw 70px; }
-.content-intro { padding: 76px 0 60px; max-width: 780px; }
-.section-kicker { color: var(--accent); font-size: var(--kicker-size); letter-spacing: .19em; text-transform: uppercase; font-weight: 600; }
-.content-intro h1 { margin: 14px 0 18px; color: var(--text-1); font-family: var(--font-serif); font-size: clamp(44px, 6vw, 78px); line-height: .95; font-weight: 400; letter-spacing: -.035em; }
-.content-intro p { width: min(610px, 100%); margin: 0; color: var(--text-3); font-family: var(--font-serif); font-size: 17px; line-height: 1.55; }
-.runtime-layout { display: grid; grid-template-columns: minmax(500px, 1.1fr) minmax(420px, .9fr); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
-.event-lab { padding: 24px 35px 35px 0; border-right: 1px solid var(--line-strong); }
-.implementation-panel { padding: 24px 0 35px 35px; }
-.section-label { min-height: 39px; display: grid; grid-template-columns: 34px 1fr auto; align-items: baseline; border-bottom: 1px solid var(--line); }
-.section-label > span { color: var(--text-4); font-family: var(--font-num); font-size: var(--kicker-size); }
-.section-label > strong { color: var(--text-2); font-size: var(--label-size); }
-.section-label > small { color: var(--text-4); font-size: var(--kicker-size); }
+.content-view { min-height: calc(100vh - 56px); background: var(--surface-1); padding: 24px 3vw 40px; }
+.event-lab { max-width: 1100px; }
 .event-stage { min-height: 390px; position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 25px; }
 .world-orbit { min-height: 280px; display: grid; place-items: center; position: relative; background: radial-gradient(circle, #6e845815, transparent 62%); }
 .world-orbit::before, .world-orbit::after { content: ""; position: absolute; border: 1px solid var(--line-strong); border-radius: 50%; }
@@ -23,21 +13,10 @@
 .orbit-core.state-combat { color: var(--ctx-combat); border-color: #8a5342; box-shadow: 0 0 55px #c7654621; }
 .orbit-core strong { margin-top: 4px; font-family: var(--font-serif); font-size: 17px; font-weight: 400; }
 .orbit-core span { color: var(--text-3); font-size: var(--kicker-size); }
-.install-line { height: 44px; margin: 22px 0 12px; display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--line-strong); background: var(--surface-0); color: var(--text-3); font-size: var(--label-size); }
-.install-line > span { color: var(--accent); margin-right: 10px; }
-.install-line button { margin-left: auto; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
-.install-line button:hover { color: var(--text-1); }
 .code-block { border: 1px solid var(--line-strong); background: var(--surface-0); }
 .code-heading { height: 35px; display: flex; align-items: center; justify-content: space-between; padding: 0 11px; border-bottom: 1px solid var(--line); color: var(--text-4); font-size: var(--kicker-size); }
 .code-heading button { display: flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--text-3); font-size: var(--kicker-size); cursor: pointer; }
 .code-heading button:hover { color: var(--text-1); }
-.code-block pre { margin: 0; min-height: 251px; padding: 18px; overflow: auto; color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); line-height: 1.7; white-space: pre-wrap; }
-.download-runtime { height: 36px; margin-top: 12px; display: flex; align-items: center; gap: 7px; padding: 0 13px; border: 0; background: var(--accent); color: var(--accent-ink); font-size: var(--kicker-size); font-weight: 700; cursor: pointer; }
-.handoff-strip { display: grid; grid-template-columns: repeat(3, 1fr); padding-top: 32px; gap: 34px; }
-.handoff-strip > div { padding-right: 20px; }
-.handoff-strip span { color: var(--text-2); font-size: var(--kicker-size); font-weight: 600; }
-.handoff-strip p { margin: 7px 0 0; color: var(--text-4); font-size: var(--kicker-size); line-height: 1.6; }
-.handoff-strip code { color: var(--accent); }
 
 /* Orbit core pulse while the score is running */
 @keyframes corePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
@@ -57,6 +36,11 @@
 .harness-state-row input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
 .harness-flourish-row { display: flex; flex-direction: column; gap: 6px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
 .harness-flourish-row > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.harness-axes-override { display: flex; align-items: center; gap: 10px; }
+.harness-axes-override label { flex: 1; display: flex; align-items: center; gap: 5px; color: var(--text-4); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.harness-axes-override input[type="range"] { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+.harness-axes-override input[type="range"]::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.harness-axes-override .event-button { flex: none; }
 .harness-readout { z-index: 2; margin-top: 18px; display: flex; align-items: center; gap: 18px; }
 .harness-stat { display: flex; flex-direction: column; gap: 2px; align-items: center; }
 .harness-stat small { color: var(--text-4); font-size: 9px; letter-spacing: .13em; }
