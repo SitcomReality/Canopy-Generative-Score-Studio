@@ -4,7 +4,7 @@ This document explains how Canopy's music system works end-to-end, precisely
 enough that an LLM (or a human) can author a complete `.canopy.json` song
 file without reading the source. For consuming exported songs inside a game,
 see `gameIntegrationGuide.md`; `systemArchitecture.md` covers engine/layout
-invariants and `dynamicsConvention.md` the formal v4 reactive contract.
+invariants and `dynamicsConvention.md` the formal v5 reactive contract.
 
 The authoritative sources, if anything here seems ambiguous:
 
@@ -25,20 +25,25 @@ Everything adaptive is data-driven from the JSON — there are no hidden rules
 in the playback engines. A score plays through four pipelines stacked on top
 of the written notes:
 
-1. **Reactive dynamics (v4).** Three continuous axes (`intensity`,
+1. **Reactive dynamics (v5).** Three continuous axes (`intensity`,
    `tension`, `brightness`, each 0..1) are steered by *context presets* (or by
-   the game at runtime). Axes modulate tempo, velocities, densities, octaves,
+   the game at runtime). Axes modulate velocities, densities, octaves,
    note durations, percussion behavior, and can gate whole layers on or off.
    Axis changes are eased toward the active context's targets at every bar
    boundary (rate 0.5/bar ≈ smooth over two bars), so nothing jumps.
+   **Tempo never changes during playback** — intensity expresses itself
+   through loudness, density, percussion and register.
 2. **Long-form variation.** At each bar boundary, motif layers get a fresh,
    seeded drift pass (`mutateMotif`) derived from their written phrase — the
    written phrase itself never changes. Separately, a macro "journey" curve
    raises and lowers per-layer volume over many bars.
-3. **Arrangement hygiene.** Per-layer rest windows force guaranteed quiet
+3. **Verses (v5).** An ordered list of `sections` rotates at bar boundaries,
+   applying per-layer dB deltas and dropping layers in/out, so the song moves
+   between distinct arrangements instead of one endless loop.
+4. **Arrangement hygiene.** Per-layer rest windows force guaranteed quiet
    passes so loops breathe; an energy role biases each layer up or down as
    the journey swells.
-4. **Determinism.** With a non-zero `variationSeed`, every random decision
+5. **Determinism.** With a non-zero `variationSeed`, every random decision
    (drift, dropouts, hat variance, humanize offsets) replays identically.
    Seed 0 means fully random.
 
@@ -54,13 +59,13 @@ note; conversely, you should *think in degrees*, not note names.
 
 ---
 
-## 2. Top-level schema (version 4)
+## 2. Top-level schema (version 5)
 
 ```jsonc
 {
-  "version": 4,
+  "version": 5,
   "name": "Sunlit Reaches",       // string
-  "bpm": 76,                       // 48..150; the binding adds up to +26 live
+  "bpm": 76,                       // 48..150; STATIC during playback (v5)
   "key": "D",                      // one of: C C# D Eb E F F# G Ab A Bb B
   "scale": "Lydian",               // any scale in src/music/scales.js
   "progression": [0, 3, 5, 4],     // exactly 4 chord roots, degrees 0..6
@@ -71,7 +76,9 @@ note; conversely, you should *think in degrees*, not note names.
   "variationSeed": 0,              // 0 = random; >0 = reproducible
   "axes":        { ... },          // keep the default (see §5)
   "contexts":    [ ... ],          // context presets with axis targets (§5)
-  "bindings":    [ ... ],          // axis -> song parameter maps (§5)
+  "bindings":    [ ... ],          // axis -> custom song parameter (§5)
+  "sections":    [ ... ],          // v5 verses, [] = one continuous section (§5)
+  "flourishes":  null,             // v5 one-shot overrides; null = built-ins (§5)
   "layers":      [ ... ]           // 1..n layers (§3)
 }
 ```
@@ -117,6 +124,7 @@ Each layer is one voice in the arrangement:
   "variation": 34,                 // 0..100 — per-repeat phrase drift amount
   "humanize": 18,                  // 0..100 — micro timing looseness (up to ~35ms)
   "restWindow": 0,                 // 0=never rests; n = silent 1 bar every n+1 bars (max 8)
+  "level": 0,                      // -24..6 dB — static loudness trim (v5)
   "energyRole": "balanced",        // balanced | forward (+3dB) | recessive (-3dB)
   "activity": null,                // axis gate (§5) or null = always on
   "fills": null,                   // extra-hit triggers (§5) or null
@@ -142,6 +150,10 @@ Parameter semantics, precisely:
 - **restWindow** — every `window + 1` bars the layer drops out entirely for
   one bar. Use it on busy layers (percussion especially) so the loop has
   guaranteed space.
+- **level** (v5) — the layer's static base loudness trim in dB, -24..6,
+  default 0. Stacked with the journey role bias and the active verse's gain.
+  Lower a pad to -4 so the motif always reads; push a bass to +2 when it's
+  the engine of the track.
 - **energyRole** — journey volume bias: `forward` leans in up to +3 dB,
   `recessive` pulls back up to −3 dB, `balanced` splits the difference at
   +1.5 dB, all scaled by how far the journey is from neutral.
@@ -204,7 +216,7 @@ Fixed to three dimensions (whitelisted; don't invent others):
 
 ```jsonc
 "axes": {
-  "intensity":  { "label": "Intensity" },   // drive, loudness, tempo push
+  "intensity":  { "label": "Intensity" },   // drive, loudness, density push
   "tension":    { "label": "Tension" },     // unease, melodic activity
   "brightness": { "label": "Brightness" }   // timbral light vs shade
 }
@@ -231,16 +243,49 @@ motion.
 
 ### Bindings
 
-Song-level axis → parameter maps. Currently one canonical target:
+Song-level axis → parameter maps. The v4 `tempo.offset` target is gone (tempo
+is static from v5 on; hydration drops such bindings). Keep `bindings: []`
+unless you add a custom song-level parameter of your own.
+
+### Verses (sections, v5)
+
+An ordered list that rotates at bar boundaries — the "real verse" machinery:
 
 ```jsonc
-"bindings": [
-  { "target": "tempo.offset", "axis": "intensity", "domain": [0, 26] }
+"sections": [
+  { "id": "a", "label": "Verse A", "length": 4,
+    "layers": {
+      "melody":     { "gain": 2 },          // dB delta -24..24
+      "percussion": { "active": false }     // silent for this whole verse
+    }
+  },
+  { "id": "b", "label": "Verse B", "length": 4, "layers": {} }
 ]
 ```
 
-Live BPM = `project.bpm + offset(axis value)` — so with the default binding,
-full intensity adds up to +26 BPM over the base tempo.
+Sections play strictly in order (A for 4 bars, B for 4 bars, A again, …).
+Use them for arrangement contrast: a sparse verse with percussion dropped and
+the pad pulled back (`gain: -3`), then a full verse with everything up. An
+empty list plays one continuous arrangement as before. Layer drop-in/out
+combines with per-layer `activity` gates: both must allow the layer through.
+
+### Flourishes (v5)
+
+One-shot events queued by name (studio button or `musicEvent(name)` in a
+game), played across one full bar at the next bar boundary by the lead voice:
+`victory` (full-bar ascending fanfare), `defeat`, `combat`, `calm`, `relief`,
+`unease`. Each also resolves the context it dramatizes (e.g. victory settles
+back to explore, combat commits to combat) — see the table in
+`dynamicsConvention.md`. Per-song overrides:
+
+```jsonc
+"flourishes": {
+  "calm": [{ "degree": 4, "octave": 4, "at": 0, "dur": 1.4, "vel": 0.36 }]
+}
+```
+
+Degrees are harmony-guarded (0..7); `at`/`dur` are in beat units within one
+bar. `null` keeps the built-in catalog.
 
 ### Layer activity gates
 
@@ -266,13 +311,13 @@ Inject extra events at listed steps while an axis is above threshold:
 
 Per-role behavior when a fill fires:
 
-- **percussion** — extra off-beat kick on even steps, a **snare accent**
-  (hat if the kit lacks a snare), a double-snare flam on odd steps, and on
-  steps ≥ 13 a rising four-hit **snare roll** closing the phrase half. This
-  is the "drumroll connecting verses" gesture — place fills at 8/11/14 (and
-  optionally a harder one at 12 or 14 with a higher threshold) for
-  build-and-drop transitions. Roll offsets are fixed, not random, so seeds
-  stay deterministic.
+- **percussion** — extra off-beat kick on even steps and a **snare accent**
+  (hat if the kit lacks a snare), plus a double-snare flam on odd steps.
+  Independently of fills, every half-phrase tail (steps 12 and 14) carries a
+  short snare roll whose length/velocity scale with intensity — one soft
+  stroke when quiet up to the full rising four-hit roll — so the roll timbre
+  is a regular part of the groove rather than an occasional surprise burst.
+  Roll offsets are fixed, not random, so seeds stay deterministic.
 - **bass** — pushes root notes onto even steps near the phrase edge.
 - **motif** — adds a quick scale-neighbor grace note above/below the current
   note.
@@ -342,10 +387,11 @@ boundaries musically.
 6. **Add rhythm** — kick-weighted pattern (downbeats true, some syncopation);
    set `activity` intensity ≥ 0.35; add fills with staggered thresholds
    (0.5 for accents, 0.7 for rolls). Give it `restWindow` 4–8.
-7. **Shape contexts/journey/bindings** — widen the explore↔combat contrast
-   through targets; bind tempo to intensity; choose journey arc/tide with
-   moderate depth; set a non-zero seed if the game build must replay
-   identically.
+7. **Shape contexts/journey/verses** — widen the explore↔combat contrast
+   through targets; choose journey arc/tide with moderate depth; add two or
+   more sections with layer drop-in/out for verse variety; optionally override
+   flourishes to match your song's character; set a non-zero seed if the game
+   build must replay identically.
 8. **Validate mentally against hydration**: instrument names exact, degrees
    0–7/null, bools for on/off layers, 4-entry progression of 0–6, domains
    well-formed.
@@ -358,7 +404,7 @@ chorus moments.
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "name": "Vineheart Hollow",
   "bpm": 72,
   "key": "D",
@@ -379,9 +425,13 @@ chorus moments.
     { "id": "unease", "label": "Unease", "targets": { "intensity": 0.55, "tension": 0.55, "brightness": 0.5 } },
     { "id": "combat", "label": "Combat", "targets": { "intensity": 0.9, "tension": 0.68, "brightness": 0.35 } }
   ],
-  "bindings": [
-    { "target": "tempo.offset", "axis": "intensity", "domain": [0, 24] }
+  "bindings": [],
+  "sections": [
+    { "id": "a", "label": "Verse A", "length": 4, "layers": { "melody": { "gain": 2 } } },
+    { "id": "b", "label": "Chorus", "length": 4,
+      "layers": { "chords": { "gain": 1.5 }, "bass": { "gain": 2 }, "percussion": { "gain": 2.5 } } }
   ],
+  "flourishes": null,
   "layers": [
     {
       "id": "chords",
@@ -395,6 +445,7 @@ chorus moments.
       "variation": 18,
       "humanize": 10,
       "restWindow": 0,
+      "level": -1,
       "energyRole": "balanced",
       "activity": null,
       "fills": null,
@@ -416,6 +467,7 @@ chorus moments.
       "variation": 34,
       "humanize": 18,
       "restWindow": 0,
+      "level": 0,
       "energyRole": "forward",
       "activity": null,
       "fills": [
@@ -441,6 +493,7 @@ chorus moments.
       "variation": 10,
       "humanize": 8,
       "restWindow": 0,
+      "level": -2,
       "energyRole": "balanced",
       "activity": null,
       "fills": [

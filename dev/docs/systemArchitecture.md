@@ -72,7 +72,7 @@ their init functions in `main.js`.
 Views subscribe to the central store (`src/state/app-state.js`) with change
 notifications keyed by which slice changed. The audio engine's transport
 callback reads live values straight from the store, so parameter edits apply
-without tearing down or re-subscribing the sequencer, and step/context/victory
+without tearing down or re-subscribing the sequencer, and step/context/flourish
 changes made inside the callback propagate back to views as ordinary store
 updates.
 

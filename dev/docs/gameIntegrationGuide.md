@@ -2,7 +2,7 @@
 
 How to drop an exported `.score.js` into a web game and drive its adaptive
 behavior. This is the counterpart to `songAuthoringGuide.md` (how songs are
-authored) and `dynamicsConvention.md` (the formal v4 reactive contract). It is
+authored) and `dynamicsConvention.md` (the formal v5 reactive contract). It is
 written so it can be handed to an LLM or a developer who has never seen the
 Canopy studio.
 
@@ -15,9 +15,10 @@ It contains:
 
 - `export const score` — the full `.canopy.json` song data (embedded verbatim).
 - The complete synth graph builder and 16-step sequencer built on Tone.js.
-- The reactive-dynamics decision core (axes, contexts, bindings, gates,
-  fills, automation) spliced in from the studio's shared core — so the game
-  hears exactly what the studio preview heard. A parity test guards this.
+- The reactive-dynamics decision core (axes, contexts, gates, fills,
+  automation, verses, flourishes) spliced in from the studio's shared core —
+  so the game hears exactly what the studio preview heard. A parity test
+  guards this.
 
 **Dependency:** `tone` (npm). That is the only import:
 
@@ -36,7 +37,7 @@ object — regenerate it from the studio instead.
 | `startScore` | `async () => void` | Unlock audio, build the graph, start looping. Idempotent-ish: safe to call again after `stopScore`. |
 | `stopScore` | `() => void` | Stop transport and reset to bar 0 (written phrases, journey position, live axes). Nodes stay alive for a fast restart. |
 | `setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
-| `musicEvent` | `(name: string) => void` | One-shot musical events. Currently `"victory"`. |
+| `musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
 | `disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
 
 ## 2. Minimal integration
@@ -121,10 +122,12 @@ onCombatEnd:   () => { inCombatFlag = false; setGameMusicState({ threat: smoothe
 musicEvent("victory");
 ```
 
-Queues a short rising arpeggio flourish at the next bar boundary, then the
-context resolves back to `explore` and tempo settles. Fire it the moment the
-winning blow lands — the bar-boundary timing makes it feel placed rather than
-slapped on.
+Queues the victory flourish — a full-bar ascending fanfare — starting at the
+next bar boundary, after which the context resolves back to `explore`. Fire it
+the moment the winning blow lands — the bar-boundary timing makes it feel
+placed rather than slapped on. The same pattern covers the other five
+flourishes (`"defeat"`, `"combat"`, `"calm"`, `"relief"`, `"unease"`), each
+resolving the context its drama implies.
 
 ## 4. Lifecycle
 
@@ -175,12 +178,15 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
   in whole bars (or stub `Tone.getTransport()`) when asserting context
   changes.
 
-## 7. Known limits (as of schema v4)
+## 7. Known limits (as of schema v5)
 
 - Games cannot drive axes directly; only the three context presets via
   `setGameMusicState`. A future `setGameAxes({...})` method is planned —
   design your state layer around coarse bands now and it will upgrade cleanly.
-- Only the `"victory"` event exists; `musicEvent` ignores other names.
+- Tempo never changes during playback (v5 removed tempo modulation). If your
+  old v4 song sped up with intensity, re-export it: intensity now expresses
+  itself through loudness, density and percussion instead.
+- Flourish names other than the six in the table are ignored by `musicEvent`.
 - One score instance per page is the supported shape (module-level state).
 - No pause/resume in the public API (see §4 for workarounds).
 - The runtime cannot load external samples; all sounds are synthesized, so
