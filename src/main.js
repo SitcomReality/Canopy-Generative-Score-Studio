@@ -37,13 +37,24 @@ function initializeAudio() {
 }
 
 // Adding/removing layers or changing a layer's role changes the synth graph,
-// so the engine is rebuilt (keeping playback state) instead of patched.
+// so the engine is rebuilt instead of patched. Always called with playback
+// stopped: disposing mid-transport leaves the shared Tone transport running
+// while its callback is cleared, and restarting it desyncs the step counter.
+// Heavy edits stop playback up front (see stopForHeavyEdit).
 function rebuildEngine() {
   if (!engine) return;
-  const wasPlaying = store.get().playing;
+  engine.stop();
   engine.dispose();
   engine = createAudioEngine(store);
-  if (wasPlaying) engine.play();
+}
+
+// Graph-level edits (compose, import, layer structure) stop playback rather
+// than applying live: the engine rebuild they trigger cannot be done glitch-
+// free against a running transport.
+function stopForHeavyEdit() {
+  if (!store.get().playing) return;
+  engine?.stop();
+  store.set({ playing: false });
 }
 
 const LAYER_PALETTE = ["#9dc98d", "#f1c97a", "#d98868", "#b8a5d7", "#7fb8c9", "#c9a3b8"];
@@ -222,6 +233,7 @@ const actions = {
         ? project.layers.filter((layer) => layer.id === selectedTrack)
         : project.layers.filter((layer) => layer.id === target);
     if (chosen.length === 0) return;
+    stopForHeavyEdit();
     const chosenIds = new Set(chosen.map((layer) => layer.id));
     const layers = project.layers.map((layer) =>
       chosenIds.has(layer.id)
@@ -239,6 +251,7 @@ const actions = {
       notify("Add a motif layer to simplify");
       return;
     }
+    stopForHeavyEdit();
     const layers = project.layers.map((layer) =>
       layer.id === target.id
         ? { ...layer, steps: makeSparser(layer.steps), density: Math.max(20, layer.density - 12) }
@@ -251,7 +264,7 @@ const actions = {
     actions.stopPlayback();
     store.set({ project: hydrateProject({}), currentContext: "explore", threat: 12, selectedTrack: "melody" });
     // The engine's voice graph mirrors the old project's layers/roles; rebuild
-    // so restored ids always have matching voices.
+    // so restored ids always have matching voices. Playback is already stopped.
     rebuildEngine();
     notify("Starter score restored");
   },
@@ -284,6 +297,7 @@ const actions = {
         const midi = new Midi(await file.arrayBuffer());
         const fitted = melodyFromMidi(midi, store.get().project);
         let placed = false;
+        stopForHeavyEdit();
         const layers = store.get().project.layers.map((layer) => {
           if (layer.role !== "motif" || placed) return layer;
           placed = true;
@@ -440,6 +454,7 @@ const actions = {
     };
     store.updateProject({ layers: [...project.layers, layer] });
     store.set({ selectedTrack: layer.id });
+    stopForHeavyEdit();
     rebuildEngine();
     notify(`${layer.name} added — rename it in the Selected layer panel`);
     actions.beginRenameLayer();
@@ -469,6 +484,7 @@ const actions = {
     const layers = project.layers.filter((layer) => layer.id !== layerId);
     store.updateProject({ layers });
     if (selectedTrack === layerId) store.set({ selectedTrack: layers[0].id });
+    stopForHeavyEdit();
     rebuildEngine();
     notify("Layer removed");
   },
@@ -486,6 +502,7 @@ const actions = {
       };
     });
     store.updateProject({ layers });
+    stopForHeavyEdit();
     rebuildEngine();
     notify("Layer role changed");
   },
