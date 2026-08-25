@@ -120,6 +120,7 @@ Each layer is one voice in the arrangement:
   "color": "#f1c97a",
   "muted": false,
   "instrument": "Glass bell",      // must be an exact catalog name (§4)
+  "instrumentConfig": null,        // optional per-layer sound override, see below
   "density": 58,                   // 0..100 — chance written notes actually sound
   "variation": 34,                 // 0..100 — per-repeat phrase drift amount
   "humanize": 18,                  // 0..100 — timing looseness + per-note velocity jitter
@@ -162,6 +163,12 @@ Parameter semantics, precisely:
 - **energyRole** — journey volume bias: `forward` leans in up to +3 dB,
   `recessive` pulls back up to −3 dB, `balanced` splits the difference at
   +1.5 dB, all scaled by how far the journey is from neutral.
+- **instrumentConfig** — optional partial sound override merged over the
+  preset for the layer's role: `{ "oscillator": "sawtooth", "envelope":
+  { "attack": 0.2 } }`. Missing keys fall through to the preset; hydration
+  drops unknown keys and clamps envelope values. Applies to pitched roles
+  only (pluck voices have no oscillator/envelope to tweak; percussion kits
+  are untouched). The inspector's sound editor writes this field live.
 
 ### Role → voice mapping
 

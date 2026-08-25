@@ -59,6 +59,7 @@ src/
                        note-names, keys, scales, progressions, scale-math,
                        contexts, tracks, instruments (preset catalog),
                        default-project (schema + hydrate), dynamics,
+                       instrument-override (per-layer preset overrides),
                        variation, melody-composer, midi-adapter,
                        runtime-module (template). `dynamics.js` is a barrel
                        re-exporting the single-purpose parts under
@@ -76,8 +77,8 @@ src/
   state/app-state.js   pub/sub store + localStorage persistence
   ui/                  one module per view region (header, transport-bar,
                        context-ribbon, layers-panel, sequence-panel,
-                       refine-panel, runtime-harness), plus icons/toast/
-                       parameter-slider/dom helpers as needed. Views subscribe
+                       refine-panel, instrument-editor, runtime-harness),
+                       plus icons/toast/parameter-slider/dom helpers as needed. Views subscribe
                        through ui/render-batch.js (rAF-coalesced) and split
                        grid rebuilds from cheap playhead class toggles.
                        ui/tab-actions.js holds the compose/runtime tab action.
