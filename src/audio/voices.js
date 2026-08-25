@@ -1,7 +1,7 @@
 // Voice builders: turn an instrument preset config into live Tone nodes, one
 // bundle per layer. Mirrored (as emitted source text) by
 // music/runtime-module.js — keep the two behaviorally identical.
-import { instrumentSettings } from "../music/instruments.js";
+import { resolveInstrumentConfig } from "../music/instrument-override.js";
 
 // Per-kind base loudness in dB for pitched voices.
 export const ROLE_VOLUME = { melody: -9, chords: -13, bass: -11 };
@@ -65,7 +65,7 @@ export function createVoices(project, buses, disposables) {
   const voices = {};
   for (const layer of project.layers) {
     if (layer.role === "harmony") {
-      const cfg = instrumentSettings(layer.instrument, "harmony");
+      const cfg = resolveInstrumentConfig(layer, "harmony");
       const synth = makePitched("chords", cfg);
       let bundle;
       if (cfg.voice === "pluck") {
@@ -77,7 +77,7 @@ export function createVoices(project, buses, disposables) {
       voices[layer.id] = bundle;
       disposables.push(synth);
     } else if (layer.role === "motif") {
-      const cfg = instrumentSettings(layer.instrument, "motif");
+      const cfg = resolveInstrumentConfig(layer, "motif");
       const synth = makePitched("melody", cfg);
       let bundle;
       if (cfg.voice === "pluck") {
@@ -89,7 +89,7 @@ export function createVoices(project, buses, disposables) {
       voices[layer.id] = bundle;
       disposables.push(synth);
     } else if (layer.role === "bass") {
-      const cfg = instrumentSettings(layer.instrument, "bass");
+      const cfg = resolveInstrumentConfig(layer, "bass");
       const synth = cfg.voice === "pluck" ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
       let bundle;
       if (cfg.voice === "pluck") {

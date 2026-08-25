@@ -12,6 +12,7 @@
 // flat projects and versions 2-4 (migrating them to v5 defaults).
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
+import { sanitizeInstrumentConfig } from "./instrument-override.js";
 import { CONTEXTS } from "./contexts.js";
 import { clamp01, domainValue } from "./dynamics.js";
 
@@ -70,6 +71,7 @@ export const DEFAULT_LAYERS = [
     color: "#9dc98d",
     muted: false,
     instrument: "Warm reed",
+    instrumentConfig: null,
     density: 42,
     variation: 20,
     humanize: 10,
@@ -92,6 +94,7 @@ export const DEFAULT_LAYERS = [
     color: "#f1c97a",
     muted: false,
     instrument: "Glass bell",
+    instrumentConfig: null,
     density: 58,
     variation: 34,
     humanize: 18,
@@ -116,6 +119,7 @@ export const DEFAULT_LAYERS = [
     color: "#d98868",
     muted: false,
     instrument: "Soft pluck",
+    instrumentConfig: null,
     density: 80,
     variation: 10,
     humanize: 8,
@@ -140,6 +144,7 @@ export const DEFAULT_LAYERS = [
     color: "#b8a5d7",
     muted: false,
     instrument: "Soft pluck",
+    instrumentConfig: null,
     density: 70,
     variation: 15,
     humanize: 12,
@@ -407,6 +412,10 @@ function sanitizeLayer(raw, index, usedIds) {
     color: typeof raw?.color === "string" && /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : fallback.color,
     muted: Boolean(raw?.muted),
     instrument: INSTRUMENT_NAMES.includes(raw?.instrument) ? raw.instrument : fallback.instrument,
+    instrumentConfig:
+      raw?.instrumentConfig !== undefined
+        ? sanitizeInstrumentConfig(raw.instrumentConfig)
+        : (fallback.instrumentConfig ?? null),
     density: clampPercent(raw?.density, fallback.density),
     variation: clampPercent(raw?.variation, fallback.variation),
     humanize: clampPercent(raw?.humanize, fallback.humanize),
