@@ -61,14 +61,19 @@ src/
                        default-project (schema + hydrate), dynamics,
                        instrument-override (per-layer preset overrides),
                        variation, melody-composer, midi-adapter,
-                       runtime-module (template). `dynamics.js` is a barrel
+                       instrument-override (per-layer preset overrides),
+                       runtime-module (template; emitter split into
+                       `music/runtime-module/` parts by emitted concern).
+                       `dynamics.js` is a barrel
                        re-exporting the single-purpose parts under
                        `music/dynamics/` (axes, sections, flourishes, gates,
                        humanize, step-frame, arrangement).
   audio/               master-chain.js builds the graph/buses/space sends,
                        voices.js turns instrument presets into Tone nodes
                        (incl. the pluck velocity-gain path), sequencer.js
-                       runs the 16-step callback (UI-visible state is
+                       runs the 16-step callback (implementation split into
+                       audio/sequencer/: arrangement, event-dispatch,
+                       flourish, orchestration; UI-visible state is
                        published via Tone.Draw; the step counter stays
                        internal); audio-engine.js is the thin composition
                        root wiring all three.
@@ -98,7 +103,12 @@ the song bar's "Reactive axes" group, per-layer activity gate + fills +
 automation summary in the inspector. All colors/typography come
 from `src/styles/tokens.css` custom properties. See `dev/docs/canopyUiOverhaul.md`.
 
-Keep new code modular with descriptive single-purpose filenames. Pure music-theory functions stay side-effect free under `music/`. Static page structure goes into partials; only data-driven markup is rendered from JS.
+Keep new code modular with descriptive single-purpose filenames. When a file
+grows past ~200 lines, split it into a same-named directory of single-purpose
+modules and keep the original filename as a pure re-export entry point (the
+pattern used by `actions/layer-actions.js` → `actions/layers/`,
+`audio/sequencer.js` → `audio/sequencer/`, `ui/runtime-harness.js` →
+`ui/runtime-harness/`, `music/runtime-module.js` → `music/runtime-module/`). Pure music-theory functions stay side-effect free under `music/`. Static page structure goes into partials; only data-driven markup is rendered from JS.
 
 ## Conventions & style
 
