@@ -44,6 +44,9 @@
 .threat-control input::-webkit-slider-thumb, .parameter-slider input::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
 .threat-control strong { min-width: 28px; color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); }
 .event-button { height: 32px; padding: 0 11px; display: flex; align-items: center; gap: 6px; border: 1px solid #584f38; background: #1c1d16; color: #e8c877; font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }
+.ribbon-field { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
+.ribbon-field select { height: 32px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); padding: 0 7px; font-size: var(--label-size); letter-spacing: normal; text-transform: none; cursor: pointer; }
+.ribbon-field select:hover, .ribbon-field select:focus { border-color: #9d8a4d; }
 .event-button:hover, .event-button.queued { background: #2a2819; border-color: #9d8a4d; color: #f1d780; }
 
 /* --- Workspace --------------------------------------------------------- */

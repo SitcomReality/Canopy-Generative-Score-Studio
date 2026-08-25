@@ -47,7 +47,7 @@ export function initDynamicsPanel(store, actions) {
 
   // Initial paint.
   renderMeters(meters, store.get().liveAxes);
-  paint(store.get().project);
+  paint(store.get().project, store.get().sectionId);
 }
 
 function renderMeters(root, liveAxes) {
@@ -60,7 +60,7 @@ function renderMeters(root, liveAxes) {
   }).join("");
 }
 
-function paint(project) {
+function paint(project, sectionId = null) {
   const targetsRoot = document.getElementById("context-targets");
   const verseRoot = document.getElementById("verse-editor");
   if (!targetsRoot || !verseRoot) return;
@@ -76,9 +76,8 @@ function paint(project) {
     </div>`).join("");
 
   const layerIds = (project.layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }));
-  const currentSection = store.get().sectionId;
   verseRoot.innerHTML = (project.sections ?? []).map((section, index) => `
-    <div class="verse-row${currentSection === section.id ? " playing" : ""}" data-index="${index}" data-id="${section.id}">
+    <div class="verse-row${sectionId === section.id ? " playing" : ""}" data-index="${index}" data-id="${section.id}">
       <input class="verse-label" value="${section.label}" title="Verse name" data-field="label" />
       <select data-field="length" title="Length in bars">
         ${[1, 2, 4, 8].map((n) => `<option value="${n}"${section.length === n ? " selected" : ""}>${n} bar${n > 1 ? "s" : ""}</option>`).join("")}
