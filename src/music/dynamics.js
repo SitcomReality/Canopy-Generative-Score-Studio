@@ -232,7 +232,9 @@ export function computeStepFrame(project, live, state, step, rng) {
           events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.3, offset: 0.11 });
         }
         if (step >= 13) {
-          [0.02, 0.06, 0.1, 0.14].forEach((offset, index) => {
+          // Starts past the accent (0.02) and the odd-step extras
+          // (0.065/0.11) so no two roll hits share a voice+time.
+          [0.14, 0.18, 0.22, 0.26].forEach((offset, index) => {
             events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: Math.min(1, (snareVel ?? 0.26) + index * 0.09), offset });
           });
         }
