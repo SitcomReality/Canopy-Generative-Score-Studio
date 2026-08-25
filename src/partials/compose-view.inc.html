@@ -15,6 +15,14 @@
             <span id="readout-beat">01</span>
             <small>BAR&nbsp;&nbsp;&nbsp;BEAT</small>
           </div>
+          <div class="record-controls">
+            <button class="record-button" id="record-button" aria-label="Record"><i data-icon="circle" data-size="14"></i></button>
+            <select id="record-format" aria-label="Recording format">
+              <option value="wav">WAV</option>
+              <option value="mp3">MP3</option>
+            </select>
+            <span class="record-time" id="record-time" hidden>0:00</span>
+          </div>
         </div>
         <div class="tempo-controls">
           <label>

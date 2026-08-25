@@ -1,0 +1,396 @@
+{
+  "version": 5,
+  "name": "Mango Lantern Swing",
+  "bpm": 100,
+  "key": "G",
+  "scale": "Mixolydian",
+  "progression": [0, 3, 4, 3],
+  "progressionName": "Lantern walk",
+  "reverb": 54,
+  "swing": 36,
+  "journey": { "shape": "tide", "length": 16, "depth": 44 },
+  "variationSeed": 13,
+  "axes": {
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
+  },
+  "contexts": [
+    { "id": "explore", "label": "Explore", "targets": { "intensity": 0.42, "tension": 0.18, "brightness": 0.82 } },
+    { "id": "unease", "label": "Unease", "targets": { "intensity": 0.55, "tension": 0.7, "brightness": 0.48 } },
+    { "id": "combat", "label": "Combat", "targets": { "intensity": 0.9, "tension": 0.64, "brightness": 0.34 } }
+  ],
+  "bindings": [],
+  "sections": [
+    {
+      "id": "lanterns",
+      "label": "Lantern swing",
+      "length": 8,
+      "layers": {
+        "piano": { "gain": 2 },
+        "steelpan": { "gain": 1 },
+        "reed": { "gain": -1 },
+        "dust": { "gain": -2 },
+        "squeals": { "active": false }
+      }
+    },
+    {
+      "id": "bonfire",
+      "label": "Bonfire conga",
+      "length": 8,
+      "layers": {
+        "piano": { "gain": 1 },
+        "steelpan": { "gain": 2 },
+        "guitar": { "gain": 2.5 },
+        "bass": { "gain": 2 },
+        "percussion": { "gain": 3 },
+        "reed": { "gain": 1.5 },
+        "pad": { "gain": 1 }
+      }
+    },
+    {
+      "id": "stardust",
+      "label": "Sugar dust",
+      "length": 8,
+      "layers": {
+        "percussion": { "active": false },
+        "guitar": { "gain": -8 },
+        "bass": { "gain": -4 },
+        "piano": { "gain": -3 },
+        "steelpan": { "active": false },
+        "squeals": { "active": false },
+        "dust": { "gain": 5 },
+        "flute": { "gain": 3.5 },
+        "reed": { "gain": 1 },
+        "pad": { "gain": -1 }
+      }
+    }
+  ],
+  "flourishes": {
+    "calm": [
+      { "degree": 4, "octave": 6, "at": 0, "dur": 0.55, "vel": 0.28 },
+      { "degree": 7, "octave": 6, "at": 0.35, "dur": 0.45, "vel": 0.24 },
+      { "degree": 5, "octave": 5, "at": 0.75, "dur": 0.6, "vel": 0.22 },
+      { "degree": 2, "octave": 6, "at": 1.4, "dur": 0.5, "vel": 0.2 },
+      { "degree": 0, "octave": 5, "at": 2.1, "dur": 1.2, "vel": 0.26 },
+      { "degree": 4, "octave": 6, "at": 3.3, "dur": 0.22, "vel": 0.16 },
+      { "degree": 7, "octave": 6, "at": 3.5, "dur": 0.22, "vel": 0.14 },
+      { "degree": 5, "octave": 5, "at": 3.7, "dur": 0.4, "vel": 0.12 }
+    ],
+    "relief": [
+      { "degree": 2, "octave": 5, "at": 0, "dur": 0.5, "vel": 0.3 },
+      { "degree": 4, "octave": 6, "at": 0.4, "dur": 0.4, "vel": 0.28 },
+      { "degree": 5, "octave": 6, "at": 0.75, "dur": 0.4, "vel": 0.26 },
+      { "degree": 7, "octave": 6, "at": 1.15, "dur": 0.55, "vel": 0.3 },
+      { "degree": 4, "octave": 5, "at": 1.8, "dur": 0.7, "vel": 0.24 },
+      { "degree": 0, "octave": 5, "at": 2.6, "dur": 1.0, "vel": 0.28 },
+      { "degree": 7, "octave": 6, "at": 3.35, "dur": 0.18, "vel": 0.18 },
+      { "degree": 5, "octave": 6, "at": 3.5, "dur": 0.18, "vel": 0.16 },
+      { "degree": 4, "octave": 6, "at": 3.65, "dur": 0.35, "vel": 0.14 }
+    ],
+    "victory": [
+      { "degree": 0, "octave": 5, "at": 0, "dur": 0.35, "vel": 0.34 },
+      { "degree": 2, "octave": 5, "at": 0.3, "dur": 0.3, "vel": 0.32 },
+      { "degree": 4, "octave": 5, "at": 0.55, "dur": 0.3, "vel": 0.34 },
+      { "degree": 5, "octave": 6, "at": 0.85, "dur": 0.3, "vel": 0.32 },
+      { "degree": 7, "octave": 6, "at": 1.15, "dur": 0.45, "vel": 0.36 },
+      { "degree": 4, "octave": 6, "at": 1.6, "dur": 0.35, "vel": 0.28 },
+      { "degree": 7, "octave": 6, "at": 2.0, "dur": 0.3, "vel": 0.3 },
+      { "degree": 5, "octave": 6, "at": 2.25, "dur": 0.25, "vel": 0.24 },
+      { "degree": 7, "octave": 6, "at": 2.5, "dur": 0.7, "vel": 0.34 },
+      { "degree": 4, "octave": 6, "at": 3.2, "dur": 0.16, "vel": 0.2 },
+      { "degree": 5, "octave": 6, "at": 3.35, "dur": 0.16, "vel": 0.18 },
+      { "degree": 7, "octave": 6, "at": 3.5, "dur": 0.16, "vel": 0.16 },
+      { "degree": 0, "octave": 6, "at": 3.65, "dur": 0.4, "vel": 0.22 }
+    ],
+    "combat": [
+      { "degree": 0, "octave": 4, "at": 0, "dur": 0.25, "vel": 0.36 },
+      { "degree": 4, "octave": 5, "at": 0.25, "dur": 0.22, "vel": 0.32 },
+      { "degree": 6, "octave": 5, "at": 0.5, "dur": 0.22, "vel": 0.3 },
+      { "degree": 7, "octave": 5, "at": 0.75, "dur": 0.28, "vel": 0.34 },
+      { "degree": 4, "octave": 6, "at": 1.15, "dur": 0.22, "vel": 0.28 },
+      { "degree": 6, "octave": 6, "at": 1.4, "dur": 0.22, "vel": 0.26 },
+      { "degree": 0, "octave": 5, "at": 1.7, "dur": 0.45, "vel": 0.32 },
+      { "degree": 7, "octave": 6, "at": 2.3, "dur": 0.2, "vel": 0.24 },
+      { "degree": 6, "octave": 6, "at": 2.5, "dur": 0.2, "vel": 0.22 },
+      { "degree": 4, "octave": 5, "at": 2.75, "dur": 0.55, "vel": 0.3 },
+      { "degree": 0, "octave": 6, "at": 3.4, "dur": 0.18, "vel": 0.2 },
+      { "degree": 7, "octave": 6, "at": 3.55, "dur": 0.4, "vel": 0.18 }
+    ],
+    "unease": [
+      { "degree": 6, "octave": 5, "at": 0, "dur": 0.4, "vel": 0.26 },
+      { "degree": 7, "octave": 6, "at": 0.55, "dur": 0.22, "vel": 0.22 },
+      { "degree": 4, "octave": 6, "at": 0.7, "dur": 0.22, "vel": 0.2 },
+      { "degree": 6, "octave": 6, "at": 1.15, "dur": 0.35, "vel": 0.24 },
+      { "degree": 2, "octave": 5, "at": 1.7, "dur": 0.5, "vel": 0.22 },
+      { "degree": 6, "octave": 6, "at": 2.35, "dur": 0.2, "vel": 0.2 },
+      { "degree": 7, "octave": 6, "at": 2.7, "dur": 0.2, "vel": 0.18 },
+      { "degree": 6, "octave": 5, "at": 3.05, "dur": 0.45, "vel": 0.24 },
+      { "degree": 7, "octave": 6, "at": 3.5, "dur": 0.16, "vel": 0.14 },
+      { "degree": 0, "octave": 5, "at": 3.7, "dur": 0.35, "vel": 0.16 }
+    ],
+    "defeat": [
+      { "degree": 7, "octave": 6, "at": 0, "dur": 0.45, "vel": 0.26 },
+      { "degree": 5, "octave": 6, "at": 0.4, "dur": 0.4, "vel": 0.24 },
+      { "degree": 4, "octave": 5, "at": 0.85, "dur": 0.5, "vel": 0.22 },
+      { "degree": 2, "octave": 5, "at": 1.45, "dur": 0.55, "vel": 0.22 },
+      { "degree": 0, "octave": 4, "at": 2.15, "dur": 1.1, "vel": 0.28 },
+      { "degree": 4, "octave": 5, "at": 3.3, "dur": 0.2, "vel": 0.14 },
+      { "degree": 2, "octave": 5, "at": 3.5, "dur": 0.45, "vel": 0.12 }
+    ]
+  },
+  "layers": [
+    {
+      "id": "pad",
+      "name": "Warm dusk",
+      "detail": "Night-air chord wash",
+      "role": "harmony",
+      "color": "#2a9d8f",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "density": 38,
+      "variation": 10,
+      "humanize": 6,
+      "restWindow": 0,
+      "level": -5,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.18, 0.28] },
+        { "param": "duration", "axis": "intensity", "domain": ["1m", "2n"] }
+      ],
+      "steps": [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false]
+    },
+    {
+      "id": "guitar",
+      "name": "Porch strum",
+      "detail": "Hammock wash that chops into a drive",
+      "role": "harmony",
+      "color": "#f4a261",
+      "muted": false,
+      "instrument": "Vine guitar",
+      "density": 72,
+      "variation": 14,
+      "humanize": 12,
+      "restWindow": 0,
+      "level": -1,
+      "energyRole": "balanced",
+      "activity": { "axis": "intensity", "range": [0.2, 1] },
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.16, 0.48] },
+        { "param": "duration", "axis": "intensity", "domain": ["2n", "8n"] }
+      ],
+      "steps": [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false]
+    },
+    {
+      "id": "piano",
+      "name": "Ivory mango",
+      "detail": "Playful porch-piano hook",
+      "role": "motif",
+      "color": "#f4d35e",
+      "muted": false,
+      "instrument": "Hollow mallet",
+      "density": 62,
+      "variation": 30,
+      "humanize": 18,
+      "restWindow": 0,
+      "level": 1,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [3, 11], "axis": "tension", "threshold": 0.52 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.38, 0.58] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] },
+        { "param": "density", "axis": "intensity", "domain": [0.52, 0.88] },
+        { "param": "octave", "axis": "intensity", "domain": [4, 5] }
+      ],
+      "steps": [0, null, 4, 6, 4, null, 2, null, 5, null, 7, 5, 4, 6, null, 0]
+    },
+    {
+      "id": "steelpan",
+      "name": "Steelfruit",
+      "detail": "Steel-pan answers in the holes",
+      "role": "motif",
+      "color": "#ee6c4d",
+      "muted": false,
+      "instrument": "Jungle steel",
+      "density": 52,
+      "variation": 38,
+      "humanize": 16,
+      "restWindow": 8,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": { "axis": "intensity", "range": [0.18, 1] },
+      "fills": [
+        { "at": [6, 14], "axis": "tension", "threshold": 0.58 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.32, 0.52] },
+        { "param": "duration", "axis": "intensity", "domain": ["8n", "16n"] },
+        { "param": "density", "axis": "intensity", "domain": [0.4, 0.82] },
+        { "param": "octave", "axis": "brightness", "domain": [4, 5] }
+      ],
+      "steps": [null, 7, null, 5, null, 7, 5, null, 4, null, 2, 4, null, 5, 4, 7]
+    },
+    {
+      "id": "reed",
+      "name": "Dock harmonica",
+      "detail": "Sax / harmonica countermelody",
+      "role": "motif",
+      "color": "#e07a5f",
+      "muted": false,
+      "instrument": "Warm reed",
+      "density": 46,
+      "variation": 28,
+      "humanize": 20,
+      "restWindow": 6,
+      "level": -2,
+      "energyRole": "balanced",
+      "activity": { "axis": "brightness", "range": [0.28, 1] },
+      "fills": [
+        { "at": [5, 13], "axis": "brightness", "threshold": 0.68 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.28, 0.48] },
+        { "param": "duration", "axis": "brightness", "domain": ["2n", "4n"] },
+        { "param": "density", "axis": "brightness", "domain": [0.32, 0.86] },
+        { "param": "octave", "axis": "brightness", "domain": [3, 4] }
+      ],
+      "steps": [null, null, 2, null, 4, null, null, 5, 4, null, 2, null, 4, null, 5, 7]
+    },
+    {
+      "id": "flute",
+      "name": "Palm flute",
+      "detail": "Airy pan-flute glints",
+      "role": "motif",
+      "color": "#81b29a",
+      "muted": false,
+      "instrument": "Glass bell",
+      "density": 40,
+      "variation": 44,
+      "humanize": 22,
+      "restWindow": 4,
+      "level": -2,
+      "energyRole": "forward",
+      "activity": { "axis": "brightness", "range": [0.38, 1] },
+      "fills": [
+        { "at": [4, 12], "axis": "brightness", "threshold": 0.72 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.24, 0.42] },
+        { "param": "duration", "axis": "brightness", "domain": ["4n", "8n"] },
+        { "param": "density", "axis": "brightness", "domain": [0.28, 0.78] },
+        { "param": "octave", "axis": "brightness", "domain": [5, 6] }
+      ],
+      "steps": [7, null, 5, null, null, 7, null, 4, 7, null, 5, null, null, 4, 5, 0]
+    },
+    {
+      "id": "dust",
+      "name": "Firefly sugar",
+      "detail": "Phrase-end magic dust",
+      "role": "motif",
+      "color": "#c9b6ff",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "density": 36,
+      "variation": 58,
+      "humanize": 26,
+      "restWindow": 4,
+      "level": -3,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [12, 14, 15], "axis": "brightness", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.2, 0.4] },
+        { "param": "duration", "axis": "intensity", "domain": ["16n", "8n"] },
+        { "param": "density", "axis": "brightness", "domain": [0.22, 0.74] },
+        { "param": "octave", "axis": "brightness", "domain": [5, 6] }
+      ],
+      "steps": [null, null, null, 7, null, 5, null, 7, null, null, 6, 7, 5, 7, 6, 0]
+    },
+    {
+      "id": "squeals",
+      "name": "String-ghosts",
+      "detail": "In-key tension squeaks",
+      "role": "motif",
+      "color": "#f2a7c3",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "density": 34,
+      "variation": 72,
+      "humanize": 30,
+      "restWindow": 3,
+      "level": -4,
+      "energyRole": "recessive",
+      "activity": { "axis": "tension", "range": [0.48, 1] },
+      "fills": [
+        { "at": [1, 5, 9, 14], "axis": "tension", "threshold": 0.5 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "tension", "domain": [0.18, 0.36] },
+        { "param": "duration", "axis": "tension", "domain": ["16n", "8n"] },
+        { "param": "density", "axis": "tension", "domain": [0.36, 0.95] },
+        { "param": "octave", "axis": "tension", "domain": [5, 6] }
+      ],
+      "steps": [null, 6, null, 7, null, 6, 7, null, null, 7, 6, null, 7, null, 6, 7]
+    },
+    {
+      "id": "bass",
+      "name": "Ember root",
+      "detail": "Bonfire bounce",
+      "role": "bass",
+      "color": "#6d4c41",
+      "muted": false,
+      "instrument": "Deep root",
+      "density": 84,
+      "variation": 8,
+      "humanize": 8,
+      "restWindow": 0,
+      "level": 1,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "intensity", "threshold": 0.58 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.34, 0.58] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] }
+      ],
+      "steps": [true, false, false, true, true, false, false, false, true, false, true, false, true, false, false, true]
+    },
+    {
+      "id": "percussion",
+      "name": "Conga tide",
+      "detail": "Pulsing sand-kit",
+      "role": "percussion",
+      "color": "#e9c46a",
+      "muted": false,
+      "instrument": "Kalimba dusk",
+      "density": 68,
+      "variation": 20,
+      "humanize": 14,
+      "restWindow": 6,
+      "level": -1,
+      "energyRole": "recessive",
+      "activity": { "axis": "intensity", "range": [0.3, 1] },
+      "fills": [
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.5 },
+        { "at": [12], "axis": "intensity", "threshold": 0.72 }
+      ],
+      "automation": [
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "E1", "vel": 0.2 }, { "midi": "C1", "vel": 0.62 }] },
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.2, 0.62] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.12, 0.3] },
+        { "param": "hat.variation", "axis": "intensity", "domain": [0.0, 0.34] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.22, 0.46] }
+      ],
+      "steps": [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false]
+    }
+  ]
+}

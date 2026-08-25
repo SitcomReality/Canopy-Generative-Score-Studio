@@ -11,6 +11,7 @@ export function createAppState() {
     tab: "compose",
     selectedTrack: "melody",
     playing: false,
+    recording: false,
     step: 0,
     sounding: [],
     perfSteps: {},

@@ -12,6 +12,29 @@ export function initTransportBar(store, actions) {
   document.getElementById("project-name").addEventListener("input", (event) => actions.renameProject(event.target.value));
   document.getElementById("play-button").addEventListener("click", actions.togglePlayback);
   document.getElementById("stop-button").addEventListener("click", actions.stopPlayback);
+  document.getElementById("record-button").addEventListener("click", actions.toggleRecording);
+  // Elapsed-time readout while recording.
+  let recordTimer = null;
+  store.subscribe((changed) => {
+    const recording = store.get().recording;
+    if (!changed.includes("recording") && !recording) return;
+    const button = document.getElementById("record-button");
+    const timeLabel = document.getElementById("record-time");
+    button.classList.toggle("recording", recording);
+    button.setAttribute("aria-label", recording ? "Stop recording" : "Record");
+    mountIcons(button);
+    timeLabel.hidden = !recording;
+    window.clearInterval(recordTimer);
+    if (recording) {
+      const startedAt = Date.now();
+      const tick = () => {
+        const seconds = Math.floor((Date.now() - startedAt) / 1000);
+        timeLabel.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+      };
+      tick();
+      recordTimer = window.setInterval(tick, 500);
+    }
+  });
   document.getElementById("bpm-input").addEventListener("change", (event) => actions.setBpm(Number(event.target.value)));
   keySelect.addEventListener("change", (event) => actions.setKey(event.target.value));
   scaleSelect.addEventListener("change", (event) => actions.setScale(event.target.value));

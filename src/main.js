@@ -8,6 +8,9 @@ import { composeMelody, composePattern, makeSparser } from "./music/melody-compo
 import { runtimeModule } from "./music/runtime-module.js";
 import { buildMidi, melodyFromMidi } from "./music/midi-adapter.js";
 import { createAudioEngine } from "./audio/audio-engine.js";
+import { startRecording, stopRecording, isRecording } from "./audio/recorder.js";
+import { encodeWav } from "./utils/wav.js";
+import { encodeMp3 } from "./utils/mp3.js";
 import { FLOURISH_NAMES } from "./music/dynamics.js";
 import { createAppState } from "./state/app-state.js";
 import { downloadBlob, safeFileName } from "./utils/download.js";
@@ -104,6 +107,49 @@ const actions = {
     if (engine) engine.stop();
     else store.set({ step: 0 });
     store.set({ playing: false });
+  },
+
+  // Record the live master mix (contexts, flourishes and all) and save the
+  // take as WAV or MP3 when recording stops. Starting a recording also starts
+  // playback if the transport is idle — there is otherwise nothing to record.
+  async toggleRecording() {
+    await Tone.start();
+    initializeAudio();
+    if (isRecording()) {
+      const format = document.getElementById("record-format").value === "mp3" ? "mp3" : "wav";
+      store.set({ recording: false });
+      notify(`Rendering ${format.toUpperCase()}…`);
+      try {
+        const take = await stopRecording();
+        if (take.channels[0].length === 0) {
+          notify("Take was empty — nothing saved");
+          return;
+        }
+        const blob = format === "mp3"
+          ? encodeMp3(take.channels, take.sampleRate)
+          : encodeWav(take.channels, take.sampleRate);
+        const name = `${safeFileName(store.get().project.name)}-take.${format}`;
+        downloadBlob(name, blob, format === "mp3" ? "audio/mpeg" : "audio/wav");
+        const seconds = Math.round(take.channels[0].length / take.sampleRate);
+        notify(`Recorded ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} exported as ${format.toUpperCase()}`);
+        if (take.capped) notify("Recording stopped at the 5 minute cap");
+      } catch (error) {
+        notify(`Render failed: ${error?.message || String(error)}`);
+      }
+      return;
+    }
+    try {
+      await startRecording();
+    } catch (error) {
+      console.error("Recording failed", error);
+      notify(`Recording failed: ${error?.message || String(error)}`);
+      return;
+    }
+    if (!store.get().playing) {
+      engine.play();
+      store.set({ playing: true });
+    }
+    store.set({ recording: true });
   },
 
   requestContext(next) {

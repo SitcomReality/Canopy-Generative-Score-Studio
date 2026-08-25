@@ -1,0 +1,318 @@
+{
+  "version": 5,
+  "name": "Papaya Parade",
+  "bpm": 102,
+  "key": "G",
+  "scale": "Major",
+  "progression": [0, 5, 3, 4],
+  "progressionName": "Doo-wop Luau",
+  "reverb": 45,
+  "swing": 28,
+  "journey": { "shape": "arc", "length": 16, "depth": 40 },
+  "variationSeed": 23,
+  "axes": {
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
+  },
+  "contexts": [
+    { "id": "explore", "label": "Beach Bonfire", "targets": { "intensity": 0.45, "tension": 0.28, "brightness": 0.8 } },
+    { "id": "unease", "label": "Something in the Palms", "targets": { "intensity": 0.62, "tension": 0.72, "brightness": 0.5 } },
+    { "id": "combat", "label": "Carnival Stampede", "targets": { "intensity": 0.9, "tension": 0.62, "brightness": 0.72 } }
+  ],
+  "bindings": [],
+  "sections": [
+    { "id": "spark", "label": "First Spark", "length": 4,
+      "layers": { "sax": { "active": false }, "piano": { "gain": 1.5 }, "shaker": { "gain": -2 }, "panflute": { "gain": 1 } } },
+    { "id": "bloom", "label": "Bonfire Bloom", "length": 8,
+      "layers": { "strum": { "gain": 1 }, "sax": { "gain": 1.5 }, "bass": { "gain": 1.5 }, "beats": { "gain": 2 }, "dust": { "gain": 1 } } },
+    { "id": "sparkler", "label": "Sparkler Hour", "length": 4,
+      "layers": { "beats": { "gain": -2 }, "fiddle": { "gain": 2 }, "dust": { "gain": 3 }, "sax": { "gain": -1 }, "piano": { "gain": 0.5 } } }
+  ],
+  "flourishes": {
+    "calm": [
+      { "degree": 7, "octave": 5, "at": 0, "dur": 0.6, "vel": 0.3 },
+      { "degree": 5, "octave": 5, "at": 0.35, "dur": 0.6, "vel": 0.28 },
+      { "degree": 4, "octave": 5, "at": 0.7, "dur": 0.6, "vel": 0.26 },
+      { "degree": 2, "octave": 5, "at": 1.1, "dur": 0.6, "vel": 0.24 },
+      { "degree": 0, "octave": 5, "at": 1.5, "dur": 1.6, "vel": 0.22 }
+    ],
+    "victory": [
+      { "degree": 0, "octave": 5, "at": 0, "dur": 0.4, "vel": 0.42 },
+      { "degree": 2, "octave": 5, "at": 0.3, "dur": 0.4, "vel": 0.4 },
+      { "degree": 4, "octave": 5, "at": 0.6, "dur": 0.4, "vel": 0.42 },
+      { "degree": 5, "octave": 5, "at": 0.9, "dur": 0.4, "vel": 0.4 },
+      { "degree": 7, "octave": 5, "at": 1.2, "dur": 2.2, "vel": 0.44 }
+    ],
+    "relief": [
+      { "degree": 4, "octave": 6, "at": 0.2, "dur": 0.5, "vel": 0.2 },
+      { "degree": 6, "octave": 6, "at": 0.8, "dur": 0.5, "vel": 0.18 },
+      { "degree": 5, "octave": 6, "at": 1.6, "dur": 0.5, "vel": 0.16 },
+      { "degree": 2, "octave": 6, "at": 2.4, "dur": 2.0, "vel": 0.14 }
+    ]
+  },
+  "layers": [
+    {
+      "id": "strum",
+      "name": "Driftwood Strum",
+      "detail": "Offbeat island strum, always burning",
+      "role": "harmony",
+      "color": "#f2a65a",
+      "muted": false,
+      "instrument": "Vine guitar",
+      "density": 70,
+      "variation": 20,
+      "humanize": 14,
+      "restWindow": 0,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.2, 0.42] },
+        { "param": "duration", "axis": "intensity", "domain": ["2n", "8n"] }
+      ],
+      "steps": [true, false, true, false, false, false, true, false, true, false, true, false, false, false, true, false]
+    },
+    {
+      "id": "piano",
+      "name": "Palm Ivory",
+      "detail": "The playful piano lead",
+      "role": "motif",
+      "color": "#ffd166",
+      "muted": false,
+      "instrument": "Hollow mallet",
+      "density": 62,
+      "variation": 34,
+      "humanize": 16,
+      "restWindow": 0,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [6, 14], "axis": "intensity", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.4, 0.6] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] },
+        { "param": "octave", "axis": "brightness", "domain": [4, 5] },
+        { "param": "density", "axis": "tension", "domain": [0.55, 0.9] }
+      ],
+      "steps": [4, null, 5, 4, 2, null, 0, null, 2, 3, null, 4, 3, null, 1, 0]
+    },
+    {
+      "id": "fiddle",
+      "name": "Firelight Fiddle",
+      "detail": "Sustained countermelody, embellished by brightness",
+      "role": "motif",
+      "color": "#e07a5f",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "density": 48,
+      "variation": 30,
+      "humanize": 12,
+      "restWindow": 0,
+      "level": -2,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [4, 10], "axis": "brightness", "threshold": 0.55 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.18, 0.4] },
+        { "param": "duration", "axis": "brightness", "domain": ["2n", "8n"] },
+        { "param": "octave", "axis": "brightness", "domain": [3, 4] }
+      ],
+      "steps": [null, null, null, null, 5, null, 4, null, null, null, 5, null, 6, null, null, null]
+    },
+    {
+      "id": "sax",
+      "name": "Sundown Sax",
+      "detail": "Honking countermelody, grows with the party",
+      "role": "motif",
+      "color": "#d4a373",
+      "muted": false,
+      "instrument": "Warm reed",
+      "density": 50,
+      "variation": 42,
+      "humanize": 22,
+      "restWindow": 0,
+      "level": -3,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.3, 0.55] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] },
+        { "param": "density", "axis": "intensity", "domain": [0.4, 0.85] },
+        { "param": "octave", "axis": "tension", "domain": [3, 4] }
+      ],
+      "steps": [null, null, 0, null, null, 2, null, null, null, null, 1, null, null, 6, null, null]
+    },
+    {
+      "id": "panflute",
+      "name": "Sea Breath",
+      "detail": "Airy long tones",
+      "role": "motif",
+      "color": "#9bd1c9",
+      "muted": false,
+      "instrument": "Glass bell",
+      "density": 42,
+      "variation": 28,
+      "humanize": 18,
+      "restWindow": 0,
+      "level": -6,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.12, 0.3] },
+        { "param": "duration", "axis": "intensity", "domain": ["2n", "4n"] }
+      ],
+      "steps": [0, null, null, null, null, null, 0, null, null, null, null, null, 6, null, null, null]
+    },
+    {
+      "id": "squeal",
+      "name": "Fruit Bat Choir",
+      "detail": "Wrong-time string squeals, tension only",
+      "role": "motif",
+      "color": "#c74b50",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "density": 55,
+      "variation": 55,
+      "humanize": 30,
+      "restWindow": 0,
+      "level": -5,
+      "energyRole": "balanced",
+      "activity": { "axis": "tension", "range": [0.58, 1] },
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "tension", "domain": [0.2, 0.5] },
+        { "param": "duration", "axis": "tension", "domain": ["4n", "8n"] },
+        { "param": "octave", "axis": "tension", "domain": [4, 6] }
+      ],
+      "steps": [null, null, null, 7, null, null, null, null, null, 7, null, null, null, null, 7, null]
+    },
+    {
+      "id": "weirdstrum",
+      "name": "Monkey Strums",
+      "detail": "Drunk off-grid strums, tension only",
+      "role": "harmony",
+      "color": "#7a6ff0",
+      "muted": false,
+      "instrument": "Vine guitar",
+      "density": 60,
+      "variation": 30,
+      "humanize": 26,
+      "restWindow": 0,
+      "level": -5,
+      "energyRole": "balanced",
+      "activity": { "axis": "tension", "range": [0.55, 1] },
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "tension", "domain": [0.15, 0.38] },
+        { "param": "duration", "axis": "tension", "domain": ["4n", "8n"] }
+      ],
+      "steps": [false, false, false, true, false, true, false, true, false, false, false, true, false, true, false, true]
+    },
+    {
+      "id": "dust",
+      "name": "Pixie Dust",
+      "detail": "Verse-tail sparkle, intermittent by restWindow",
+      "role": "motif",
+      "color": "#cdefff",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "density": 40,
+      "variation": 50,
+      "humanize": 24,
+      "restWindow": 3,
+      "level": -7,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.14, 0.32] },
+        { "param": "octave", "axis": "brightness", "domain": [5, 6] },
+        { "param": "density", "axis": "intensity", "domain": [0.2, 0.5] }
+      ],
+      "steps": [null, null, null, null, null, null, null, null, null, null, null, null, 7, null, 7, 6]
+    },
+    {
+      "id": "shaker",
+      "name": "Seed Pod Shaker",
+      "detail": "Constant hat wash, the heartbeat",
+      "role": "percussion",
+      "color": "#b5cc8f",
+      "muted": false,
+      "instrument": "Kalimba dusk",
+      "density": 70,
+      "variation": 10,
+      "humanize": 12,
+      "restWindow": 4,
+      "level": -4,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.1, 0.24] },
+        { "param": "hat.variation", "axis": "intensity", "domain": [0.0, 0.3] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.2, 0.35] }
+      ],
+      "steps": [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
+    },
+    {
+      "id": "beats",
+      "name": "Cookout Drums",
+      "detail": "The pulse that lands as intensity rises",
+      "role": "percussion",
+      "color": "#f4a259",
+      "muted": false,
+      "instrument": "Jungle steel",
+      "density": 75,
+      "variation": 15,
+      "humanize": 10,
+      "restWindow": 6,
+      "level": -1,
+      "energyRole": "balanced",
+      "activity": { "axis": "intensity", "range": [0.4, 1] },
+      "fills": [
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.55 },
+        { "at": [12], "axis": "intensity", "threshold": 0.78 }
+      ],
+      "automation": [
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "G1", "vel": 0.25 }, { "midi": "F1", "vel": 0.68 }] },
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.25, 0.68] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.16, 0.36] },
+        { "param": "hat.variation", "axis": "intensity", "domain": [0.0, 0.45] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.26, 0.52] }
+      ],
+      "steps": [true, false, true, false, true, false, true, true, true, false, true, false, true, true, false, true]
+    },
+    {
+      "id": "bass",
+      "name": "Tiki Thump",
+      "detail": "Syncopated low end",
+      "role": "bass",
+      "color": "#8c5a3c",
+      "muted": false,
+      "instrument": "Deep root",
+      "density": 80,
+      "variation": 10,
+      "humanize": 8,
+      "restWindow": 0,
+      "level": -1,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "intensity", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.32, 0.56] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] }
+      ],
+      "steps": [true, false, false, false, false, false, true, false, true, false, false, false, false, true, false, false]
+    }
+  ]
+}

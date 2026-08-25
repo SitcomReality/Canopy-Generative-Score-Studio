@@ -19,6 +19,13 @@
 .transport-readout > i { height: 13px; width: 1px; background: var(--line-strong); margin-top: 3px; }
 .transport-readout small { position: absolute; top: 22px; left: 0; color: var(--text-4); font-size: 9px; letter-spacing: .13em; }
 .transport-readout.running > span { color: var(--accent); }
+.record-controls { display: flex; align-items: center; gap: 7px; margin-left: 14px; }
+.record-button { width: 31px; height: 31px; border: 0; background: transparent; color: var(--text-3); cursor: pointer; display: grid; place-items: center; padding: 0; }
+.record-button:hover { color: var(--text-1); }
+.record-button.recording { color: #e05d5d; animation: record-pulse 1.6s ease-in-out infinite; }
+@keyframes record-pulse { 50% { opacity: .45; } }
+.record-controls select { min-width: 52px; border: 0; background: var(--surface-1); color: var(--text-2); font-size: 11px; letter-spacing: .06em; cursor: pointer; }
+.record-time { color: #e05d5d; font-family: var(--font-num); font-size: 13px; font-variant-numeric: tabular-nums; }
 .tempo-controls { display: flex; align-items: flex-end; gap: 21px; padding-left: 25px; }
 .tempo-controls label { display: flex; flex-direction: column; gap: 5px; color: var(--text-4); font-size: var(--kicker-size); letter-spacing: .13em; text-transform: uppercase; cursor: pointer; }
 .tempo-controls label > div { display: flex; align-items: baseline; gap: 4px; }

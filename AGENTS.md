@@ -19,6 +19,7 @@ The project schema (version 5) stores music as a `layers` array — each layer h
 - **Plain JavaScript (ES modules), CSS, and HTML.** No framework, no TypeScript, no Tailwind, no bundler, no runtime npm dependencies. (`package.json` exists only to set `"type": "module"` for the test runner and define `npm test`.)
 - **Tone.js 15** (vendored UMD global `Tone` in `vendor/tone.js`) — synth engine.
 - **@tonejs/midi 2** (vendored UMD global `Midi` in `vendor/midi.js`) — MIDI export/import.
+- **lamejs 1.2.1** (vendored UMD global `lamejs` in `vendor/lamejs.min.js`) — MP3 encoding for live-take recording (`src/utils/mp3.js`).
 - Icons are inline SVGs extracted from lucide (`src/ui/icons.js`); do not add an icon dependency.
 
 ## Commands
