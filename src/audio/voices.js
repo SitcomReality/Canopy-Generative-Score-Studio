@@ -1,6 +1,7 @@
 // Voice builders: turn an instrument preset config into live Tone nodes, one
 // bundle per layer. Mirrored (as emitted source text) by
 // music/runtime-module.js — keep the two behaviorally identical.
+import { instrumentSettings } from "../music/instruments.js";
 import { resolveInstrumentConfig } from "../music/instrument-override.js";
 
 // Per-kind base loudness in dB for pitched voices.
@@ -58,50 +59,65 @@ function makeVelocityPath(synth, connectTo, disposables, baseGain = 1) {
   return { synth, velGain };
 }
 
+// Build the pitched voice bundle for one layer (motif/harmony/bass roles;
+// percussion layers return null — use makeDrums). Every Tone node the bundle
+// owns is listed in `.nodes` so live swaps can dispose exactly what they
+// replaced, and `voiceClass` records which synth family is live so the
+// engine knows when an instrument change needs a rebuild vs a .set().
+export function createLayerVoice(layer, buses, disposables) {
+  let kind, bus, roleKey, cfg;
+  if (layer.role === "harmony") {
+    kind = "chords";
+    roleKey = "chords";
+    bus = buses.harmony;
+    cfg = resolveInstrumentConfig(layer, "harmony");
+  } else if (layer.role === "motif") {
+    kind = "melody";
+    roleKey = "melody";
+    bus = buses.motif;
+    cfg = resolveInstrumentConfig(layer, "motif");
+  } else if (layer.role === "bass") {
+    kind = "bass";
+    roleKey = "bass";
+    bus = buses.bass ?? buses.dry;
+    cfg = resolveInstrumentConfig(layer, "bass");
+  } else {
+    return null;
+  }
+
+  const voiceClass = cfg.voice === "pluck" ? "pluck" : cfg.voice === "fm" ? "fm" : "synth";
+  let bundle;
+  if (cfg.voice === "pluck") {
+    const synth = makePitched(roleKey, cfg);
+    // PluckSynth ignores its options.volume; bass keeps its role trim on the
+    // velocity path instead.
+    const baseGain = kind === "bass" ? Math.pow(10, ROLE_VOLUME.bass / 20) : 1;
+    bundle = { kind, voiceClass, ...makeVelocityPath(synth, bus, disposables, baseGain) };
+    bundle.nodes = [synth, bundle.velGain];
+  } else if (kind === "bass") {
+    const synth = new Tone.MonoSynth({ ...cfg, volume: ROLE_VOLUME.bass });
+    synth.connect(bus);
+    bundle = { kind, voiceClass, synth };
+    bundle.nodes = [synth];
+  } else {
+    const synth = makePitched(roleKey, cfg);
+    synth.connect(bus);
+    bundle = { kind, voiceClass, synth };
+    bundle.nodes = [synth];
+  }
+  disposables.push(...bundle.nodes);
+  return bundle;
+}
+
 // One voice bundle per layer, keyed by layer id. Layers added later rebuild
 // the engine, so this map always mirrors the project's layers at construction
 // time.
 export function createVoices(project, buses, disposables) {
   const voices = {};
   for (const layer of project.layers) {
-    if (layer.role === "harmony") {
-      const cfg = resolveInstrumentConfig(layer, "harmony");
-      const synth = makePitched("chords", cfg);
-      let bundle;
-      if (cfg.voice === "pluck") {
-        bundle = { kind: "chords", ...makeVelocityPath(synth, buses.harmony, disposables) };
-      } else {
-        synth.connect(buses.harmony);
-        bundle = { kind: "chords", synth };
-      }
+    const bundle = createLayerVoice(layer, buses, disposables);
+    if (bundle) {
       voices[layer.id] = bundle;
-      disposables.push(synth);
-    } else if (layer.role === "motif") {
-      const cfg = resolveInstrumentConfig(layer, "motif");
-      const synth = makePitched("melody", cfg);
-      let bundle;
-      if (cfg.voice === "pluck") {
-        bundle = { kind: "melody", ...makeVelocityPath(synth, buses.motif, disposables) };
-      } else {
-        synth.connect(buses.motif);
-        bundle = { kind: "melody", synth };
-      }
-      voices[layer.id] = bundle;
-      disposables.push(synth);
-    } else if (layer.role === "bass") {
-      const cfg = resolveInstrumentConfig(layer, "bass");
-      const synth = cfg.voice === "pluck" ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
-      let bundle;
-      if (cfg.voice === "pluck") {
-        // PluckSynth ignores its options.volume; keep the bass role trim
-        // (-11 dB) on the velocity path instead.
-        bundle = { kind: "bass", ...makeVelocityPath(synth, buses.bass ?? buses.dry, disposables, Math.pow(10, -11 / 20)) };
-      } else {
-        synth.connect(buses.bass ?? buses.dry);
-        bundle = { kind: "bass", synth };
-      }
-      voices[layer.id] = bundle;
-      disposables.push(synth);
     } else if (layer.role === "percussion") {
       const kit = makeDrums(layer.instrument, { kick: buses.dry, hat: buses.reverb, snare: buses.glue });
       voices[layer.id] = kit;

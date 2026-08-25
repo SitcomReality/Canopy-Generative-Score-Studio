@@ -4,6 +4,7 @@
 import { DEFAULT_LAYERS, LAYER_ROLES, convertStepsForRole } from "../music/default-project.js";
 import { composeMelody, composePattern, makeSparser } from "../music/melody-composer.js";
 import { notify } from "../ui/toast.js";
+import { sanitizeInstrumentConfig } from "../music/instrument-override.js";
 
 const LAYER_PALETTE = ["#9dc98d", "#f1c97a", "#d98868", "#b8a5d7", "#7fb8c9", "#c9a3b8"];
 
@@ -97,6 +98,7 @@ export function createLayerActions(store, host) {
         color: LAYER_PALETTE[index % LAYER_PALETTE.length],
         muted: false,
         instrument: "Glass bell",
+        instrumentConfig: null,
         density: 50,
         variation: 30,
         humanize: 15,
@@ -167,6 +169,31 @@ export function createLayerActions(store, host) {
         layer.id === layerId ? { ...layer, instrument } : layer);
       store.updateProject({ layers });
       host.engine?.setInstrument(layerId, instrument);
+    },
+
+    // Merge a partial override ({ oscillator?, envelope? }) into the layer's
+    // instrumentConfig and re-apply it to the live voice.
+    setInstrumentParam(layerId, patch) {
+      const layers = store.get().project.layers.map((layer) => {
+        if (layer.id !== layerId) return layer;
+        const current = sanitizeInstrumentConfig(layer.instrumentConfig) ?? {};
+        const envelope = { ...(current.envelope ?? {}), ...(patch.envelope ?? {}) };
+        const next = sanitizeInstrumentConfig({
+          oscillator: patch.oscillator ?? current.oscillator,
+          envelope: Object.keys(envelope).length > 0 ? envelope : undefined,
+        });
+        return { ...layer, instrumentConfig: next };
+      });
+      store.updateProject({ layers });
+      host.engine?.applyInstrumentConfig(layerId);
+    },
+
+    // Clear the override: back to the preset exactly as the catalog defines.
+    resetInstrumentConfig(layerId) {
+      const layers = store.get().project.layers.map((layer) =>
+        layer.id === layerId ? { ...layer, instrumentConfig: null } : layer);
+      store.updateProject({ layers });
+      host.engine?.applyInstrumentConfig(layerId);
     },
 
     // A layer's static loudness trim in dB (-24..6).
