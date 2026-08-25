@@ -1,4 +1,4 @@
-// Shared reactive-dynamics decision core (schema v4). This module is the
+// Shared reactive-dynamics decision core (schema v5). This module is the
 // single source of truth for *adaptive decisions*: turning a live axis vector
 // (intensity/tension/brightness, steered by the game or a context preset)
 // into musical parameters and step events. Both the studio preview engine
@@ -60,16 +60,123 @@ export function easeToward(live, target, rate = 0.35) {
 
 // Resolve a song-level binding (an axis -> parameter linear/step map) to a
 // live value. Returns undefined when no binding targets the given param.
+// v5 removed tempo modulation; bindings now only serve custom song-level
+// parameters, and bpm stays at `project.bpm` for the whole playback.
 export function bindingValue(project, target, live) {
   const binding = (project.bindings ?? []).find((b) => b.target === target);
   return binding ? domainValue(binding.domain, live[binding.axis]) : undefined;
 }
 
-// Current tempo offset derived from the bindings, defaulting to the old
-// hardcoded intensity->bpm spread when unbound.
-export function tempoOffset(project, live) {
-  const bound = bindingValue(project, "tempo.offset", live);
-  return bound !== undefined ? bound : live.intensity * 26;
+// ------------------------------------------------------------- verses (v5)
+
+// The section active at an absolute bar count. Sections rotate in order,
+// each lasting its `length` bars; a missing/empty list means one implicit
+// full-song section (null here — callers treat null as "no overrides").
+export function activeSection(project, bar) {
+  const sections = project.sections ?? [];
+  if (sections.length === 0) return null;
+  const total = sections.reduce((sum, section) => sum + Math.max(1, Math.round(section.length ?? 4)), 0);
+  let pos = (((bar - 1) % total) + total) % total;
+  for (const section of sections) {
+    const length = Math.max(1, Math.round(section.length ?? 4));
+    if (pos < length) return section;
+    pos -= length;
+  }
+  return sections[sections.length - 1];
+}
+
+// Per-layer dB delta for the active section (-24..24, default 0).
+export function sectionGain(section, layerId) {
+  const gain = section?.layers?.[layerId]?.gain;
+  return typeof gain === "number" && Number.isFinite(gain) ? Math.max(-24, Math.min(24, gain)) : 0;
+}
+
+// Whether the active section lets the layer sound at all (`active` override).
+export function sectionActive(section, layerId) {
+  return section?.layers?.[layerId]?.active !== false;
+}
+
+// Static per-layer loudness trim in dB (v5 `level`, -24..6, default 0).
+export function layerLevel(layer) {
+  const level = Number(layer.level);
+  return Number.isFinite(level) ? Math.max(-24, Math.min(6, level)) : 0;
+}
+
+// -------------------------------------------------------- flourishes (v5)
+
+// One-shot musical events for game milestones: victory/defeat resolve combat;
+// combat spikes intensity entering it; calm dissipates intensity neutrally;
+// relief releases tension; unease spikes tension anxiously. All events are
+// scale DEGREES (harmony guard), scheduled in beat units inside one bar.
+const FLOURISH_CATALOG = {
+  // Full-bar ascending fanfare that rings into the next bar — triumph.
+  victory: [
+    { degree: 0, octave: 4, at: 0.0, dur: 0.45, vel: 0.62 },
+    { degree: 2, octave: 4, at: 0.5, dur: 0.45, vel: 0.64 },
+    { degree: 4, octave: 4, at: 1.0, dur: 0.45, vel: 0.66 },
+    { degree: 0, octave: 5, at: 1.5, dur: 0.45, vel: 0.68 },
+    { degree: 2, octave: 5, at: 2.0, dur: 0.45, vel: 0.7 },
+    { degree: 4, octave: 5, at: 2.5, dur: 0.45, vel: 0.72 },
+    { degree: 3, octave: 5, at: 3.0, dur: 0.45, vel: 0.68 },
+    { degree: 0, octave: 5, at: 3.5, dur: 1.5, vel: 0.74 },
+  ],
+  // Slow descending lament sinking to a low long tonic — loss.
+  defeat: [
+    { degree: 4, octave: 4, at: 0.0, dur: 0.95, vel: 0.5 },
+    { degree: 3, octave: 4, at: 1.0, dur: 0.95, vel: 0.46 },
+    { degree: 2, octave: 4, at: 2.0, dur: 0.95, vel: 0.42 },
+    { degree: 0, octave: 3, at: 3.0, dur: 2.0, vel: 0.44 },
+  ],
+  // Driving rising stabs — danger arriving, momentum surging.
+  combat: [
+    { degree: 0, octave: 4, at: 0.0, dur: 0.22, vel: 0.58 },
+    { degree: 4, octave: 4, at: 0.25, dur: 0.22, vel: 0.6 },
+    { degree: 0, octave: 5, at: 0.5, dur: 0.22, vel: 0.62 },
+    { degree: 4, octave: 5, at: 0.75, dur: 0.22, vel: 0.64 },
+    { degree: 0, octave: 5, at: 1.0, dur: 0.22, vel: 0.66 },
+    { degree: 2, octave: 5, at: 1.5, dur: 0.22, vel: 0.66 },
+    { degree: 4, octave: 5, at: 2.0, dur: 0.22, vel: 0.68 },
+    { degree: 6, octave: 5, at: 2.5, dur: 0.22, vel: 0.7 },
+    { degree: 7, octave: 5, at: 3.0, dur: 0.95, vel: 0.74 },
+  ],
+  // Sparse falling tones fading out — intensity dissolving without verdict.
+  calm: [
+    { degree: 4, octave: 4, at: 0.0, dur: 1.4, vel: 0.36 },
+    { degree: 2, octave: 4, at: 1.5, dur: 1.4, vel: 0.32 },
+    { degree: 0, octave: 4, at: 3.0, dur: 1.8, vel: 0.3 },
+  ],
+  // A leap up that settles back down — released tension, an exhale.
+  relief: [
+    { degree: 0, octave: 4, at: 0.0, dur: 0.45, vel: 0.5 },
+    { degree: 4, octave: 4, at: 0.5, dur: 0.7, vel: 0.54 },
+    { degree: 2, octave: 4, at: 1.5, dur: 0.45, vel: 0.44 },
+    { degree: 0, octave: 4, at: 2.0, dur: 1.8, vel: 0.4 },
+  ],
+  // Skittering stabs against the seventh — something is off.
+  unease: [
+    { degree: 6, octave: 4, at: 0.0, dur: 0.12, vel: 0.56 },
+    { degree: 0, octave: 4, at: 0.25, dur: 0.12, vel: 0.58 },
+    { degree: 6, octave: 4, at: 1.5, dur: 0.12, vel: 0.6 },
+    { degree: 0, octave: 5, at: 1.75, dur: 0.12, vel: 0.58 },
+    { degree: 5, octave: 4, at: 3.0, dur: 0.7, vel: 0.5 },
+  ],
+};
+
+export const FLOURISH_NAMES = Object.keys(FLOURISH_CATALOG);
+
+// Resolve a flourish by name to normalized events. Per-song overrides in
+// project.flourishes[name] win over the catalog; unknown names return [].
+// Events stay degree-based so hosts map them through scaleMidi()/note().
+export function flourishEvents(project, name) {
+  const raw = project.flourishes?.[name] ?? FLOURISH_CATALOG[name];
+  if (!Array.isArray(raw)) return [];
+  return raw.map((ev) => ({
+    degree: Math.max(0, Math.min(7, Math.round(Number(ev.degree ?? 0)) || 0)),
+    octave: Math.max(1, Math.min(6, Math.round(Number(ev.octave ?? 5)) || 5)),
+    at: Math.max(0, Number(ev.at) || 0),
+    dur: Math.max(0.05, Number(ev.dur) || 0.25),
+    vel: Math.max(0.05, Math.min(1, Number(ev.vel ?? 0.6))),
+  }));
 }
 
 // ------------------------------------------------------------ layer gates
@@ -244,11 +351,23 @@ export function computeStepFrame(project, live, state, step, rng) {
           events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.24, offset: 0.065 });
           events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: snareVel ?? 0.3, offset: 0.11 });
         }
-        if (step >= 13) {
-          // Starts past the accent (0.02) and the odd-step extras
-          // (0.065/0.11) so no two roll hits share a voice+time.
+      }
+      // v5: the half-phrase tail (steps 12-15) always carries a short roll,
+      // scaled with intensity instead of gated behind it, so the roll timbre
+      // is a regular part of the groove rather than an occasional surprise
+      // burst. Offsets are fixed for seeded determinism; at low intensity a
+      // single soft stroke, at high intensity the full rising four-hit roll.
+      if (step === 12 || step === 14) {
+        const heat = clamp01(live.intensity, 0);
+        const base = snareVel ?? 0.2;
+        if (heat < 0.34) {
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: base * 0.6, offset: 0.18 });
+        } else if (heat < 0.67) {
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: base * 0.7, offset: 0.16 });
+          events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: base * 0.9, offset: 0.21 });
+        } else {
           [0.14, 0.18, 0.22, 0.26].forEach((offset, index) => {
-            events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: Math.min(1, (snareVel ?? 0.26) + index * 0.09), offset });
+            events.push({ layerId: layer.id, kind: "snare", duration: "32n", velocity: Math.min(1, base + index * 0.09), offset });
           });
         }
       }

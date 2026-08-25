@@ -1,14 +1,15 @@
-// The serialized project schema (version 4). Keep this shape stable: exported
+// The serialized project schema (version 5). Keep this shape stable: exported
 // .canopy.json files and saved localStorage drafts must keep round-tripping.
 // Version 2 moved per-track data into a `layers` array so layers can be added,
 // removed and renamed. Version 3 added long-form fields: per-layer restWindow +
 // energyRole, song-level journey + variationSeed. Version 4 adds the reactive
 // dynamics contract: song-level `axes`/`contexts`/`bindings` and per-layer
-// `activity`/`fills`/`automation`. The adaptive behavior that used to be
-// hardcoded in the two playback engines now lives here in the JSON, so an
-// exported score encodes *how it reacts*, not just *what it plays*.
-// hydrateProject still accepts version 1 flat projects, version 2 layer
-// projects, and version 3 projects (migrating them to v4 defaults).
+// `activity`/`fills`/`automation`. Version 5 adds expressive arrangement:
+// per-layer `level` (static loudness trim), song-level `sections` (verse-scale
+// arrangement rotation) and `flourishes` (one-shot musical events), and drops
+// runtime tempo modulation — intensity now expresses only through loudness,
+// density, percussion and register. hydrateProject still accepts version 1
+// flat projects and versions 2-4 (migrating them to v5 defaults).
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
 import { CONTEXTS } from "./contexts.js";
@@ -18,7 +19,7 @@ import { clamp01, domainValue } from "./dynamics.js";
 // helpers (see dev/tests/dynamics-parity.test.js).
 export { clamp01, domainValue };
 
-export const PROJECT_VERSION = 4;
+export const PROJECT_VERSION = 5;
 
 // The canonical reactive axes every context target and every binding maps
 // from. Each is a continuous 0..1 dimension; the game (or a context preset)
@@ -44,8 +45,8 @@ export const LAYER_ROLES = {
 
 // Song-level reactive space. `contexts` are named presets over `axes`
 // (derived from music/contexts.js CONTEXTS); `bindings` map an axis to a
-// song-level parameter (currently tempo.offset, which replaces the old
-// hardcoded explore/unease/combat bpm table).
+// song-level parameter. v5 removed the tempo binding — bpm is static during
+// playback — so the default list is empty; custom bindings stay supported.
 export const AXES = {
   intensity: { label: "Intensity" },
   tension: { label: "Tension" },
@@ -58,9 +59,7 @@ export const DEFAULT_CONTEXTS = CONTEXTS.map(({ id, name, targets }) => ({
   targets: { ...targets },
 }));
 
-export const DEFAULT_BINDINGS = [
-  { target: "tempo.offset", axis: "intensity", domain: [0, 26] },
-];
+export const DEFAULT_BINDINGS = [];
 
 export const DEFAULT_LAYERS = [
   {
@@ -75,6 +74,7 @@ export const DEFAULT_LAYERS = [
     variation: 20,
     humanize: 10,
     restWindow: 0,
+    level: 0,
     energyRole: "balanced",
     activity: null,
     fills: null,
@@ -96,6 +96,7 @@ export const DEFAULT_LAYERS = [
     variation: 34,
     humanize: 18,
     restWindow: 0,
+    level: 0,
     energyRole: "balanced",
     activity: null,
     fills: null,
@@ -119,10 +120,11 @@ export const DEFAULT_LAYERS = [
     variation: 10,
     humanize: 8,
     restWindow: 0,
+    level: 0,
     energyRole: "balanced",
     activity: null,
     fills: [
-      { at: [7, 15], axis: "intensity", threshold: 0.6 },
+      { at: [7, 15], axis: "intensity", threshold: 0.45 },
     ],
     automation: [
       { param: "velocity", axis: "intensity", domain: [0.32, 0.56] },
@@ -142,11 +144,12 @@ export const DEFAULT_LAYERS = [
     variation: 15,
     humanize: 12,
     restWindow: 0,
+    level: 0,
     energyRole: "recessive",
     activity: { axis: "intensity", range: [0.35, 1] },
     fills: [
-      { at: [8, 11, 14], axis: "intensity", threshold: 0.5 },
-      { at: [12], axis: "intensity", threshold: 0.7 },
+      { at: [8, 11, 14], axis: "intensity", threshold: 0.4 },
+      { at: [12], axis: "intensity", threshold: 0.6 },
     ],
     automation: [
       { param: "kickProps", axis: "intensity", domain: [{ midi: "D1", vel: 0.25 }, { midi: "C1", vel: 0.68 }] },
@@ -173,6 +176,8 @@ export const DEFAULT_PROJECT = {
   axes: AXES,
   contexts: DEFAULT_CONTEXTS,
   bindings: DEFAULT_BINDINGS,
+  sections: [],
+  flourishes: null,
   layers: DEFAULT_LAYERS,
 };
 
@@ -230,7 +235,9 @@ function sanitizeContexts(value) {
   return out.length > 0 ? out : DEFAULT_CONTEXTS.map((ctx) => ({ ...ctx, targets: { ...ctx.targets } }));
 }
 
-// Song-level axis->parameter maps. Only known targets are kept.
+// Song-level axis->parameter maps. Only known targets are kept. The v4
+// "tempo.offset" target no longer exists (bpm is static during playback in
+// v5), so those bindings are dropped on migration.
 function sanitizeBindings(value) {
   if (!Array.isArray(value)) return DEFAULT_BINDINGS.map((b) => ({ ...b, domain: [...b.domain] }));
   const out = [];
@@ -239,6 +246,7 @@ function sanitizeBindings(value) {
       !raw ||
       typeof raw !== "object" ||
       typeof raw.target !== "string" ||
+      raw.target === "tempo.offset" ||
       typeof raw.axis !== "string" ||
       !Array.isArray(raw.domain) ||
       raw.domain.length < 2
@@ -247,7 +255,65 @@ function sanitizeBindings(value) {
     }
     out.push({ target: raw.target, axis: raw.axis, domain: [...raw.domain] });
   }
-  return out.length > 0 ? out : DEFAULT_BINDINGS.map((b) => ({ ...b, domain: [...b.domain] }));
+  return out.length > 0 ? out : [...DEFAULT_BINDINGS];
+}
+
+// v5 verses: an ordered list of { id, label, length, layers } that rotates at
+// bar boundaries. `length` is the section's length in bars; `layers` maps a
+// layer id to { gain: dB delta (-24..24), active: boolean }. An empty list
+// means one implicit full-song section (v4 behavior).
+function sanitizeSections(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const layerOverrides = {};
+    if (raw.layers && typeof raw.layers === "object") {
+      for (const [layerId, override] of Object.entries(raw.layers)) {
+        if (!override || typeof override !== "object") continue;
+        const entry = {};
+        if (typeof override.gain === "number" && Number.isFinite(override.gain)) {
+          entry.gain = Math.max(-24, Math.min(24, override.gain));
+        }
+        if (override.active !== undefined) entry.active = Boolean(override.active);
+        if (Object.keys(entry).length > 0) layerOverrides[layerId] = entry;
+      }
+    }
+    out.push({
+      id: typeof raw.id === "string" && raw.id ? raw.id : `section-${out.length + 1}`,
+      label: typeof raw.label === "string" && raw.label ? raw.label : "Verse",
+      length: clampInt(raw.length, 1, 16, 4),
+      layers: layerOverrides,
+    });
+  }
+  return out.length > 0 ? out : [];
+}
+
+// v5 one-shot flourishes: optional per-song overrides of the built-in catalog
+// in dynamics.js. Shape: { <name>: [{ degree, octave, at, dur, vel }] } with
+// at/dur in beat units inside the bar; degrees are scale-relative so the
+// harmony guard holds.
+const FLOURISH_NAMES = ["victory", "defeat", "combat", "calm", "relief", "unease"];
+
+function sanitizeFlourishes(value) {
+  if (!value || typeof value !== "object") return null;
+  const out = {};
+  for (const name of FLOURISH_NAMES) {
+    const events = value[name];
+    if (!Array.isArray(events) || events.length === 0) continue;
+    const clean = events
+      .filter((ev) => ev && typeof ev === "object")
+      .map((ev) => ({
+        degree: Math.max(0, Math.min(7, Math.round(Number(ev.degree ?? 0)) || 0)),
+        octave: Math.max(1, Math.min(6, Math.round(Number(ev.octave ?? 5)) || 5)),
+        at: Math.max(0, Math.min(3.75, Number(ev.at) || 0)),
+        dur: Math.max(0.05, Math.min(4, Number(ev.dur) || 0.25)),
+        vel: Math.max(0.05, Math.min(1, Number(ev.vel ?? 0.6))),
+      }))
+      .filter((ev) => Number.isFinite(ev.at) && Number.isFinite(ev.dur));
+    if (clean.length > 0) out[name] = clean;
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
 const JOURNEY_SHAPES = ["flat", "arc", "tide"];
@@ -345,6 +411,9 @@ function sanitizeLayer(raw, index, usedIds) {
     variation: clampPercent(raw?.variation, fallback.variation),
     humanize: clampPercent(raw?.humanize, fallback.humanize),
     restWindow: clampInt(raw?.restWindow, 0, 8, fallback.restWindow ?? 0),
+    level: raw?.level !== undefined
+      ? Math.max(-24, Math.min(6, Number.isFinite(Number(raw.level)) ? Number(raw.level) : 0))
+      : (fallback.level ?? 0),
     energyRole: ENERGY_ROLES.includes(raw?.energyRole) ? raw.energyRole : "balanced",
     activity: raw?.activity !== undefined ? sanitizeActivity(raw.activity) : (fallback.activity ?? null),
     fills: raw?.fills !== undefined ? sanitizeFills(raw.fills) : (fallback.fills ?? null),
@@ -412,6 +481,8 @@ export function hydrateProject(value) {
     axes: sanitizeAxes(source.axes),
     contexts: sanitizeContexts(source.contexts),
     bindings: sanitizeBindings(source.bindings),
+    sections: sanitizeSections(source.sections),
+    flourishes: source.flourishes !== undefined ? sanitizeFlourishes(source.flourishes) : null,
     variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
       ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))

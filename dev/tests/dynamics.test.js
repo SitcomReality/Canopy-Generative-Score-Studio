@@ -9,7 +9,12 @@ import {
   computeStepFrame,
   contextTargets,
   easeToward,
-  tempoOffset,
+  activeSection,
+  sectionGain,
+  sectionActive,
+  layerLevel,
+  flourishEvents,
+  FLOURISH_NAMES,
   domainValue,
 } from "../../src/music/dynamics.js";
 
@@ -72,10 +77,50 @@ test("easeToward moves toward target without overshooting", () => {
   assert.equal(next.brightness, 0.5);
 });
 
-test("tempoOffset uses the tempo.offset binding when present", () => {
-  const project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
-  project.bindings = [{ target: "tempo.offset", axis: "intensity", domain: [0, 20] }];
-  assert.equal(tempoOffset(project, { intensity: 0.5 }), 10);
+test("activeSection rotates sections by bar count and handles empty lists", () => {
+  const project = {
+    sections: [
+      { id: "a", label: "A", length: 2, layers: {} },
+      { id: "b", label: "B", length: 1, layers: {} },
+    ],
+  };
+  // 2 bars of A, then 1 bar of B, cycling (bar counts are 1-based here).
+  assert.equal(activeSection(project, 1).id, "a");
+  assert.equal(activeSection(project, 2).id, "a");
+  assert.equal(activeSection(project, 3).id, "b");
+  assert.equal(activeSection(project, 4).id, "a");
+  assert.equal(activeSection({ sections: [] }, 7), null);
+});
+
+test("sectionGain/sectionActive/layerLevel clamp their dB ranges", () => {
+  const section = { layers: { melody: { gain: -60, active: false }, bass: { gain: 99 } } };
+  assert.equal(sectionGain(section, "melody"), -24);
+  assert.equal(sectionGain(section, "bass"), 24);
+  assert.equal(sectionGain(section, "chords"), 0);
+  assert.equal(sectionActive(section, "melody"), false);
+  assert.equal(sectionActive(section, "chords"), true);
+  assert.equal(layerLevel({ level: -99 }), -24);
+  assert.equal(layerLevel({ level: 40 }), 6);
+  assert.equal(layerLevel({}), 0);
+});
+
+test("flourishEvents resolve from the catalog, honor overrides, drop unknowns", () => {
+  for (const name of FLOURISH_NAMES) {
+    const events = flourishEvents({}, name);
+    assert.ok(events.length > 0, name);
+    for (const ev of events) {
+      assert.ok(ev.degree >= 0 && ev.degree <= 7, `${name} harmony guard`);
+      assert.ok(ev.octave >= 1 && ev.octave <= 6);
+      assert.ok(ev.at >= 0 && ev.at < 4 && ev.dur > 0 && ev.vel > 0);
+    }
+  }
+  // Victory spans the full bar (last hit starts at beat 3.5).
+  const victory = flourishEvents({}, "victory");
+  assert.equal(victory[victory.length - 1].at, 3.5);
+  // Per-song override replaces the catalog entry.
+  assert.equal(flourishEvents({ flourishes: { calm: [{ degree: 1, octave: 3, at: 0, dur: 1, vel: 0.4 }] } }, "calm").length, 1);
+  // Unknown flourish names resolve to nothing.
+  assert.deepEqual(flourishEvents({}, "nonsense"), []);
 });
 
 test("domainValue maps linear and step domains", () => {

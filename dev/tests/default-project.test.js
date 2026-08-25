@@ -150,8 +150,8 @@ test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/f
     layers: [{ id: "perc", name: "Drums", role: "percussion", instrument: "Soft pluck", density: 60, variation: 10, humanize: 5, restWindow: 0, energyRole: "recessive", steps: [true, false, false, false, true, false, true, false, true, false, true, false, true, false, true, false] }],
   };
   const hydrated = hydrateProject(v3);
-  // v3 -> v4: reactive fields get defaults.
-  assert.equal(hydrated.version, 4);
+  // v3 -> v5: reactive fields get defaults, tempo bindings stay empty.
+  assert.equal(hydrated.version, PROJECT_VERSION);
   assert.deepEqual(hydrated.axes, DEFAULT_PROJECT.axes);
   assert.deepEqual(hydrated.bindings, DEFAULT_PROJECT.bindings);
   assert.deepEqual(hydrated.contexts, DEFAULT_PROJECT.contexts);
@@ -163,13 +163,40 @@ test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/f
   assert.ok(Array.isArray(hydrated.layers[0].automation) && hydrated.layers[0].automation.length > 0);
 
   // A v4 score carrying explicit reactive fields is preserved (and the
-  // percussion default activity survives).
+  // percussion default activity survives). The legacy tempo.offset binding is
+  // dropped on migration: bpm is static during playback from v5 on.
   const v4 = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
   v4.bindings = [{ target: "tempo.offset", axis: "tension", domain: [0, 18] }];
   const again = hydrateProject(v4);
-  assert.deepEqual(again.bindings, v4.bindings);
+  assert.deepEqual(again.bindings, []);
+  assert.equal(again.version, 5);
   const perc = again.layers.find((l) => l.id === "percussion");
   assert.deepEqual(perc.activity, { axis: "intensity", range: [0.35, 1] });
   assert.ok(Array.isArray(perc.automation) && perc.automation.length > 0);
-  assert.deepEqual(perc.fills, [{ at: [8, 11, 14], axis: "intensity", threshold: 0.5 }, { at: [12], axis: "intensity", threshold: 0.7 }]);
+  assert.deepEqual(perc.fills, [{ at: [8, 11, 14], axis: "intensity", threshold: 0.4 }, { at: [12], axis: "intensity", threshold: 0.6 }]);
+});
+
+test("v5 expressive fields hydrate: layer level, sections, flourishes", () => {
+  const project = hydrateProject({
+    layers: [{ id: "melody", level: -3 }],
+    sections: [
+      { id: "a", label: "Verse A", length: 4, layers: { melody: { gain: 2 }, percussion: { active: false } } },
+      { id: "b", length: 99, layers: { bass: { gain: "loud" } } },
+    ],
+    flourishes: {
+      victory: [{ degree: 9, octave: 2, at: 7, dur: -1, vel: 44 }],
+      bogus: [{ degree: 0 }],
+    },
+  });
+  assert.equal(project.version, 5);
+  assert.equal(project.layers[0].level, -3);
+  assert.equal(project.sections.length, 2);
+  assert.equal(project.sections[1].length, 16); // clamped to 1..16
+  assert.deepEqual(project.sections[0].layers.melody, { gain: 2 });
+  assert.deepEqual(project.sections[0].layers.percussion, { active: false });
+  assert.equal(project.sections[1].layers.bass, undefined); // non-numeric gain dropped
+  // Out-of-range flourish values clamp into the harmony guard; unknown
+  // flourish names are dropped.
+  assert.deepEqual(project.flourishes.victory, [{ degree: 7, octave: 2, at: 3.75, dur: 0.05, vel: 1 }]);
+  assert.ok(!("bogus" in project.flourishes));
 });
