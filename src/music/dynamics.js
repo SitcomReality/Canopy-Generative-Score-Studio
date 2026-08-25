@@ -109,6 +109,19 @@ export function automationLookup(layer, live) {
   return out;
 }
 
+// ------------------------------------------------------------- voice order
+
+// Tone requires each voice's start times to strictly increase in call order,
+// but computeStepFrame's emission order isn't time order (e.g. a variation
+// hat drawing a smaller humanize offset than the straight hat before it).
+// Stable-sorting ALL events by offset fixes every voice at once: events on
+// different voices may interleave in any call order (they hit different
+// synths), and stability keeps equal offsets in emission order. Offsets are
+// untouched, so seeded determinism holds.
+export function orderEvents(events) {
+  return [...events].sort((a, b) => (a.offset ?? 0) - (b.offset ?? 0));
+}
+
 // ------------------------------------------------------------------ steps
 
 // Deterministic humanize offset (seconds) from the layer's humanize %.

@@ -235,7 +235,7 @@ function setup() {
     const features = {};
     for (const layer of score.layers) features[layer.id] = { steps: perfSteps[layer.id] || layer.steps };
     const restingIds = Object.keys(resting).filter((id) => resting[id]);
-    const events = computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng);
+    const events = orderEvents(computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng));
     for (const ev of events) {
       const voice = voices[ev.layerId];
       if (!voice) continue;

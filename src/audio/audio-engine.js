@@ -15,6 +15,7 @@ import {
   tempoOffset,
   journeyGain,
   layerActive,
+  orderEvents,
 } from "../music/dynamics.js";
 import { journeyEnergy } from "../music/variation.js";
 
@@ -185,7 +186,7 @@ export function createAudioEngine(store) {
     for (const layer of score.layers) {
       features[layer.id] = { steps: perfSteps[layer.id] ?? layer.steps };
     }
-    const events = computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng);
+    const events = orderEvents(computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng));
 
     // Layer ids that actually sound this step, for the UI's live indicators.
     const sounding = [];
