@@ -92,6 +92,11 @@
 
 .inspector-body { padding: 10px 0 0; }
 
+/* Instrument editor: a tweak group inside the inspector, separated by the
+   rail's standard gutter. */
+#instrument-editor { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 10px; }
+#instrument-editor .parameter-slider { margin: 0 16px; }
+
 /* Reactive editor keeps the rail's 16px gutter; its embedded field-row opts
    out of its own margin so nothing double-pads. */
 #layer-reactive { padding: 0 16px; }

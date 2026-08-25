@@ -116,6 +116,22 @@
           <div id="slider-density"></div>
           <div id="slider-variation"></div>
           <div id="slider-humanize"></div>
+          <div id="instrument-editor" aria-label="Instrument sound">
+            <div class="field-row" title="The tone color of this layer's synth. Presets keep their own character until you change something here.">
+              <span>Waveform</span>
+              <select id="waveform-select">
+                <option value="sine">Sine — soft</option>
+                <option value="triangle">Triangle — round</option>
+                <option value="square">Square — hollow</option>
+                <option value="sawtooth">Saw — buzzy</option>
+              </select>
+            </div>
+            <div id="slider-attack"></div>
+            <div id="slider-decay"></div>
+            <div id="slider-sustain"></div>
+            <div id="slider-release"></div>
+            <button class="reset-link" id="reset-instrument-config"><i data-icon="rotate-ccw" data-size="13"></i> Back to preset sound</button>
+          </div>
           <label class="field-row" title="Static loudness trim for this layer, in dB — its base voice level under all dynamics.">
             <span>Level</span>
             <input type="range" min="-24" max="6" step="1" id="slider-level" />
