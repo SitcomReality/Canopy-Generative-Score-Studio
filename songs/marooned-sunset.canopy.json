@@ -1,206 +1,137 @@
 {
-  "version": 4,
+  "version": 5,
   "name": "Marooned Sunset",
-  "bpm": 82,
+  "bpm": 78,
   "key": "D",
   "scale": "Major",
-  "progression": [
-    0,
-    4,
-    5,
-    3
-  ],
+  "progression": [0, 4, 5, 3],
   "progressionName": "Homeward",
   "reverb": 70,
   "swing": 12,
-  "journey": {
-    "shape": "tide",
-    "length": 16,
-    "depth": 40
-  },
+  "journey": { "shape": "tide", "length": 16, "depth": 45 },
+  "variationSeed": 14,
   "axes": {
-    "intensity": {
-      "label": "Intensity"
-    },
-    "tension": {
-      "label": "Tension"
-    },
-    "brightness": {
-      "label": "Brightness"
-    }
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
   },
   "contexts": [
     {
       "id": "explore",
       "label": "Explore",
-      "targets": {
-        "intensity": 0.3,
-        "tension": 0.2,
-        "brightness": 0.85
-      }
+      "targets": { "intensity": 0.3, "tension": 0.2, "brightness": 0.85 }
     },
     {
       "id": "unease",
       "label": "Unease",
-      "targets": {
-        "intensity": 0.5,
-        "tension": 0.6,
-        "brightness": 0.4
-      }
+      "targets": { "intensity": 0.5, "tension": 0.6, "brightness": 0.4 }
     },
     {
       "id": "combat",
       "label": "Combat",
-      "targets": {
-        "intensity": 0.95,
-        "tension": 0.75,
-        "brightness": 0.2
+      "targets": { "intensity": 0.95, "tension": 0.75, "brightness": 0.2 }
+    }
+  ],
+  "bindings": [],
+  "sections": [
+    {
+      "id": "shoreline",
+      "label": "Shoreline",
+      "length": 4,
+      "layers": {
+        "dusk-pad": { "gain": -3 },
+        "raindance": { "active": false },
+        "shorebird": { "gain": 1 }
+      }
+    },
+    {
+      "id": "full-tide",
+      "label": "Full Tide",
+      "length": 4,
+      "layers": {
+        "dusk-pad": { "gain": 1.5 },
+        "tide": { "gain": 2 },
+        "raindance": { "gain": 2 },
+        "sea-breeze": { "gain": 1.5 }
       }
     }
   ],
-  "bindings": [
-    {
-      "target": "tempo.offset",
-      "axis": "intensity",
-      "domain": [
-        0,
-        24
-      ]
-    }
-  ],
-  "variationSeed": 14,
+  "flourishes": null,
   "layers": [
     {
-      "id": "chords",
-      "name": "Sea Breeze",
-      "detail": "Main motif",
-      "role": "motif",
-      "color": "#9dc98d",
+      "id": "dusk-pad",
+      "name": "Dusk Pad",
+      "detail": "Harmony bed",
+      "role": "harmony",
+      "color": "#7fb8c9",
       "muted": false,
-      "instrument": "Glocken chime",
-      "density": 42,
-      "variation": 18,
+      "instrument": "Velvet pad",
+      "density": 60,
+      "variation": 12,
       "humanize": 10,
       "restWindow": 0,
+      "level": -3,
       "energyRole": "balanced",
       "activity": null,
       "fills": null,
       "automation": [
-        {
-          "param": "velocity",
-          "axis": "intensity",
-          "domain": [
-            0.2,
-            0.35
-          ]
-        },
-        {
-          "param": "duration",
-          "axis": "intensity",
-          "domain": [
-            "1m",
-            "2n"
-          ]
-        }
+        { "param": "velocity", "axis": "intensity", "domain": [0.18, 0.32] },
+        { "param": "duration", "axis": "intensity", "domain": ["1m", "2n"] }
       ],
-      "steps": [
-        2,
-        null,
-        null,
-        null,
-        7,
-        null,
-        null,
-        6,
-        5,
-        4,
-        null,
-        5,
-        7,
-        null,
-        7,
-        0
-      ]
+      "steps": [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false]
     },
     {
-      "id": "melody",
+      "id": "shorebird",
       "name": "Shorebird",
       "detail": "Main motif",
       "role": "motif",
       "color": "#f1c97a",
       "muted": false,
       "instrument": "Kalimba dusk",
-      "density": 55,
-      "variation": 32,
+      "density": 58,
+      "variation": 30,
       "humanize": 18,
-      "restWindow": 4,
+      "restWindow": 7,
+      "level": 0,
       "energyRole": "forward",
       "activity": null,
       "fills": [
-        {
-          "at": [
-            7,
-            15
-          ],
-          "axis": "tension",
-          "threshold": 0.55
-        }
+        { "at": [7, 15], "axis": "tension", "threshold": 0.5 }
       ],
       "automation": [
-        {
-          "param": "velocity",
-          "axis": "intensity",
-          "domain": [
-            0.4,
-            0.6
-          ]
-        },
-        {
-          "param": "duration",
-          "axis": "intensity",
-          "domain": [
-            "4n",
-            "8n"
-          ]
-        },
-        {
-          "param": "density",
-          "axis": "tension",
-          "domain": [
-            0.5,
-            0.9
-          ]
-        },
-        {
-          "param": "octave",
-          "axis": "intensity",
-          "domain": [
-            4,
-            5
-          ]
-        }
+        { "param": "velocity", "axis": "intensity", "domain": [0.4, 0.6] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] },
+        { "param": "density", "axis": "tension", "domain": [0.55, 0.92] },
+        { "param": "octave", "axis": "intensity", "domain": [4, 5] }
       ],
-      "steps": [
-        4,
-        null,
-        2,
-        4,
-        5,
-        null,
-        4,
-        2,
-        0,
-        null,
-        1,
-        2,
-        4,
-        5,
-        null,
-        4
-      ]
+      "steps": [4, null, 5, 4, 2, null, 4, null, 0, null, 2, 4, 5, 4, null, 0]
     },
     {
-      "id": "bass",
+      "id": "sea-breeze",
+      "name": "Sea Breeze",
+      "detail": "Bell counterpoint",
+      "role": "motif",
+      "color": "#9dc98d",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "density": 40,
+      "variation": 24,
+      "humanize": 14,
+      "restWindow": 0,
+      "level": -4,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [14], "axis": "brightness", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.2, 0.38] },
+        { "param": "octave", "axis": "brightness", "domain": [5, 6] }
+      ],
+      "steps": [null, null, null, 7, null, null, 6, null, null, null, null, 5, null, null, 4, null]
+    },
+    {
+      "id": "tide",
       "name": "Tide",
       "detail": "Low pulse",
       "role": "bass",
@@ -211,57 +142,20 @@
       "variation": 12,
       "humanize": 8,
       "restWindow": 0,
+      "level": 1,
       "energyRole": "balanced",
       "activity": null,
       "fills": [
-        {
-          "at": [
-            6,
-            14
-          ],
-          "axis": "intensity",
-          "threshold": 0.6
-        }
+        { "at": [6, 14], "axis": "intensity", "threshold": 0.45 }
       ],
       "automation": [
-        {
-          "param": "velocity",
-          "axis": "intensity",
-          "domain": [
-            0.3,
-            0.55
-          ]
-        },
-        {
-          "param": "duration",
-          "axis": "intensity",
-          "domain": [
-            "4n",
-            "8n"
-          ]
-        }
+        { "param": "velocity", "axis": "intensity", "domain": [0.3, 0.55] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] }
       ],
-      "steps": [
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false,
-        true,
-        false
-      ]
+      "steps": [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false]
     },
     {
-      "id": "percussion",
+      "id": "raindance",
       "name": "Raindance",
       "detail": "Rhythm",
       "role": "percussion",
@@ -272,147 +166,21 @@
       "variation": 15,
       "humanize": 12,
       "restWindow": 8,
+      "level": -2,
       "energyRole": "recessive",
-      "activity": {
-        "axis": "intensity",
-        "range": [
-          0.3,
-          1
-        ]
-      },
+      "activity": { "axis": "intensity", "range": [0.28, 1] },
       "fills": [
-        {
-          "at": [
-            8,
-            11,
-            14
-          ],
-          "axis": "intensity",
-          "threshold": 0.5
-        },
-        {
-          "at": [
-            12
-          ],
-          "axis": "intensity",
-          "threshold": 0.75
-        }
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.35 },
+        { "at": [12], "axis": "intensity", "threshold": 0.55 }
       ],
       "automation": [
-        {
-          "param": "kickProps",
-          "axis": "intensity",
-          "domain": [
-            {
-              "midi": "D1",
-              "vel": 0.3
-            },
-            {
-              "midi": "C1",
-              "vel": 0.7
-            }
-          ]
-        },
-        {
-          "param": "kick.velocity",
-          "axis": "intensity",
-          "domain": [
-            0.3,
-            0.7
-          ]
-        },
-        {
-          "param": "hat.velocity",
-          "axis": "intensity",
-          "domain": [
-            0.16,
-            0.35
-          ]
-        },
-        {
-          "param": "hat.variation",
-          "axis": "intensity",
-          "domain": [
-            0.1,
-            0.45
-          ]
-        },
-        {
-          "param": "snare.velocity",
-          "axis": "intensity",
-          "domain": [
-            0.3,
-            0.55
-          ]
-        }
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "D1", "vel": 0.3 }, { "midi": "C1", "vel": 0.7 }] },
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.3, 0.7] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.16, 0.35] },
+        { "param": "hat.variation", "axis": "intensity", "domain": [0.1, 0.45] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.26, 0.5] }
       ],
-      "steps": [
-        true,
-        false,
-        false,
-        true,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false
-      ]
-    },
-    {
-      "id": "layer-mt7zaad4",
-      "name": "New layer 1",
-      "detail": "Harmony bed",
-      "role": "harmony",
-      "color": "#7fb8c9",
-      "muted": false,
-      "instrument": "Hollow mallet",
-      "density": 21,
-      "variation": 30,
-      "humanize": 15,
-      "restWindow": 1,
-      "energyRole": "balanced",
-      "activity": {
-        "axis": "tension",
-        "range": [
-          0.35,
-          1
-        ]
-      },
-      "fills": [
-        {
-          "at": [
-            14
-          ],
-          "axis": "intensity",
-          "threshold": 0.5
-        }
-      ],
-      "automation": [],
-      "steps": [
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ]
+      "steps": [true, false, false, true, false, false, true, false, true, false, false, true, false, true, false, false]
     }
   ]
 }
