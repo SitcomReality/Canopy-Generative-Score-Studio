@@ -38,6 +38,7 @@ object — regenerate it from the studio instead.
 | `stopScore` | `() => void` | Stop transport and reset to bar 0 (written phrases, journey position, live axes). Nodes stay alive for a fast restart. |
 | `setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
 | `musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
+| `getRuntimeInfo` | `() => { playing, context, bar, liveAxes, sectionId }` | Read-only snapshot of the live state — context, bar count, eased axis values, current verse id. Additive; handy for game HUDs and the studio's Runtime-tab harness. |
 | `disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
 
 ## 2. Minimal integration

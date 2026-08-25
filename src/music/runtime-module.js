@@ -1,7 +1,7 @@
 // Builds the standalone Tone.js runtime module the user drops into their web
 // game. The emitted source must depend on nothing but `tone` and keep its
 // public API stable: startScore, stopScore, setGameMusicState, musicEvent,
-// disposeScore.
+// disposeScore (plus the additive read-only getRuntimeInfo).
 //
 // The source embeds the shared reactive-dynamics decision core from
 // ./dynamics.js. Because an emitted .score.js travels alone (it cannot import
@@ -304,6 +304,19 @@ export function setGameMusicState({ threat = 0, inCombat = false } = {}) {
 // The flourish plays at the next bar boundary and lasts a full bar.
 export function musicEvent(name) {
   if (FLOURISH_NAMES.includes(name)) flourishQueued = name;
+}
+
+// Read-only snapshot of the runtime's live state — handy for game HUDs and
+// test harnesses. Never mutates anything; additive, so older consumers that
+// ignore it are unaffected.
+export function getRuntimeInfo() {
+  return {
+    playing: Tone.getTransport().state === "started",
+    context,
+    bar: barCount,
+    liveAxes: { ...liveAxes },
+    sectionId: activeSection(score, barCount)?.id ?? null,
+  };
 }
 
 export function disposeScore() {

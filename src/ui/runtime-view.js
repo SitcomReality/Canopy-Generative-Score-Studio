@@ -1,16 +1,8 @@
-// Runtime view: event lab (orbit core + game-event buttons) and the
-// implementation panel (integration snippet, runtime download).
-import { CONTEXTS } from "../music/contexts.js";
+// Runtime view static parts: integration snippet, runtime download, install
+// line. The live score harness (event lab) is wired by ./runtime-harness.js.
 import { safeFileName } from "../utils/download.js";
-import { iconSvg } from "./icons.js";
 
 export function initRuntimeView(store, actions) {
-  document.querySelectorAll("#view-runtime .event-actions button[data-context]").forEach((button) => {
-    button.addEventListener("click", () => actions.requestContext(button.dataset.context));
-  });
-  document.getElementById("runtime-victory").addEventListener("click", () => actions.queueFlourish("victory"));
-  document.getElementById("runtime-play").addEventListener("click", actions.togglePlayback);
-
   const installLine = "npm install tone";
   document.getElementById("copy-install").addEventListener("click", () => navigator.clipboard.writeText(installLine));
 
@@ -24,37 +16,17 @@ export function initRuntimeView(store, actions) {
 
   document.getElementById("download-runtime").addEventListener("click", actions.exportRuntime);
 
+  const paint = (project) => {
+    document.getElementById("integration-snippet").textContent = integrationSnippet(project.name);
+    document.getElementById("download-runtime-label").textContent = `Download ${safeFileName(project.name)}.score.js`;
+  };
+
   store.subscribe((changed) => {
-    const { project, currentContext, playing } = store.get();
-    if (changed.includes("project")) {
-      document.getElementById("integration-snippet").textContent = integrationSnippet(project.name);
-      document.getElementById("download-runtime-label").textContent = `Download ${safeFileName(project.name)}.score.js`;
-    }
-    if (changed.includes("currentContext")) {
-      const active = CONTEXTS.find((item) => item.id === currentContext);
-      const core = document.getElementById("orbit-core");
-      core.className = `orbit-core state-${currentContext}${playing ? " pulsing" : ""}`;
-      core.innerHTML = `${iconSvg(active.icon, 31)}<strong>${active.short}</strong><span>${playing ? "Score running" : "Score ready"}</span>`;
-    }
-    if (changed.includes("playing")) {
-      const button = document.getElementById("runtime-play");
-      button.innerHTML = `${iconSvg(playing ? "pause" : "play", 16)} ${playing ? "Pause preview" : "Start live preview"}`;
-      const active = CONTEXTS.find((item) => item.id === currentContext);
-      const core = document.getElementById("orbit-core");
-      core.classList.toggle("pulsing", playing);
-      core.querySelector("span").textContent = playing ? "Score running" : "Score ready";
-    }
+    if (changed.includes("project")) paint(store.get().project);
   });
 
   // Initial paint.
-  const { project, currentContext, playing } = store.get();
-  document.getElementById("integration-snippet").textContent = integrationSnippet(project.name);
-  document.getElementById("download-runtime-label").textContent = `Download ${safeFileName(project.name)}.score.js`;
-  const active = CONTEXTS.find((item) => item.id === currentContext);
-  const core = document.getElementById("orbit-core");
-  core.className = `orbit-core state-${currentContext}`;
-  core.innerHTML = `${iconSvg(active.icon, 31)}<strong>${active.short}</strong><span>${playing ? "Score running" : "Score ready"}</span>`;
-  document.getElementById("runtime-play").innerHTML = `${iconSvg(playing ? "pause" : "play", 16)} ${playing ? "Pause preview" : "Start live preview"}`;
+  paint(store.get().project);
 }
 
 function integrationSnippet(projectName) {

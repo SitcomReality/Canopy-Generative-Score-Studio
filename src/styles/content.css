@@ -23,13 +23,6 @@
 .orbit-core.state-combat { color: var(--ctx-combat); border-color: #8a5342; box-shadow: 0 0 55px #c7654621; }
 .orbit-core strong { margin-top: 4px; font-family: var(--font-serif); font-size: 17px; font-weight: 400; }
 .orbit-core span { color: var(--text-3); font-size: var(--kicker-size); }
-.event-actions { display: flex; flex-direction: column; }
-.event-actions button { min-height: 64px; display: flex; align-items: center; gap: 11px; border: 0; border-bottom: 1px solid var(--line-strong); background: transparent; color: var(--accent); text-align: left; cursor: pointer; }
-.event-actions button:hover { background: var(--surface-3); padding-left: 8px; }
-.event-actions button > span { display: flex; flex-direction: column; gap: 4px; }
-.event-actions strong { color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); }
-.event-actions small { color: var(--text-4); font-size: var(--kicker-size); }
-.runtime-play { position: absolute; bottom: 0; left: 0; height: 35px; display: flex; align-items: center; gap: 7px; padding: 0 14px; border: 1px solid var(--accent); background: var(--surface-3); color: var(--accent); font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }
 .install-line { height: 44px; margin: 22px 0 12px; display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--line-strong); background: var(--surface-0); color: var(--text-3); font-size: var(--label-size); }
 .install-line > span { color: var(--accent); margin-right: 10px; }
 .install-line button { margin-left: auto; border: 0; background: transparent; color: var(--text-3); cursor: pointer; }
@@ -49,3 +42,26 @@
 /* Orbit core pulse while the score is running */
 @keyframes corePulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
 .orbit-core.pulsing { animation: corePulse 3.4s ease-in-out infinite; }
+
+/* --- Live score harness -------------------------------------------------- */
+.harness-source { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; }
+.harness-source > span { margin-left: auto; color: var(--text-4); font-size: var(--kicker-size); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.harness-controls { display: flex; flex-direction: column; gap: 12px; }
+.harness-transport { display: flex; gap: 8px; }
+.harness-transport .event-button { flex: 1; justify-content: center; }
+.harness-transport .event-button:disabled { opacity: .4; cursor: default; }
+.harness-state-row { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
+.harness-state-row input[type="range"] { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 0%), var(--line-strong) var(--value, 0%)); cursor: pointer; }
+.harness-state-row input[type="range"]::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.harness-state-row strong { min-width: 30px; color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); }
+.harness-state-row input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; }
+.harness-flourish-row { display: flex; flex-direction: column; gap: 6px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
+.harness-flourish-row > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.harness-readout { z-index: 2; margin-top: 18px; display: flex; align-items: center; gap: 18px; }
+.harness-stat { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.harness-stat small { color: var(--text-4); font-size: 9px; letter-spacing: .13em; }
+.harness-stat strong { color: var(--text-2); font-family: var(--font-num); font-size: 17px; font-variant-numeric: tabular-nums; }
+.harness-log-block { margin-top: 18px; }
+.harness-log { max-height: 170px; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+.harness-log p { margin: 0; color: var(--text-3); font-family: var(--font-num); font-size: var(--kicker-size); line-height: 1.5; }
+.harness-log p:first-child { color: var(--accent); }
