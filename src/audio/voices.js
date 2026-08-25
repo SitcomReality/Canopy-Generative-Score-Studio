@@ -44,6 +44,20 @@ export function makeDrums(instrument, targets) {
   return { kind: "drums", kick, hat, snare, extras };
 }
 
+// Tone.PluckSynth has no velocity parameter — triggerAttackRelease ignores
+// it. To keep per-note expression alive on pluck presets we route them
+// through a serial gain node that the sequencer retimes to each note's
+// velocity just before triggering.
+function makeVelocityPath(synth, connectTo, disposables, baseGain = 1) {
+  const velGain = new Tone.Gain(baseGain);
+  synth.disconnect();
+  synth.connect(velGain);
+  velGain.connect(connectTo);
+  velGain.baseGain = baseGain;
+  disposables.push(velGain);
+  return { synth, velGain };
+}
+
 // One voice bundle per layer, keyed by layer id. Layers added later rebuild
 // the engine, so this map always mirrors the project's layers at construction
 // time.
@@ -51,21 +65,42 @@ export function createVoices(project, buses, disposables) {
   const voices = {};
   for (const layer of project.layers) {
     if (layer.role === "harmony") {
-      const synth = makePitched("chords", instrumentSettings(layer.instrument, "harmony"));
-      synth.connect(buses.harmony);
-      voices[layer.id] = { kind: "chords", synth };
+      const cfg = instrumentSettings(layer.instrument, "harmony");
+      const synth = makePitched("chords", cfg);
+      let bundle;
+      if (cfg.voice === "pluck") {
+        bundle = { kind: "chords", ...makeVelocityPath(synth, buses.harmony, disposables) };
+      } else {
+        synth.connect(buses.harmony);
+        bundle = { kind: "chords", synth };
+      }
+      voices[layer.id] = bundle;
       disposables.push(synth);
     } else if (layer.role === "motif") {
-      const synth = makePitched("melody", instrumentSettings(layer.instrument, "motif"));
-      synth.connect(buses.motif);
-      voices[layer.id] = { kind: "melody", synth };
+      const cfg = instrumentSettings(layer.instrument, "motif");
+      const synth = makePitched("melody", cfg);
+      let bundle;
+      if (cfg.voice === "pluck") {
+        bundle = { kind: "melody", ...makeVelocityPath(synth, buses.motif, disposables) };
+      } else {
+        synth.connect(buses.motif);
+        bundle = { kind: "melody", synth };
+      }
+      voices[layer.id] = bundle;
       disposables.push(synth);
     } else if (layer.role === "bass") {
       const cfg = instrumentSettings(layer.instrument, "bass");
-      const synth = cfg.pluck ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
-      if (!cfg.pluck) synth.connect(buses.dry);
-      else synth.toDestination();
-      voices[layer.id] = { kind: "bass", synth };
+      const synth = cfg.voice === "pluck" ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
+      let bundle;
+      if (cfg.voice === "pluck") {
+        // PluckSynth ignores its options.volume; keep the bass role trim
+        // (-11 dB) on the velocity path instead.
+        bundle = { kind: "bass", ...makeVelocityPath(synth, buses.dry, disposables, Math.pow(10, -11 / 20)) };
+      } else {
+        synth.connect(buses.dry);
+        bundle = { kind: "bass", synth };
+      }
+      voices[layer.id] = bundle;
       disposables.push(synth);
     } else if (layer.role === "percussion") {
       const kit = makeDrums(layer.instrument, { kick: buses.dry, hat: buses.reverb, snare: buses.glue });

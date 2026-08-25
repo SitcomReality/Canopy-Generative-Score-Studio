@@ -121,6 +121,9 @@ export function createSequencer({ store, voices, perfSteps }) {
       if (pitched && !voice.synth) continue;
       sounding.push(ev.layerId);
       const when = time + (ev.offset ?? 0);
+      // Pluck voices have no velocity parameter; their serial velocity gain
+      // (see voices.js) carries the note's expression instead.
+      if (voice.velGain) voice.velGain.gain.setValueAtTime(voice.velGain.baseGain * ev.velocity, when);
       if (ev.kind === "chord") {
         voice.synth.triggerAttackRelease(chordNotes(score, ev.degree), ev.duration, when, ev.velocity);
       } else if (ev.kind === "scale") {

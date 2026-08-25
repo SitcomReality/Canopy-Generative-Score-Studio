@@ -31,13 +31,23 @@ function instrumentSettings(instrument, role) {
   return preset[role];
 }
 
-// ---- voice builders (mirror of audio-engine.js) --------------------------
+// ---- voice builders (mirror of audio-engine/voices.js) -------------------
 const ROLE_VOLUME = { melody: -9, chords: -16, bass: -11 };
 function makePitched(roleKey, cfg) {
   const { voice, pluck, ...options } = cfg;
   if (voice === "pluck") return new Tone.PluckSynth({ ...(pluck || {}), volume: ROLE_VOLUME[roleKey] });
   if (voice === "fm") return new Tone.PolySynth(Tone.FMSynth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
   return new Tone.PolySynth(Tone.Synth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+}
+// PluckSynth has no velocity parameter; a serial gain node carries each
+// note's velocity instead (mirror of voices.js makeVelocityPath).
+function makeVelocityPath(synth, connectTo, baseGain) {
+  const velGain = new Tone.Gain(baseGain === undefined ? 1 : baseGain);
+  synth.disconnect();
+  synth.connect(velGain);
+  velGain.connect(connectTo);
+  velGain.baseGain = baseGain === undefined ? 1 : baseGain;
+  return { synth, velGain };
 }
 function makeDrums(instrument, reverb, glue) {
   const preset = instrumentSettings(instrument, "percussion");
@@ -172,20 +182,45 @@ function setup() {
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
     if (layer.role === "harmony") {
-      const synth = makePitched("chords", instrumentSettings(layer.instrument, "harmony")).connect(harmonyBus);
-      voices[layer.id] = { kind: "chords", synth };
-      nodes[layer.id] = synth;
+      const cfg = instrumentSettings(layer.instrument, "harmony");
+      const synth = makePitched("chords", cfg);
+      let bundle;
+      if (cfg.voice === "pluck") {
+        bundle = { kind: "chords", ...makeVelocityPath(synth, harmonyBus) };
+        nodes[layer.id] = bundle.velGain;
+      } else {
+        synth.connect(harmonyBus);
+        bundle = { kind: "chords", synth };
+        nodes[layer.id] = synth;
+      }
+      voices[layer.id] = bundle;
     } else if (layer.role === "motif") {
-      const synth = makePitched("melody", instrumentSettings(layer.instrument, "motif")).connect(motifBus);
-      voices[layer.id] = { kind: "melody", synth };
-      nodes[layer.id] = synth;
+      const cfg = instrumentSettings(layer.instrument, "motif");
+      const synth = makePitched("melody", cfg);
+      let bundle;
+      if (cfg.voice === "pluck") {
+        bundle = { kind: "melody", ...makeVelocityPath(synth, motifBus) };
+        nodes[layer.id] = bundle.velGain;
+      } else {
+        synth.connect(motifBus);
+        bundle = { kind: "melody", synth };
+        nodes[layer.id] = synth;
+      }
+      voices[layer.id] = bundle;
     } else if (layer.role === "bass") {
       const cfg = instrumentSettings(layer.instrument, "bass");
-      const synth = cfg.pluck
-        ? makePitched("bass", cfg).toDestination()
-        : new Tone.MonoSynth({ ...cfg, volume: -11 }).toDestination();
-      voices[layer.id] = { kind: "bass", synth };
-      nodes[layer.id] = synth;
+      const synth = cfg.voice === "pluck" ? makePitched("bass", cfg) : new Tone.MonoSynth({ ...cfg, volume: -11 });
+      let bundle;
+      if (cfg.voice === "pluck") {
+        // PluckSynth ignores options.volume; carry the -11 dB role trim here.
+        bundle = { kind: "bass", ...makeVelocityPath(synth, Tone.getDestination(), Math.pow(10, -11 / 20)) };
+        nodes[layer.id] = bundle.velGain;
+      } else {
+        synth.toDestination();
+        bundle = { kind: "bass", synth };
+        nodes[layer.id] = synth;
+      }
+      voices[layer.id] = bundle;
     } else if (layer.role === "percussion") {
       const drums = makeDrums(layer.instrument, reverb, glue);
       voices[layer.id] = drums;
@@ -245,17 +280,21 @@ function setup() {
     for (const ev of events) {
       const voice = voices[ev.layerId];
       if (!voice) continue;
+      const when = time + (ev.offset || 0);
+      // Pluck voices have no velocity parameter; their serial velocity gain
+      // carries the note's expression instead.
+      if (voice.velGain) voice.velGain.gain.setValueAtTime(voice.velGain.baseGain * ev.velocity, when);
       if (ev.kind === "chord") {
-        voice.synth.triggerAttackRelease(chord(ev.degree), ev.duration, time + (ev.offset || 0), ev.velocity);
+        voice.synth.triggerAttackRelease(chord(ev.degree), ev.duration, when, ev.velocity);
       } else if (ev.kind === "scale") {
-        voice.synth.triggerAttackRelease(note(ev.degree, ev.octave), ev.duration, time + (ev.offset || 0), ev.velocity);
+        voice.synth.triggerAttackRelease(note(ev.degree, ev.octave), ev.duration, when, ev.velocity);
       } else if (ev.kind === "kick") {
-        voice.kick.triggerAttackRelease(ev.pitch || "D1", ev.duration, time + (ev.offset || 0), ev.velocity);
+        voice.kick.triggerAttackRelease(ev.pitch || "D1", ev.duration, when, ev.velocity);
       } else if (ev.kind === "hat") {
-        voice.hat.triggerAttackRelease(ev.duration || "32n", time + (ev.offset || 0), ev.velocity);
+        voice.hat.triggerAttackRelease(ev.duration || "32n", when, ev.velocity);
       } else if (ev.kind === "snare") {
         const target = voice.snare || voice.hat;
-        target.triggerAttackRelease(ev.duration || "16n", time + (ev.offset || 0), ev.velocity);
+        target.triggerAttackRelease(ev.duration || "16n", when, ev.velocity);
       }
     }
     // One-shot flourish (v5): queued game milestones play across one bar via
