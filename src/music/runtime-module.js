@@ -32,7 +32,7 @@ function instrumentSettings(instrument, role) {
 }
 
 // ---- voice builders (mirror of audio-engine/voices.js) -------------------
-const ROLE_VOLUME = { melody: -9, chords: -16, bass: -11 };
+const ROLE_VOLUME = { melody: -9, chords: -13, bass: -11 };
 function makePitched(roleKey, cfg) {
   const { voice, pluck, ...options } = cfg;
   if (voice === "pluck") return new Tone.PluckSynth({ ...(pluck || {}), volume: ROLE_VOLUME[roleKey] });
@@ -168,11 +168,23 @@ function setup() {
   const master = new Tone.Gain(0.74).toDestination();
   const limiter = new Tone.Limiter(-1).connect(master);
   const glue = new Tone.Compressor({ threshold: -20, ratio: 2.4, attack: 0.01, release: 0.25 }).connect(limiter);
-  const reverb = new Tone.Reverb({ decay: 5, wet: score.reverb / 100 }).connect(glue);
+  const reverb = new Tone.Reverb({ decay: 5.5, preDelay: 0.08, wet: score.reverb / 100 }).connect(glue);
+  const delay = new Tone.FeedbackDelay("8n.", 0.28).connect(reverb);
+  delay.wet.value = 0.26;
   const toneShaper = new Tone.Filter({ type: "lowpass", frequency: 7800 }).connect(glue);
-  const motifBus = new Tone.Panner(-0.18).connect(reverb);
-  const harmonyBus = new Tone.Panner(0.18).connect(toneShaper);
-  nodes = { reverb, glue, limiter, master, toneShaper, motifBus, harmonyBus };
+  // Slow subtle chorus widens the harmony/pad path; space sends let harmony
+  // and bass share the room with the plucks (mirror of master-chain.js).
+  const chorus = new Tone.Chorus({ frequency: 0.6, delayTime: 3.5, depth: 0.6, spread: 90, wet: 0.35 }).connect(toneShaper).start();
+  const motifBus = new Tone.Panner(-0.18).connect(delay);
+  const harmonyBus = new Tone.Panner(0.18).connect(chorus);
+  const harmonySend = new Tone.Gain(0.4);
+  harmonyBus.connect(harmonySend);
+  harmonySend.connect(reverb);
+  const bassBus = new Tone.Gain(1).connect(limiter);
+  const bassSend = new Tone.Gain(0.12);
+  bassBus.connect(bassSend);
+  bassSend.connect(reverb);
+  nodes = { reverb, delay, glue, limiter, master, toneShaper, chorus, motifBus, harmonyBus, harmonySend, bassBus, bassSend };
   drumExtras = [];
   voices = {};
   perfSteps = {};
@@ -213,10 +225,10 @@ function setup() {
       let bundle;
       if (cfg.voice === "pluck") {
         // PluckSynth ignores options.volume; carry the -11 dB role trim here.
-        bundle = { kind: "bass", ...makeVelocityPath(synth, Tone.getDestination(), Math.pow(10, -11 / 20)) };
+        bundle = { kind: "bass", ...makeVelocityPath(synth, bassBus, Math.pow(10, -11 / 20)) };
         nodes[layer.id] = bundle.velGain;
       } else {
-        synth.toDestination();
+        synth.connect(bassBus);
         bundle = { kind: "bass", synth };
         nodes[layer.id] = synth;
       }
@@ -261,7 +273,7 @@ function setup() {
           voice.hat.volume.rampTo(-24 + delta, 0.8);
           if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
         } else if (voice.synth) {
-          const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
+          const base = voice.kind === "chords" ? -13 : voice.kind === "melody" ? -9 : -11;
           voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
         }
       }

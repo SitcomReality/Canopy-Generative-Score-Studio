@@ -4,7 +4,7 @@
 import { instrumentSettings } from "../music/instruments.js";
 
 // Per-kind base loudness in dB for pitched voices.
-export const ROLE_VOLUME = { melody: -9, chords: -16, bass: -11 };
+export const ROLE_VOLUME = { melody: -9, chords: -13, bass: -11 };
 
 // Build a pitched voice from a role config: a plain PolySynth(Tone.Synth)
 // unless the preset declares `voice: "fm"` (PolySynth(FMSynth)) or
@@ -95,9 +95,9 @@ export function createVoices(project, buses, disposables) {
       if (cfg.voice === "pluck") {
         // PluckSynth ignores its options.volume; keep the bass role trim
         // (-11 dB) on the velocity path instead.
-        bundle = { kind: "bass", ...makeVelocityPath(synth, buses.dry, disposables, Math.pow(10, -11 / 20)) };
+        bundle = { kind: "bass", ...makeVelocityPath(synth, buses.bass ?? buses.dry, disposables, Math.pow(10, -11 / 20)) };
       } else {
-        synth.connect(buses.dry);
+        synth.connect(buses.bass ?? buses.dry);
         bundle = { kind: "bass", synth };
       }
       voices[layer.id] = bundle;

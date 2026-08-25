@@ -20,7 +20,7 @@ export function createAudioEngine(store) {
   // reverb; pitched buses carry their own space (see master-chain).
   const voices = createVoices(
     project,
-    { harmony: chain.harmonyBus, motif: chain.motifBus, dry: chain.limiter, reverb: chain.reverb, glue: chain.glue },
+    { harmony: chain.harmonyBus, motif: chain.motifBus, dry: chain.limiter, bass: chain.bassBus, reverb: chain.reverb, glue: chain.glue },
     disposables,
   );
   disposables.push(chain);
@@ -62,7 +62,7 @@ export function createAudioEngine(store) {
         const role = target.kind === "chords" ? "harmony" : "motif";
         // Strip preset-only keys the live synth class may not know.
         const { voice, pluck, ...options } = instrumentSettings(instrument, role);
-        target.synth.set({ ...options, volume: target.kind === "chords" ? -16 : -9 });
+        target.synth.set({ ...options, volume: target.kind === "chords" ? -13 : -9 });
       } else if (target.kind === "bass") {
         const { voice, pluck, ...options } = instrumentSettings(instrument, "bass");
         target.synth.set({ ...options, volume: -11 });

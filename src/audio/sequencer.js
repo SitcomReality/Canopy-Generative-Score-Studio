@@ -96,7 +96,7 @@ export function createSequencer({ store, voices, perfSteps }) {
           voice.hat.volume.rampTo(-24 + delta, 0.8);
           if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
         } else {
-          const base = voice.kind === "chords" ? -16 : voice.kind === "melody" ? -9 : -11;
+          const base = voice.kind === "chords" ? -13 : voice.kind === "melody" ? -9 : -11;
           voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
         }
       }
