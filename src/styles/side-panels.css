@@ -76,7 +76,7 @@
 
 /* --- Compact controls --------------------------------------------------- */
 .parameter-slider { display: flex; align-items: center; gap: 10px; height: 38px; margin: 0 16px; }
-.parameter-slider > span { flex: none; width: 96px; display: flex; justify-content: space-between; align-items: baseline; }
+.parameter-slider > span { flex: none; width: 110px; display: flex; justify-content: space-between; align-items: baseline; }
 .parameter-slider > span strong { color: var(--text-3); font-size: var(--label-size); font-weight: 600; }
 .parameter-slider > span b { color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); font-weight: 400; }
 .parameter-slider input { flex: 1; min-width: 0; appearance: none; height: 2px; background: linear-gradient(to right, var(--accent) var(--value), var(--line-strong) var(--value)); cursor: pointer; }

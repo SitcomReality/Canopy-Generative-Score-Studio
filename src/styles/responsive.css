@@ -2,7 +2,13 @@
    below 1100px everything stacks and page scrolling returns. */
 @media (max-width: 1500px) {
   .workspace { grid-template-columns: 280px minmax(0, 1fr) 260px; }
-  .song-bar { height: auto; min-height: 120px; grid-template-columns: 1fr 1fr; }
+  /* The deck's controls no longer fit on one row here — wrap instead of
+     overlapping the transport readout. The live axis meters duplicate the
+     reactive-axes group, so they go first. */
+  .deck { height: auto; min-height: 84px; flex-wrap: wrap; gap: 10px 0; padding: 10px 22px; }
+  .deck-score { flex-wrap: wrap; row-gap: 8px; }
+  .axis-meters { display: none; }
+  .song-bar { height: auto; min-height: 120px; grid-template-columns: 1fr 1fr; grid-template-rows: none; max-height: 46vh; overflow-y: auto; }
   .song-group:nth-child(3) { border-left: 0; }
   .deck-live > strong { display: none; }
 }
@@ -32,7 +38,9 @@
   .layer-list { display: grid; grid-template-columns: repeat(2, 1fr); padding: 0; overflow: visible; }
   .editor .roll-scroll { overflow-x: auto; }
 
-  .song-bar { grid-template-columns: 1fr; }
+  .song-bar { grid-template-columns: 1fr; max-height: none; }
+  .song-group { overflow: visible; }
+  .verse-editor, .context-targets { overflow-y: visible; }
   .song-group + .song-group { border-left: 0; border-top: 1px solid var(--line); }
 
   .runtime-view { padding-left: 24px; padding-right: 24px; }

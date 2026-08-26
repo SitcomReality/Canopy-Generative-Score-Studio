@@ -55,7 +55,7 @@ export function initInstrumentEditor(store, actions) {
     if (WAVEFORMS.includes(waveform)) waveformSelect.value = waveform;
     for (const def of ENVELOPE_SLIDERS) {
       const value = Number(resolved.envelope?.[def.key]);
-      if (Number.isFinite(value)) envelopeSliders[def.key].set(value / def.max);
+      if (Number.isFinite(value)) envelopeSliders[def.key].set(Math.round((value / def.max) * 100));
     }
   }
 

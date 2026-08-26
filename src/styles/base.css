@@ -20,3 +20,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 /* The hidden attribute must always win over class display rules (view
    switching, dropdown menus). */
 [hidden] { display: none !important; }
+
+/* Consistent, unobtrusive scrollbars in every scroll container (layer list,
+   inspector, verse editor, roll scroll, harness log). */
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border: 2px solid transparent; background-clip: padding-box; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); background-clip: padding-box; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }

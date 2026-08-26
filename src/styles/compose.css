@@ -61,11 +61,16 @@
 .workspace > * { min-height: 0; overflow: hidden; }
 
 /* --- Song bar ---------------------------------------------------------- */
-/* minmax(0, 1fr) pins the row to the bar's height — without it the tallest
-   group's min-content expands the track and pushes content off-viewport.
-   Five columns for the five groups; a fourth column would wrap the last
-   group onto a second row and collapse the flexible children above. */
-.song-bar { height: 132px; flex: none; display: grid; grid-template-columns: 0.85fr 1.1fr 1fr 1.1fr 0.85fr; grid-template-rows: minmax(0, 1fr); border-top: 1px solid var(--line-strong); background: var(--surface-1); }
+/* The bar grows with its content instead of clipping it: min-height keeps the
+   compact look, max-height bounds it so the flexible workspace above always
+   keeps the majority of the viewport. When content exceeds the cap the
+   per-group scroll lists (verses, context targets) scroll internally with
+   thin scrollbars. minmax(0, 1fr) lets the row shrink under the cap —
+   without it the tallest group's min-content expands the track and pushes
+   content off-viewport. Five columns for the five groups; a fourth column
+   would wrap the last group onto a second row and collapse the flexible
+   children above. */
+.song-bar { min-height: 132px; max-height: min(340px, 34vh); flex: none; display: grid; grid-template-columns: 0.85fr 1.1fr 1fr 1.1fr 0.85fr; grid-template-rows: minmax(0, 1fr); border-top: 1px solid var(--line-strong); background: var(--surface-1); }
 .song-group { min-width: 0; min-height: 0; overflow: hidden; padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px; }
 .song-group + .song-group { border-left: 1px solid var(--line); }
 .song-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-4); }
@@ -86,8 +91,8 @@
 .axis-track i { display: block; height: 100%; background: var(--accent); transition: width .6s ease; }
 
 /* Reactive axes song group: per-context target sliders + tempo binding. */
-.context-targets { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 4px; overflow-y: auto; }
-.target-row { display: grid; grid-template-columns: 62px repeat(3, 1fr); align-items: center; gap: 8px; }
+.context-targets { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; gap: 8px; overflow-y: auto; padding-right: 2px; }
+.target-row { display: grid; grid-template-columns: 62px repeat(3, minmax(0, 1fr)); align-items: center; gap: 8px; }
 .target-row strong { color: var(--text-3); font-size: var(--kicker-size); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .target-row label { display: flex; align-items: center; gap: 5px; color: var(--text-4); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
 .target-row input, .binding-row input[type="range"] { appearance: none; flex: 1; min-width: 0; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
@@ -95,10 +100,11 @@
 .binding-row { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
 .binding-row strong { color: var(--text-2); font-family: var(--font-num); white-space: nowrap; }
 
-/* Verses song group (v5): rotating arrangement sections. */
-.binding-note { margin: 0; color: var(--text-4); font-size: 11px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.verse-editor { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-.verse-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border: 1px solid transparent; border-radius: 3px; }
+/* Verses song group (v5): rotating arrangement sections. Layer chips wrap
+   onto a second line inside a row instead of overflowing it horizontally. */
+.binding-note { margin: 0; color: var(--text-4); font-size: 11px; line-height: 1.45; }
+.verse-editor { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px; }
+.verse-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; padding: 3px 4px; border: 1px solid transparent; border-radius: 3px; }
 .verse-row.playing { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .verse-label { flex: 1; min-width: 0; width: auto; background: transparent; border: none; border-bottom: 1px solid var(--line-strong); color: var(--text-2); font-size: var(--kicker-size); letter-spacing: .06em; text-transform: uppercase; padding: 2px 0; }
 .verse-row select { max-width: 74px; height: 22px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: var(--kicker-size); padding: 0 4px; cursor: pointer; }
