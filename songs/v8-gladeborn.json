@@ -1,0 +1,538 @@
+{
+  "version": 8,
+  "name": "Gladeborn",
+  "bpm": 68,
+  "key": "D",
+  "scale": "Dorian",
+  "progression": [
+    0,
+    5,
+    3,
+    4
+  ],
+  "progressionName": "Wandering Trail",
+  "reverb": 58,
+  "swing": 6,
+  "space": {
+    "lead": 0.24,
+    "bed": 0.28,
+    "bass": 0.1,
+    "echo": 0.16
+  },
+  "instruments": {},
+  "journey": {
+    "shape": "arc",
+    "length": 16,
+    "depth": 36
+  },
+  "variationSeed": 11,
+  "axes": {
+    "intensity": {
+      "label": "Intensity"
+    },
+    "tension": {
+      "label": "Tension"
+    },
+    "brightness": {
+      "label": "Brightness"
+    }
+  },
+  "bindings": [
+    {
+      "target": "reverb",
+      "axis": "brightness",
+      "domain": [
+        52,
+        68
+      ]
+    },
+    {
+      "target": "space.lead",
+      "axis": "intensity",
+      "domain": [
+        0.18,
+        0.42
+      ]
+    },
+    {
+      "target": "space.bed",
+      "axis": "brightness",
+      "domain": [
+        0.22,
+        0.32
+      ]
+    },
+    {
+      "target": "space.echo",
+      "axis": "intensity",
+      "domain": [
+        0.12,
+        0.22
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "explore",
+      "label": "Explore",
+      "length": 4,
+      "layers": {
+        "chords": {
+          "gain": -1.5
+        },
+        "bass": {
+          "gain": -3
+        }
+      }
+    },
+    {
+      "id": "unfurl",
+      "label": "Unfurl",
+      "length": 4,
+      "layers": {
+        "chords": {
+          "gain": 0.5
+        },
+        "bass": {
+          "gain": 0.5
+        },
+        "percussion": {
+          "gain": 1
+        }
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "chords",
+      "name": "Moss",
+      "detail": "Breathing pad bed",
+      "role": "harmony",
+      "color": "#9dc98d",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "density": 48,
+      "variation": 16,
+      "humanize": 10,
+      "restWindow": 0,
+      "level": -2,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [
+            0.2,
+            0.28
+          ]
+        },
+        {
+          "param": "duration",
+          "axis": "intensity",
+          "domain": [
+            "1m",
+            "2n"
+          ]
+        },
+        {
+          "param": "velocity",
+          "axis": "brightness",
+          "domain": [
+            0.2,
+            0.26
+          ]
+        }
+      ],
+      "steps": [
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        []
+      ]
+    },
+    {
+      "id": "melody",
+      "name": "Sprout",
+      "detail": "Airy winding motif",
+      "role": "motif",
+      "color": "#f1c97a",
+      "muted": false,
+      "instrument": "Kalimba dusk",
+      "instrumentConfig": null,
+      "density": 60,
+      "variation": 36,
+      "humanize": 16,
+      "restWindow": 0,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        {
+          "at": [
+            7,
+            15
+          ],
+          "axis": "tension",
+          "threshold": 0.55
+        }
+      ],
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [
+            0.38,
+            0.52
+          ]
+        },
+        {
+          "param": "duration",
+          "axis": "intensity",
+          "domain": [
+            "4n",
+            "8n"
+          ]
+        },
+        {
+          "param": "density",
+          "axis": "tension",
+          "domain": [
+            0.55,
+            0.82
+          ]
+        },
+        {
+          "param": "octave",
+          "axis": "intensity",
+          "domain": [
+            4,
+            5
+          ]
+        },
+        {
+          "param": "velocity",
+          "axis": "brightness",
+          "domain": [
+            0.38,
+            0.56
+          ]
+        }
+      ],
+      "steps": [
+        0,
+        null,
+        2,
+        3,
+        5,
+        null,
+        3,
+        2,
+        0,
+        2,
+        null,
+        5,
+        3,
+        2,
+        null,
+        0
+      ]
+    },
+    {
+      "id": "bass",
+      "name": "Roots",
+      "detail": "Soft pulse beneath the soil",
+      "role": "bass",
+      "color": "#d98868",
+      "muted": false,
+      "instrument": "Vine guitar",
+      "density": 78,
+      "variation": 8,
+      "humanize": 6,
+      "restWindow": 0,
+      "level": -3,
+      "energyRole": "balanced",
+      "activity": {
+        "axis": "intensity",
+        "range": [
+          0.25,
+          1
+        ]
+      },
+      "fills": [
+        {
+          "at": [
+            7,
+            15
+          ],
+          "axis": "intensity",
+          "threshold": 0.6
+        }
+      ],
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [
+            0.28,
+            0.42
+          ]
+        },
+        {
+          "param": "duration",
+          "axis": "intensity",
+          "domain": [
+            "4n",
+            "8n"
+          ]
+        },
+        {
+          "param": "velocity",
+          "axis": "brightness",
+          "domain": [
+            0.28,
+            0.38
+          ]
+        }
+      ],
+      "steps": [
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        [],
+        [
+          {
+            "at": 0
+          }
+        ],
+        [],
+        [],
+        []
+      ]
+    },
+    {
+      "id": "percussion",
+      "name": "Leaffall",
+      "detail": "Barefoot, breathing groove",
+      "role": "percussion",
+      "color": "#b8a5d7",
+      "muted": false,
+      "instrument": "Jungle steel",
+      "density": 68,
+      "variation": 14,
+      "humanize": 14,
+      "restWindow": 6,
+      "level": 0,
+      "energyRole": "recessive",
+      "activity": {
+        "axis": "intensity",
+        "range": [
+          0.35,
+          1
+        ]
+      },
+      "fills": [
+        {
+          "at": [
+            8,
+            11,
+            14
+          ],
+          "axis": "intensity",
+          "threshold": 0.5
+        },
+        {
+          "at": [
+            12,
+            14
+          ],
+          "axis": "intensity",
+          "threshold": 0.65
+        }
+      ],
+      "automation": [
+        {
+          "param": "kickProps",
+          "axis": "intensity",
+          "domain": [
+            {
+              "midi": "D1",
+              "vel": 0.22
+            },
+            {
+              "midi": "C1",
+              "vel": 0.48
+            }
+          ]
+        },
+        {
+          "param": "kick.velocity",
+          "axis": "intensity",
+          "domain": [
+            0.22,
+            0.46
+          ]
+        },
+        {
+          "param": "hat.velocity",
+          "axis": "intensity",
+          "domain": [
+            0.14,
+            0.24
+          ]
+        },
+        {
+          "param": "hat.variation",
+          "axis": "intensity",
+          "domain": [
+            0,
+            0.28
+          ]
+        },
+        {
+          "param": "snare.velocity",
+          "axis": "intensity",
+          "domain": [
+            0.24,
+            0.38
+          ]
+        },
+        {
+          "param": "hat.velocity",
+          "axis": "brightness",
+          "domain": [
+            0.14,
+            0.22
+          ]
+        }
+      ],
+      "steps": [
+        [
+          {
+            "piece": "kick",
+            "at": 0
+          }
+        ],
+        [],
+        [
+          {
+            "piece": "hat",
+            "at": 0.25
+          }
+        ],
+        [
+          {
+            "piece": "hat",
+            "at": 0
+          }
+        ],
+        [
+          {
+            "piece": "kick",
+            "at": 0
+          }
+        ],
+        [],
+        [
+          {
+            "piece": "hat",
+            "at": 0
+          }
+        ],
+        [
+          {
+            "piece": "shaker",
+            "at": 0.25
+          }
+        ],
+        [
+          {
+            "piece": "kick",
+            "at": 0
+          }
+        ],
+        [],
+        [
+          {
+            "piece": "hat",
+            "at": 0
+          }
+        ],
+        [
+          {
+            "piece": "hat",
+            "at": 0.25
+          }
+        ],
+        [
+          {
+            "piece": "kick",
+            "at": 0
+          }
+        ],
+        [],
+        [
+          {
+            "piece": "hat",
+            "at": 0
+          }
+        ],
+        [
+          {
+            "piece": "shaker",
+            "at": 0.25
+          }
+        ]
+      ]
+    }
+  ]
+}

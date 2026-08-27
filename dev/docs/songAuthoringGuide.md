@@ -4,7 +4,7 @@ This document explains how Canopy's music system works end-to-end, precisely
 enough that an LLM (or a human) can author a complete `.canopy.json` song
 file without reading the source. For consuming exported songs inside a game,
 see `gameIntegrationGuide.md`; `systemArchitecture.md` covers engine/layout
-invariants and `dynamicsConvention.md` the formal v5 reactive contract.
+invariants and `dynamicsConvention.md` the formal v8 reactive contract.
 
 The authoritative sources, if anything here seems ambiguous:
 
@@ -12,8 +12,11 @@ The authoritative sources, if anything here seems ambiguous:
 |---|---|
 | Schema shape + hydration/clamping rules | `src/music/default-project.js` |
 | Instrument presets (synth configs) | `src/music/instruments.js` |
-| Reactive decisions (axes → parameters → events) | `src/music/dynamics.js` |
+| Per-layer sound overrides | `src/music/instrument-override.js` |
+| Percussion kit (piece catalog) | `src/music/pieces.js` |
+| Reactive decisions (axes → parameters → events) | `src/music/dynamics.js` (parts in `src/music/dynamics/`) |
 | Phrase drift + journey energy | `src/music/variation.js` |
+| Generative compose helpers | `src/music/melody-composer.js` |
 | Keys / scales / progressions | `src/music/keys.js`, `scales.js`, `progressions.js` |
 
 ---
@@ -41,10 +44,14 @@ of the written notes:
 3. **Verses (v5).** An ordered list of `sections` rotates at bar boundaries,
    applying per-layer dB deltas and dropping layers in/out, so the song moves
    between distinct arrangements instead of one endless loop.
-4. **Arrangement hygiene.** Per-layer rest windows force guaranteed quiet
+4. **Timbre & room (v6/v7).** A song owns its instrument definitions
+   (`instruments`, a v6 map of custom synth/percussion configs) and its mix
+   sends (`space`, v7 per-role reverb/echo levels) — the song is not locked
+   to the ten shipped presets or a fixed room.
+5. **Arrangement hygiene.** Per-layer rest windows force guaranteed quiet
    passes so loops breathe; an energy role biases each layer up or down as
    the journey swells.
-5. **Determinism.** With a non-zero `variationSeed`, every random decision
+6. **Determinism.** With a non-zero `variationSeed`, every random decision
    (drift, dropouts, hat variance, humanize offsets) replays identically.
    Seed 0 means fully random.
 
@@ -60,12 +67,12 @@ note; conversely, you should *think in degrees*, not note names.
 
 ---
 
-## 2. Top-level schema (version 5)
+## 2. Top-level schema (version 8)
 
 ```jsonc
 {
-  "version": 5,
-  "name": "Sunlit Reaches",       // string
+  "version": 8,
+  "name": "Sunlit Reaches",        // string
   "bpm": 76,                       // 48..150; STATIC during playback (v5)
   "key": "D",                      // one of: C C# D Eb E F F# G Ab A Bb B
   "scale": "Lydian",               // any scale in src/music/scales.js
@@ -73,6 +80,10 @@ note; conversely, you should *think in degrees*, not note names.
   "progressionName": "Open sky",   // label; see PROGRESSIONS for preset names
   "reverb": 64,                    // 0..100 (% wet)
   "swing": 8,                      // 0..100 (0 = straight 8ths)
+  "space": {                       // v7: per-role reverb/echo sends (0..1)
+    "lead": 0.3, "bed": 0.32, "bass": 0.12, "echo": 0.2
+  },
+  "instruments": { ... },          // v6: song-owned custom instruments, {} if none (§4)
   "journey": { "shape": "arc", "length": 16, "depth": 40 },
   "variationSeed": 0,              // 0 = random; >0 = reproducible
   "axes":        { ... },          // keep the default (see §5)
@@ -85,6 +96,20 @@ note; conversely, you should *think in degrees*, not note names.
 Hydration (`hydrateProject`) silently repairs malformed input: unknown
 instruments/roles fall back to defaults, numbers are clamped into range,
 steps arrays are padded/truncated to 16. A valid file round-trips losslessly.
+
+Only the fields above are kept. Notably absent since v7: built-in `contexts`
+mood presets and one-shot `flourishes` — both are dropped on hydration, as
+are any old `{ target: "tempo.offset" }` bindings (tempo is static from v5).
+
+### `space` — the shared room (v7)
+
+Four parallel sends shape the space independently of the notes:
+`lead`/`bed`/`bass` are how much of each pitched role rides the shared
+reverb, and `echo` is the lead's trailing delay. Every value is 0..1; all
+pitched voices keep a dry path into the mix, so the room is a controllable
+tail rather than the note itself being drenched. `space.*` params are
+exactly what a song-level binding can automate (see §5's `space.*` targets);
+unbound, they stay at these static values.
 
 ### Steps arrays
 
@@ -122,8 +147,8 @@ Each layer is one voice in the arrangement:
   "role": "motif",                 // motif | harmony | bass | percussion
   "color": "#f1c97a",
   "muted": false,
-  "instrument": "Glass bell",      // must be an exact catalog name (§4)
-  "instrumentConfig": null,        // optional per-layer sound override, see below
+  "instrument": "Glass bell",      // catalog preset name OR a custom id in project.instruments (§4)
+  "instrumentConfig": null,        // optional per-layer sound tweak over that instrument (§4)
   "density": 58,                   // 0..100 — chance written notes actually sound
   "variation": 34,                 // 0..100 — per-repeat phrase drift amount
   "humanize": 18,                  // 0..100 — timing looseness + per-note velocity jitter
@@ -166,12 +191,15 @@ Parameter semantics, precisely:
 - **energyRole** — journey volume bias: `forward` leans in up to +3 dB,
   `recessive` pulls back up to −3 dB, `balanced` splits the difference at
   +1.5 dB, all scaled by how far the journey is from neutral.
-- **instrumentConfig** — optional partial sound override merged over the
-  preset for the layer's role: `{ "oscillator": "sawtooth", "envelope":
-  { "attack": 0.2 } }`. Missing keys fall through to the preset; hydration
-  drops unknown keys and clamps envelope values. Applies to pitched roles
-  only (pluck voices have no oscillator/envelope to tweak; percussion kits
-  are untouched). The inspector's sound editor writes this field live.
+- **instrumentConfig** — optional partial sound tweak merged over the resolved
+  instrument for the layer's role (a *shallow* override): `{ "oscillator":
+  "sawtooth", "envelope": { "attack": 0.2 } }`. It only touches the carrier
+  oscillator plus ADSR — the waveform name folds into the preset's
+  `oscillator.type`, and envelope keys deep-merge over the preset's envelope.
+  Unknown keys are dropped and envelope values are clamped on hydration.
+  Applies to pitched roles only: pluck voices ignore it (no oscillator/envelope
+  to tweak) and percussion kits are untouched. See §4 for how it stacks with
+  custom instruments.
 
 ### Role → voice mapping
 
@@ -216,6 +244,105 @@ Percussion config per preset includes a `MembraneSynth` kick, a noise hat
 (`snare`, `snareFilter`). From these the kit augments a tuneable membrane voice
 for toms/bongos, a pitched metallic voice for keyed/steel/rim, and open-hat +
 shaker noise voices; presets without a snare route snare hits to the hat instead.
+
+### Custom instruments (v6)
+
+A song can define its own timbres in the song-level `instruments` map instead
+of being limited to the ten presets. Each entry keys a layer's `instrument`
+field by id and mirrors a preset's shape — one pitched `voice` (used for
+motif/harmony/bass) and one `percussion` kit:
+
+```jsonc
+"instruments": {
+  "crystal": {
+    "label": "Crystal shards",                 // display name (<= 40 chars)
+    "voice": {
+      "voice": "fm",                           // "fm" | "pluck" | absent (= synth)
+      "oscillator": { "type": "sine" },        // carrier waveform
+      "envelope": { "attack": 0.002, "decay": 0.7, "sustain": 0.02, "release": 2.0 },
+      "harmonicity": 2.8,                      // FM: frequency ratio (carrier:modulator)
+      "modulationIndex": 9,                    // FM: modulation depth (brightness)
+      "modulation": { "type": "sine" },        // FM modulator oscillator
+      "modulationEnvelope": { "attack": 0.002, "decay": 0.3, "sustain": 0, "release": 0.2 },
+      "filterEnvelope": { "baseFrequency": 90, "octaves": 2.6 },   // bass brightness sweep
+      "pluck": { "attackNoise": 0.9, "dampening": 2200, "resonance": 0.92, "volume": -9 }
+    },
+    "percussion": {
+      "kick": { "pitchDecay": 0.04, "octaves": 5, "envelope": { "attack": 0.001, "decay": 0.26, "sustain": 0, "release": 0.2 } },
+      "hat":  { "noise": { "type": "pink" }, "envelope": { "attack": 0.001, "decay": 0.06, "sustain": 0, "release": 0.02 } },
+      "hatFilter": 7000,
+      "snare": { "noise": { "type": "white" }, "envelope": { "attack": 0.001, "decay": 0.12, "sustain": 0, "release": 0.04 } },
+      "snareFilter": 1800
+    }
+  }
+}
+```
+
+Rules that keep a custom instrument a clean, hydrate-able shape:
+
+- `id` is what layers reference; `label` is display-only. An entry with no
+  valid `voice` and no valid `percussion` is dropped.
+- `voice.voice` may be `"fm"` or `"pluck"`; absent means a plain subtractive
+  synth. `oscillator.type` is one of `sine/triangle/square/sawtooth` plus
+  their `*8` fat variants; FM exposes `harmonicity`, `modulationIndex`,
+  `modulation`, and a `modulationEnvelope`; plucks expose a `pluck` block.
+- `envelope`/`filterEnvelope`/`pluck` take numeric keys only
+  (`attack/decay/sustain/release`, plus `baseFrequency`/`octaves` for the
+  filter). Non-numeric values are cleaned away.
+- The `percussion` kit sanitizes the same `kick`/`hat`/`snare` envelopes plus
+  optional `hatFilter`/`snareFilter` cutoff numbers; `noise.type` is one of
+  `white/pink/brown`. A kit missing a snare routes snare hits to the hat, just
+  like the presets.
+- Hydration drops any unknown key, so an imported file can never smuggle
+  arbitrary synth options.
+
+Custom instruments resolve exactly like a preset: the engine reads
+`project.instruments[layer.instrument]`, falling back to the catalog preset
+when the id isn't a known custom entry, and merges any per-layer
+`instrumentConfig` on top (see §3). The exported runtime consults `score.instruments`
+the same way, so a consumed `.score.js` sounds identical to the studio.
+
+### Custom percussion kit construction (per preset)
+
+From each kit config the engine builds these pieces (both presets and custom
+kits): a pitched `kick` (MembraneSynth), a tuneable pitched membrane voice for
+toms/bongos, a short metallic voice for rim/keyed/steel, a high-passed `hat`,
+an `hat-open`, a `shaker`, and optionally a band-passed `snare`. Pitched kit
+pieces carry a default scale degree (see the catalog below) so they always
+stay in the song's key.
+
+### The percussion piece catalog
+
+Hit-list steps reference the kit by `piece` name — the whole catalog, with each
+piece's authored defaults (`vel`, `dur`, `sound` family, and, for pitched
+pieces, a default in-scale `degree` + `octave`):
+
+| piece | label | sound | vel | dur | degree | octave |
+|---|---|---|---|---|---|---|
+| `kick` | Kick | membrane | 0.9 | `16n` | — | — |
+| `rim` | Rim | tone | 0.55 | `16n` | 0 | 6 |
+| `hat` | Hat | noise | 0.35 | `32n` | — | — |
+| `hat-open` | Hat open | noise | 0.4 | `8n` | — | — |
+| `snare` | Snare | noise | 0.6 | `16n` | — | — |
+| `tom-hi` | Tom hi | drum | 0.5 | `16n` | 5 | 4 |
+| `tom-lo` | Tom lo | drum | 0.5 | `16n` | 2 | 4 |
+| `bongo-hi` | Bongo hi | drum | 0.5 | `16n` | 4 | 5 |
+| `bongo-lo` | Bongo lo | drum | 0.5 | `16n` | 2 | 5 |
+| `keyed` | Keyed | tone | 0.6 | `16n` | 0 | 6 |
+| `steel` | Steel | tone | 0.6 | `16n` | 2 | 6 |
+| `shaker` | Shaker | noise | 0.3 | `32n` | — | — |
+
+- `sound` is the synth family: `membrane` (the fixed/swept kick), `drum` (the
+  tuneable pitched membrane toms/bongos), `tone` (the short metallic voice),
+  `noise` (unpitched hat/snare/shaker).
+- A per-hit `vel` overrides the piece's default; a per-hit `pitch` (degree
+  0..7) overrides the default `degree` for `drum`/`tone` pieces, and both map
+  through the song's scale — the harmony guard holds for percussion too.
+- An unknown `piece` name is dropped at hydration (it can't reference a bogus
+  kit), and the runtime degrades an unknown piece to silence rather than crash.
+- The `kick`'s actual pitch/velocity come from the layer's `kickProps` /
+  `kick.velocity` automation (see §5), not a fixed note — that's why it has no
+  `degree`.
 
 ---
 
@@ -380,15 +507,40 @@ Defaults when unautomated: velocity 0.22–0.3 (chords), 0.4 (motif),
 ### Journey (macro form)
 
 ```jsonc
-"journey": { "shape": "flat" | "arc" | "tide", "length": 8|16|32, "depth": 0..100 }
+"journey": { "shape": "flat" | "arc" | "tide", "length": 4..64, "depth": 0..100 }
 ```
 
 Energy per bar = shape(phase) blended toward 0.5 by depth, where phase =
 `(bar mod length) / length`: `arc` builds to a mid-cycle peak then resolves;
 `tide` is a sine swell; `flat` ignores depth. That energy becomes the ±dB
 layer gain described under `energyRole`. Depth 20–45 is tasteful; > 60 gets
-dramatic. Length should be a multiple of 8 so cycles resolve on phrase
-boundaries musically.
+dramatic. `length` clamps to 4..64 bars; keep it a multiple of 8 so cycles
+resolve on phrase boundaries musically.
+
+### Generative compose helpers
+
+The studio can generate a starting point instead of a blank phrase. Two pure
+helpers (`src/music/melody-composer.js`) live behind the compose workflow;
+everything they emit stays inside the scale (they only move 0..7 around chord
+degrees), so the harmony guard holds:
+
+- **`composeMelody(project, layer)`** — returns a fresh 16-step motif: on each
+  bar start (steps 0/4/8/12) it lands on a chord degree (the chord root shifted
+  +2 or +4), then walks by ±1 (occasionally ±2) between them, resting with
+  probability scaled by the layer's `density`, and always resolves to degree 0
+  at step 15. Mid-steps drift away but the anchors stay on the chords.
+- **`makeSparser(melody)`** — thins an existing motif: drops ~38% of non-anchor
+  notes (everything off the `step % 4 === 0` downbeats) for an airier take.
+- **`composePattern(layer)`** — generates a hit-list pattern for a hits-kind
+  layer, shaped by role and density: harmony anchors the bar starts, bass adds
+  a livelier syncopation chance, percussion builds a kick-weighted groove. Hits
+  come out on-beat (`at: 0`); percussion uses `piece: "kick"`, harmony/bass a
+  plain `{ at: 0 }` hit.
+
+These are conveniences, not the engine: the refresh/compose UI calls them and
+writes the result into the layer's `steps`, so what you hear afterwards is the
+written phrase flowing through the same variation + reactive pipelines as any
+hand-authored melody.
 
 ---
 
@@ -414,9 +566,15 @@ boundaries musically.
    arc/tide with moderate depth, and add two or more sections with layer
    drop-in/out for verse variety. Set a non-zero seed if the game build must
    replay identically.
-8. **Validate mentally against hydration**: instrument names exact, motif
-   degrees 0–7/null, hit-list steps for the other roles, 4-entry progression
-   of 0–6, domains well-formed.
+8. **Shape the timbre & room** — pick presets per role (pairing hints in §4),
+   then optionally define one or two custom instruments in `instruments` for a
+   signature sound, use per-layer `instrumentConfig` for a small oscillator/
+   envelope tweak, and set `space` sends (or leave the defaults) so the room
+   matches the mood.
+9. **Validate mentally against hydration**: `version: 8`; instrument is an
+   exact preset name or a known custom id; motif degrees 0–7/null; hit-list
+   steps for the other roles with catalog `piece` names; 4-entry progression
+   of 0–6; domains well-formed; `space.*` and automation domains in range.
 
 ## 7. Complete example song
 
@@ -435,6 +593,21 @@ chorus moments.
   "progressionName": "Open sky",
   "reverb": 62,
   "swing": 10,
+  "space": { "lead": 0.3, "bed": 0.26, "bass": 0.12, "echo": 0.2 },
+  "instruments": {
+    "crystal": {
+      "label": "Crystal shards",
+      "voice": {
+        "voice": "fm",
+        "oscillator": { "type": "sine" },
+        "envelope": { "attack": 0.002, "decay": 0.7, "sustain": 0.02, "release": 2.0 },
+        "harmonicity": 2.8,
+        "modulationIndex": 9,
+        "modulation": { "type": "sine" },
+        "modulationEnvelope": { "attack": 0.002, "decay": 0.3, "sustain": 0, "release": 0.2 }
+      }
+    }
+  },
   "journey": { "shape": "arc", "length": 16, "depth": 38 },
   "variationSeed": 7,
   "axes": {
@@ -482,6 +655,7 @@ chorus moments.
       "color": "#f1c97a",
       "muted": false,
       "instrument": "Kalimba dusk",
+      "instrumentConfig": null,
       "density": 58,
       "variation": 34,
       "humanize": 18,

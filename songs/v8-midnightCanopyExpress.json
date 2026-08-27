@@ -1,0 +1,596 @@
+{
+  "version": 8,
+  "name": "Midnight Canopy Express",
+  "bpm": 118,
+  "key": "A",
+  "scale": "Dorian",
+  "progression": [0, 5, 3, 4],
+  "progressionName": "Dorian Night Drive",
+  "reverb": 48,
+  "swing": 14,
+  "space": {
+    "lead": 0.28,
+    "bed": 0.22,
+    "bass": 0.08,
+    "echo": 0.26
+  },
+  "instruments": {
+    "brassHalo": {
+      "label": "Velvet brass halo",
+      "voice": {
+        "oscillator": {
+          "type": "sawtooth"
+        },
+        "envelope": {
+          "attack": 0.035,
+          "decay": 0.22,
+          "sustain": 0.48,
+          "release": 0.72
+        },
+        "filterEnvelope": {
+          "baseFrequency": 280,
+          "octaves": 2.1
+        }
+      }
+    },
+    "starPulse": {
+      "label": "Star pulse",
+      "voice": {
+        "voice": "fm",
+        "oscillator": {
+          "type": "sine"
+        },
+        "envelope": {
+          "attack": 0.004,
+          "decay": 0.28,
+          "sustain": 0.12,
+          "release": 0.8
+        },
+        "harmonicity": 1.98,
+        "modulationIndex": 4.6,
+        "modulation": {
+          "type": "triangle"
+        },
+        "modulationEnvelope": {
+          "attack": 0.002,
+          "decay": 0.18,
+          "sustain": 0,
+          "release": 0.12
+        }
+      }
+    }
+  },
+  "journey": {
+    "shape": "tide",
+    "length": 24,
+    "depth": 46
+  },
+  "variationSeed": 198407,
+  "axes": {
+    "intensity": {
+      "label": "Intensity"
+    },
+    "tension": {
+      "label": "Tension"
+    },
+    "brightness": {
+      "label": "Brightness"
+    }
+  },
+  "bindings": [
+    {
+      "target": "reverb",
+      "axis": "tension",
+      "domain": [38, 70]
+    },
+    {
+      "target": "swing",
+      "axis": "intensity",
+      "domain": [9, 19]
+    },
+    {
+      "target": "space.lead",
+      "axis": "brightness",
+      "domain": [0.18, 0.47]
+    },
+    {
+      "target": "space.bed",
+      "axis": "tension",
+      "domain": [0.16, 0.42]
+    },
+    {
+      "target": "space.echo",
+      "axis": "tension",
+      "domain": [0.12, 0.48]
+    }
+  ],
+  "sections": [
+    {
+      "id": "platform",
+      "label": "Platform Lights",
+      "length": 4,
+      "layers": {
+        "pad": {
+          "gain": -5
+        },
+        "stabs": {
+          "active": false
+        },
+        "hook": {
+          "gain": -4
+        },
+        "counterline": {
+          "active": false
+        },
+        "drums": {
+          "gain": -4
+        }
+      }
+    },
+    {
+      "id": "rolling",
+      "label": "Rolling Through Neon",
+      "length": 4,
+      "layers": {
+        "pad": {
+          "gain": -2
+        },
+        "stabs": {
+          "gain": 0
+        },
+        "hook": {
+          "gain": 1
+        },
+        "counterline": {
+          "active": false
+        },
+        "drums": {
+          "gain": 0
+        }
+      }
+    },
+    {
+      "id": "open-car",
+      "label": "Open Car Chorus",
+      "length": 8,
+      "layers": {
+        "pad": {
+          "gain": 1
+        },
+        "stabs": {
+          "gain": 2
+        },
+        "hook": {
+          "gain": 2
+        },
+        "counterline": {
+          "gain": 1
+        },
+        "bass": {
+          "gain": 1.5
+        },
+        "drums": {
+          "gain": 2
+        }
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "pad",
+      "name": "Station Glow",
+      "detail": "Slow Dorian platform chords",
+      "role": "harmony",
+      "color": "#53627e",
+      "muted": false,
+      "instrument": "Velvet pad",
+      "instrumentConfig": {
+        "oscillator": "sawtooth8",
+        "envelope": {
+          "attack": 0.42,
+          "release": 2.8
+        }
+      },
+      "density": 100,
+      "variation": 8,
+      "humanize": 8,
+      "restWindow": 0,
+      "level": -7,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [0.14, 0.27]
+        },
+        {
+          "param": "duration",
+          "axis": "tension",
+          "domain": ["1m", "2n"]
+        }
+      ],
+      "steps": [
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        []
+      ]
+    },
+    {
+      "id": "stabs",
+      "name": "Mirror Brass",
+      "detail": "Off-beat chord punches",
+      "role": "harmony",
+      "color": "#e1a65f",
+      "muted": false,
+      "instrument": "brassHalo",
+      "instrumentConfig": null,
+      "density": 100,
+      "variation": 12,
+      "humanize": 14,
+      "restWindow": 6,
+      "level": -3,
+      "energyRole": "forward",
+      "activity": {
+        "axis": "intensity",
+        "range": [0.24, 1]
+      },
+      "fills": null,
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [0.2, 0.52]
+        },
+        {
+          "param": "duration",
+          "axis": "intensity",
+          "domain": ["8n", "4n"]
+        }
+      ],
+      "steps": [
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        [],
+        [],
+        [],
+        [{ "at": 0 }],
+        []
+      ]
+    },
+    {
+      "id": "bass",
+      "name": "Rail Current",
+      "detail": "Elastic root pulse",
+      "role": "bass",
+      "color": "#cb6c6c",
+      "muted": false,
+      "instrument": "Vine guitar",
+      "instrumentConfig": null,
+      "density": 100,
+      "variation": 18,
+      "humanize": 10,
+      "restWindow": 0,
+      "level": 1,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        {
+          "at": [6, 14],
+          "axis": "intensity",
+          "threshold": 0.58
+        }
+      ],
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [0.34, 0.63]
+        },
+        {
+          "param": "duration",
+          "axis": "intensity",
+          "domain": ["8n", "4n"]
+        }
+      ],
+      "steps": [
+        [{ "at": 0 }],
+        [],
+        [{ "at": 0.5 }],
+        [],
+        [{ "at": 0 }],
+        [],
+        [{ "at": 0.5 }],
+        [],
+        [{ "at": 0 }],
+        [],
+        [{ "at": 0.5 }],
+        [],
+        [{ "at": 0 }],
+        [],
+        [{ "at": 0.5 }],
+        []
+      ]
+    },
+    {
+      "id": "hook",
+      "name": "Window Constellation",
+      "detail": "Ascending late-night vocal-like hook",
+      "role": "motif",
+      "color": "#f3dc8b",
+      "muted": false,
+      "instrument": "starPulse",
+      "instrumentConfig": null,
+      "density": 72,
+      "variation": 37,
+      "humanize": 16,
+      "restWindow": 0,
+      "level": -1,
+      "energyRole": "forward",
+      "activity": {
+        "axis": "intensity",
+        "range": [0.12, 1]
+      },
+      "fills": [
+        {
+          "at": [7, 15],
+          "axis": "tension",
+          "threshold": 0.5
+        }
+      ],
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "intensity",
+          "domain": [0.28, 0.59]
+        },
+        {
+          "param": "duration",
+          "axis": "tension",
+          "domain": ["4n", "8n"]
+        },
+        {
+          "param": "density",
+          "axis": "tension",
+          "domain": [0.48, 0.98]
+        },
+        {
+          "param": "octave",
+          "axis": "brightness",
+          "domain": [4, 5]
+        }
+      ],
+      "steps": [
+        4,
+        null,
+        5,
+        6,
+        null,
+        4,
+        null,
+        2,
+        3,
+        null,
+        4,
+        6,
+        null,
+        5,
+        2,
+        0
+      ]
+    },
+    {
+      "id": "counterline",
+      "name": "Passing Satellites",
+      "detail": "High-response answering phrase",
+      "role": "motif",
+      "color": "#8dd5cf",
+      "muted": false,
+      "instrument": "Glocken chime",
+      "instrumentConfig": null,
+      "density": 60,
+      "variation": 46,
+      "humanize": 20,
+      "restWindow": 5,
+      "level": -6,
+      "energyRole": "balanced",
+      "activity": {
+        "axis": "brightness",
+        "range": [0.42, 1]
+      },
+      "fills": [
+        {
+          "at": [10, 14],
+          "axis": "tension",
+          "threshold": 0.68
+        }
+      ],
+      "automation": [
+        {
+          "param": "velocity",
+          "axis": "brightness",
+          "domain": [0.2, 0.46]
+        },
+        {
+          "param": "density",
+          "axis": "tension",
+          "domain": [0.35, 0.82]
+        },
+        {
+          "param": "octave",
+          "axis": "brightness",
+          "domain": [5, 6]
+        }
+      ],
+      "steps": [
+        0,
+        null,
+        null,
+        2,
+        null,
+        4,
+        null,
+        null,
+        3,
+        null,
+        2,
+        null,
+        1,
+        2,
+        null,
+        0
+      ]
+    },
+    {
+      "id": "drums",
+      "name": "Chrome Footsteps",
+      "detail": "Four-to-the-floor engine with glittering percussion",
+      "role": "percussion",
+      "color": "#bd91dc",
+      "muted": false,
+      "instrument": "Jungle steel",
+      "instrumentConfig": null,
+      "density": 100,
+      "variation": 20,
+      "humanize": 9,
+      "restWindow": 8,
+      "level": -2,
+      "energyRole": "forward",
+      "activity": {
+        "axis": "intensity",
+        "range": [0.2, 1]
+      },
+      "fills": [
+        {
+          "at": [7, 15],
+          "axis": "intensity",
+          "threshold": 0.48
+        },
+        {
+          "at": [11, 12, 14],
+          "axis": "intensity",
+          "threshold": 0.74
+        }
+      ],
+      "automation": [
+        {
+          "param": "kickProps",
+          "axis": "intensity",
+          "domain": [
+            { "midi": "A1", "vel": 0.28 },
+            { "midi": "G1", "vel": 0.7 }
+          ]
+        },
+        {
+          "param": "kick.velocity",
+          "axis": "intensity",
+          "domain": [0.28, 0.7]
+        },
+        {
+          "param": "hat.velocity",
+          "axis": "brightness",
+          "domain": [0.12, 0.36]
+        },
+        {
+          "param": "snare.velocity",
+          "axis": "intensity",
+          "domain": [0.26, 0.58]
+        },
+        {
+          "param": "hat.variation",
+          "axis": "intensity",
+          "domain": [0.02, 0.42]
+        }
+      ],
+      "steps": [
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "hat-open", "at": 0.5, "vel": 0.28 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "shaker", "at": 0.5, "vel": 0.2 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "snare", "at": 0.5, "vel": 0.52 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "rim", "at": 0.5, "vel": 0.34 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "hat-open", "at": 0.5, "vel": 0.25 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "shaker", "at": 0.5, "vel": 0.2 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "snare", "at": 0.5, "vel": 0.55 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "keyed", "at": 0.5, "pitch": 4, "vel": 0.34 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "hat-open", "at": 0.5, "vel": 0.29 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "shaker", "at": 0.5, "vel": 0.22 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "snare", "at": 0.5, "vel": 0.56 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "steel", "at": 0.5, "pitch": 5, "vel": 0.3 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "hat-open", "at": 0.5, "vel": 0.3 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "shaker", "at": 0.5, "vel": 0.24 }
+        ],
+        [
+          { "piece": "kick", "at": 0 },
+          { "piece": "snare", "at": 0.5, "vel": 0.6 }
+        ],
+        [
+          { "piece": "hat", "at": 0 },
+          { "piece": "rim", "at": 0.5, "vel": 0.4 }
+        ]
+      ]
+    }
+  ]
+}

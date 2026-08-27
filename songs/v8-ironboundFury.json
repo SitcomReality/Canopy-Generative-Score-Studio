@@ -1,0 +1,185 @@
+{
+  "version": 8,
+  "name": "Ironbound Fury",
+  "bpm": 148,
+  "key": "E",
+  "scale": "Minor",
+  "progression": [0, 2, 6, 4],
+  "progressionName": "Ironclad",
+  "reverb": 30,
+  "swing": 0,
+  "space": { "lead": 0.15, "bed": 0.2, "bass": 0.05, "echo": 0.08 },
+  "instruments": {
+    "poweraxe": {
+      "label": "Power Axe",
+      "voice": {
+        "voice": "",
+        "oscillator": { "type": "sawtooth" },
+        "envelope": { "attack": 0.001, "decay": 0.1, "sustain": 0.3, "release": 0.06 },
+        "filterEnvelope": { "baseFrequency": 250, "octaves": 2.8 }
+      }
+    },
+    "forceroot": {
+      "label": "Force Root",
+      "voice": {
+        "voice": "",
+        "oscillator": { "type": "square" },
+        "envelope": { "attack": 0.001, "decay": 0.08, "sustain": 0.45, "release": 0.05 },
+        "filterEnvelope": { "baseFrequency": 70, "octaves": 1.5 }
+      }
+    },
+    "rockkit": {
+      "label": "Rock Kit",
+      "percussion": {
+        "kick": { "envelope": { "attack": 0.001, "decay": 0.22, "sustain": 0, "release": 0.15 } },
+        "hat": { "noise": { "type": "white" }, "envelope": { "attack": 0.001, "decay": 0.04, "sustain": 0, "release": 0.02 } },
+        "hatFilter": 8000,
+        "snare": { "noise": { "type": "white" }, "envelope": { "attack": 0.001, "decay": 0.15, "sustain": 0, "release": 0.03 } },
+        "snareFilter": 2200
+      }
+    }
+  },
+  "journey": { "shape": "arc", "length": 16, "depth": 32 },
+  "variationSeed": 42,
+  "axes": {
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
+  },
+  "bindings": [
+    { "target": "reverb", "axis": "tension", "domain": [18, 45] },
+    { "target": "space.lead", "axis": "intensity", "domain": [0.1, 0.4] }
+  ],
+  "sections": [
+    { "id": "v", "label": "Verse", "length": 4, "layers": { "drums": { "active": false }, "chords": { "gain": -4 } } },
+    { "id": "c", "label": "Chorus", "length": 4, "layers": { "drums": { "gain": 2.5 }, "chords": { "gain": 1.5 }, "bass": { "gain": 1 } } }
+  ],
+  "layers": [
+    {
+      "id": "chords",
+      "name": "Wall",
+      "detail": "Chugging power chords",
+      "role": "harmony",
+      "color": "#8e3e3e",
+      "muted": false,
+      "instrument": "poweraxe",
+      "density": 75,
+      "variation": 5,
+      "humanize": 3,
+      "restWindow": 0,
+      "level": -3,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.18, 0.32] },
+        { "param": "duration", "axis": "intensity", "domain": ["8n", "16n"] }
+      ],
+      "steps": [
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }]
+      ]
+    },
+    {
+      "id": "lead",
+      "name": "Scream",
+      "detail": "Hyper-riffing lead guitar",
+      "role": "motif",
+      "color": "#d4a017",
+      "muted": false,
+      "instrument": "poweraxe",
+      "instrumentConfig": { "oscillator": "sawtooth8" },
+      "density": 80,
+      "variation": 23,
+      "humanize": 5,
+      "restWindow": 0,
+      "level": 2,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [6, 11, 14], "axis": "intensity", "threshold": 0.4 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.35, 0.6] },
+        { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] },
+        { "param": "octave", "axis": "brightness", "domain": [4, 5] }
+      ],
+      "steps": [0, 0, 2, 4, 4, 2, 0, null, 6, 6, 4, 6, 7, 4, 2, 0]
+    },
+    {
+      "id": "bass",
+      "name": "Root",
+      "detail": "Driving square-wave bass",
+      "role": "bass",
+      "color": "#5d8cd4",
+      "muted": false,
+      "instrument": "forceroot",
+      "density": 90,
+      "variation": 5,
+      "humanize": 2,
+      "restWindow": 0,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [3, 7, 11, 15], "axis": "intensity", "threshold": 0.45 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.35, 0.6] },
+        { "param": "duration", "axis": "intensity", "domain": ["8n", "16n"] }
+      ],
+      "steps": [
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }, { "at": 0.5 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }, { "at": 0.5 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }, { "at": 0.5 }],
+        [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }], [{ "at": 0 }, { "at": 0.5 }]
+      ]
+    },
+    {
+      "id": "drums",
+      "name": "Steel",
+      "detail": "Punchy rock kit",
+      "role": "percussion",
+      "color": "#b8a5d7",
+      "muted": false,
+      "instrument": "rockkit",
+      "density": 85,
+      "variation": 12,
+      "humanize": 5,
+      "restWindow": 0,
+      "level": 2,
+      "energyRole": "forward",
+      "activity": { "axis": "intensity", "range": [0.25, 1] },
+      "fills": [
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.65 },
+        { "at": [12], "axis": "intensity", "threshold": 0.75 }
+      ],
+      "automation": [
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.3, 0.75] },
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "E1", "vel": 0.3 }, { "midi": "D1", "vel": 0.75 }] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.15, 0.35] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.3, 0.55] }
+      ],
+      "steps": [
+        [{ "piece": "kick", "at": 0 }, { "piece": "kick", "at": 0.5 }],
+        [{ "piece": "hat", "at": 0 }],
+        [{ "piece": "snare", "at": 0 }],
+        [{ "piece": "hat", "at": 0 }, { "piece": "hat", "at": 0.5 }],
+        [{ "piece": "kick", "at": 0 }, { "piece": "kick", "at": 0.5 }],
+        [{ "piece": "hat", "at": 0 }],
+        [{ "piece": "snare", "at": 0 }],
+        [{ "piece": "hat", "at": 0 }, { "piece": "hat", "at": 0.5 }],
+        [{ "piece": "kick", "at": 0 }, { "piece": "kick", "at": 0.5 }],
+        [{ "piece": "hat", "at": 0 }],
+        [{ "piece": "snare", "at": 0 }],
+        [{ "piece": "hat", "at": 0 }, { "piece": "hat", "at": 0.5 }],
+        [{ "piece": "kick", "at": 0 }, { "piece": "kick", "at": 0.5 }],
+        [{ "piece": "hat", "at": 0 }],
+        [{ "piece": "snare", "at": 0 }],
+        [{ "piece": "hat", "at": 0 }, { "piece": "hat", "at": 0.5 }]
+      ]
+    }
+  ]
+}

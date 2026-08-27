@@ -1,0 +1,231 @@
+{
+  "version": 8,
+  "name": "Severed Silk",
+  "bpm": 74,
+  "key": "D",
+  "scale": "Lydian",
+  "progression": [0, 5, 2, 6],
+  "progressionName": "Broken chord",
+  "reverb": 72,
+  "swing": 8,
+  "space": {
+    "lead": 0.4,
+    "bed": 0.3,
+    "bass": 0.15,
+    "echo": 0.3
+  },
+  "instruments": {
+    "aurora": {
+      "label": "Aurora",
+      "voice": {
+        "voice": "fm",
+        "oscillator": { "type": "sine" },
+        "envelope": { "attack": 0.05, "decay": 0.9, "sustain": 0.15, "release": 3.5 },
+        "harmonicity": 3.2,
+        "modulationIndex": 12,
+        "modulation": { "type": "triangle" },
+        "modulationEnvelope": { "attack": 0.01, "decay": 0.4, "sustain": 0, "release": 0.5 },
+        "filterEnvelope": { "baseFrequency": 300, "octaves": 3.5 }
+      },
+      "percussion": {
+        "kick": { "pitchDecay": 0.05, "octaves": 4.5, "envelope": { "attack": 0.002, "decay": 0.35, "sustain": 0.02, "release": 0.25 } },
+        "hat": { "noise": { "type": "pink" }, "envelope": { "attack": 0.001, "decay": 0.08, "sustain": 0, "release": 0.03 } },
+        "hatFilter": 6500,
+        "snare": { "noise": { "type": "white" }, "envelope": { "attack": 0.001, "decay": 0.12, "sustain": 0, "release": 0.06 } },
+        "snareFilter": 1000
+      }
+    },
+    "shadow": {
+      "label": "Shadow",
+      "voice": {
+        "voice": "pluck",
+        "oscillator": { "type": "triangle" },
+        "envelope": { "attack": 0.01, "decay": 0.4, "sustain": 0.05, "release": 1.5 },
+        "pluck": { "attackNoise": 0.8, "dampening": 1600, "resonance": 0.9, "volume": -8 },
+        "filterEnvelope": { "baseFrequency": 220, "octaves": 2.5 }
+      },
+      "percussion": {
+        "kick": { "pitchDecay": 0.06, "octaves": 4.2, "envelope": { "attack": 0.002, "decay": 0.3, "sustain": 0, "release": 0.2 } },
+        "hat": { "noise": { "type": "brown" }, "envelope": { "attack": 0.001, "decay": 0.05, "sustain": 0, "release": 0.015 } },
+        "hatFilter": 5800,
+        "snare": { "noise": { "type": "white" }, "envelope": { "attack": 0.001, "decay": 0.1, "sustain": 0, "release": 0.05 } },
+        "snareFilter": 1400
+      }
+    }
+  },
+  "journey": { "shape": "tide", "length": 32, "depth": 45 },
+  "variationSeed": 777,
+  "axes": {
+    "intensity": { "label": "Intensity" },
+    "tension": { "label": "Tension" },
+    "brightness": { "label": "Brightness" }
+  },
+  "bindings": [
+    { "target": "reverb", "axis": "tension", "domain": [50, 92] },
+    { "target": "space.lead", "axis": "intensity", "domain": [0.2, 0.8] },
+    { "target": "space.bed", "axis": "brightness", "domain": [0.2, 0.65] },
+    { "target": "space.bass", "axis": "intensity", "domain": [0.1, 0.45] },
+    { "target": "swing", "axis": "tension", "domain": [0, 14] }
+  ],
+  "sections": [
+    {
+      "id": "dusk",
+      "label": "Dusk",
+      "length": 8,
+      "layers": {
+        "veil": { "gain": -8 },
+        "mist": { "gain": -4 },
+        "root": { "gain": -3 },
+        "percussion": { "active": false }
+      }
+    },
+    {
+      "id": "midnight",
+      "label": "Midnight",
+      "length": 8,
+      "layers": {
+        "shard": { "gain": 3 },
+        "veil": { "gain": 2 },
+        "mist": { "gain": 2 },
+        "root": { "gain": 2 },
+        "percussion": { "gain": 3 }
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "shard",
+      "name": "Shard",
+      "detail": "Glass melody, answers tension with grace-note fills",
+      "role": "motif",
+      "color": "#e8c896",
+      "muted": false,
+      "instrument": "aurora",
+      "instrumentConfig": null,
+      "density": 72,
+      "variation": 42,
+      "humanize": 18,
+      "restWindow": 4,
+      "level": 0,
+      "energyRole": "forward",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "tension", "threshold": 0.55 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.4, 0.85] },
+        { "param": "duration", "axis": "tension", "domain": ["4n", "8n"] },
+        { "param": "density", "axis": "tension", "domain": [0.55, 0.98] },
+        { "param": "octave", "axis": "intensity", "domain": [4, 7] }
+      ],
+      "steps": [2, 4, 3, null, 5, 3, 4, null, 2, 3, 4, null, 0, null, 2, 3]
+    },
+    {
+      "id": "veil",
+      "name": "Veil",
+      "detail": "Dark counter-motif, enters only when light is high",
+      "role": "motif",
+      "color": "#7a6f92",
+      "muted": false,
+      "instrument": "shadow",
+      "instrumentConfig": null,
+      "density": 48,
+      "variation": 28,
+      "humanize": 14,
+      "restWindow": 14,
+      "level": -6,
+      "energyRole": "recessive",
+      "activity": { "axis": "brightness", "range": [0.45, 1] },
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "brightness", "domain": [0.3, 0.7] },
+        { "param": "octave", "axis": "tension", "domain": [3, 5] }
+      ],
+      "steps": [1, null, 3, null, 0, null, 2, null, 1, null, 3, null, 2, null, 0, 1]
+    },
+    {
+      "id": "mist",
+      "name": "Mist",
+      "detail": "Warm chord bed, pulses shorter as tension rises",
+      "role": "harmony",
+      "color": "#b091c5",
+      "muted": false,
+      "instrument": "Warm reed",
+      "instrumentConfig": { "oscillator": { "type": "triangle" }, "envelope": { "attack": 0.3, "release": 3.5 } },
+      "density": 42,
+      "variation": 14,
+      "humanize": 8,
+      "restWindow": 0,
+      "level": -3,
+      "energyRole": "recessive",
+      "activity": null,
+      "fills": null,
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.2, 0.38] },
+        { "param": "duration", "axis": "tension", "domain": ["1m", "2n"] }
+      ],
+      "steps": [
+        [{ "at": 0 }], [], [{ "at": 0 }], [], [{ "at": 0 }], [], [], [], [{ "at": 0 }], [], [{ "at": 0.25 }], [], [{ "at": 0 }], [], [], []
+      ]
+    },
+    {
+      "id": "root",
+      "name": "Root",
+      "detail": "Syncopated low pulse, pushes near phrase edges",
+      "role": "bass",
+      "color": "#6b8e6b",
+      "muted": false,
+      "instrument": "Deep root",
+      "instrumentConfig": null,
+      "density": 85,
+      "variation": 10,
+      "humanize": 10,
+      "restWindow": 6,
+      "level": -2,
+      "energyRole": "balanced",
+      "activity": null,
+      "fills": [
+        { "at": [7, 15], "axis": "intensity", "threshold": 0.6 }
+      ],
+      "automation": [
+        { "param": "velocity", "axis": "intensity", "domain": [0.3, 0.7] },
+        { "param": "duration", "axis": "tension", "domain": ["4n", "8n"] }
+      ],
+      "steps": [
+        [{ "at": 0 }], [], [{ "at": 0.5 }], [], [{ "at": 0 }], [], [{ "at": 0 }], [{ "at": 0 }], [], [{ "at": 0 }], [{ "at": 0.25 }], [], [{ "at": 0 }], [{ "at": 0.5 }], [], []
+      ]
+    },
+    {
+      "id": "percussion",
+      "name": "Pebbles",
+      "detail": "Hand percussion that enters with intensity; breathes out every 7 bars",
+      "role": "percussion",
+      "color": "#c9a66b",
+      "muted": false,
+      "instrument": "aurora",
+      "instrumentConfig": null,
+      "density": 68,
+      "variation": 22,
+      "humanize": 16,
+      "restWindow": 7,
+      "level": -2,
+      "energyRole": "balanced",
+      "activity": { "axis": "intensity", "range": [0.3, 1] },
+      "fills": [
+        { "at": [8, 11, 14], "axis": "intensity", "threshold": 0.55 },
+        { "at": [12], "axis": "intensity", "threshold": 0.75 },
+        { "at": [4], "axis": "tension", "threshold": 0.65 }
+      ],
+      "automation": [
+        { "param": "kickProps", "axis": "intensity", "domain": [{ "midi": "D1", "vel": 0.2 }, { "midi": "C2", "vel": 0.7 }] },
+        { "param": "kick.velocity", "axis": "intensity", "domain": [0.2, 0.7] },
+        { "param": "hat.velocity", "axis": "intensity", "domain": [0.15, 0.35] },
+        { "param": "hat.variation", "axis": "tension", "domain": [0.0, 0.35] },
+        { "param": "snare.velocity", "axis": "intensity", "domain": [0.25, 0.55] }
+      ],
+      "steps": [
+        [{ "piece": "kick", "at": 0 }, { "piece": "hat", "at": 0 }], [{ "piece": "hat", "at": 0 }], [], [{ "piece": "hat", "at": 0.5 }], [{ "piece": "kick", "at": 0 }, { "piece": "hat", "at": 0 }], [{ "piece": "hat", "at": 0 }], [], [{ "piece": "shaker", "at": 0 }], [{ "piece": "kick", "at": 0 }, { "piece": "hat", "at": 0 }], [{ "piece": "hat", "at": 0.5 }], [{ "piece": "hat", "at": 0 }], [{ "piece": "snare", "at": 0 }], [{ "piece": "kick", "at": 0 }, { "piece": "hat", "at": 0 }], [{ "piece": "hat", "at": 0 }], [{ "piece": "shaker", "at": 0 }], [{ "piece": "hat-open", "at": 0.75 }]
+      ]
+    }
+  ]
+}
