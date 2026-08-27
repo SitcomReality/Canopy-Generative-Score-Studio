@@ -90,11 +90,17 @@ pluck, percussion kit) replacing the current waveform+ADSR-only editor
 
 ## Phase 4 — Complete the editable surface
 
-4a. Replace the read-only automation chips + "edit in JSON" hint
-(`layer-reactive.js`) with a real param/axis/domain editor.
+4a. **Automation editor — DONE** (`ui/layer-reactive.js`, `actions/layers/reactive.js`).
+Replaced the read-only chips + "edit in JSON" hint with a real editor: each
+mapping shows its param (known-params datalist), driving axis, and a low→high
+domain (number or raw text/JSON endpoints), plus add/remove. Empty domain
+endpoints revert instead of corrupting the engine lookup.
 
-4b. Add a song-level `bindings` editor (currently no UI) and make `flourishes`
-editable.
+4b. **Flourishes editor + bindings editor — PENDING.** Flourishes are a nested
+`{ name: [{ degree, octave, at, dur, vel }] }` structure that the engine uses on
+`musicEvent`; make them editable. Song-level `bindings` (`{ target, axis, domain }`)
+are currently dormant schema (no consumer calls `bindingValue` yet) — add a
+minimal editor for completeness and/or wire it into the engine.
 
 ## Phase 5 — Score-file format refactor
 
