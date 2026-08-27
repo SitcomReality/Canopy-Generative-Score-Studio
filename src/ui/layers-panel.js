@@ -3,7 +3,7 @@
 // Rows render from project.layers so custom layers appear alongside the
 // defaults. Selects stop propagation so editing them never selects the row.
 import { iconSvg } from "./icons.js";
-import { LAYER_ROLES } from "../music/default-project.js";
+import { LAYER_ROLES, ROLE_COLORS } from "../music/default-project.js";
 import { INSTRUMENT_NAMES } from "../music/instruments.js";
 
 export function initLayersPanel(store, actions) {
@@ -53,8 +53,8 @@ export function initLayersPanel(store, actions) {
     const selected = project.layers.find((layer) => layer.id === selectedTrack) ?? project.layers[0];
     guardText.textContent = `Every note stays inside ${project.key} ${project.scale}.`;
     refineName.value = selected.name;
-    dot.style.background = selected.color;
-    dot.style.color = selected.color;
+    dot.style.background = ROLE_COLORS[selected.role];
+    dot.style.color = ROLE_COLORS[selected.role];
     renderRows(list, project, selected.id);
   }
 
@@ -86,7 +86,7 @@ export function initLayersPanel(store, actions) {
 function renderRows(list, project, selectedTrack) {
   list.innerHTML = project.layers.map((layer) => `
     <div class="layer-row${selectedTrack === layer.id ? " selected" : ""}" data-track="${layer.id}">
-      <span class="layer-color" style="background-color:${layer.color}"></span>
+      <span class="layer-color" style="background-color:${ROLE_COLORS[layer.role]}"></span>
       <span class="layer-copy"><strong>${layer.name}</strong><small>${layer.instrument}</small></span>
       <select class="role-select" aria-label="${layer.name} role" title="What this layer does">
         ${Object.entries(LAYER_ROLES).map(([value, def]) =>

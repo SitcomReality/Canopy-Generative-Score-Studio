@@ -1,9 +1,7 @@
 // Layer lifecycle: creation, selection focus, renaming, removal, and role
 // changes (which convert step data between the two step encodings).
-import { DEFAULT_LAYERS, LAYER_ROLES, convertStepsForRole } from "../../music/default-project.js";
+import { DEFAULT_LAYERS, LAYER_ROLES, ROLE_COLORS, convertStepsForRole } from "../../music/default-project.js";
 import { notify } from "../../ui/toast.js";
-
-const LAYER_PALETTE = ["#9dc98d", "#f1c97a", "#d98868", "#b8a5d7", "#7fb8c9", "#c9a3b8"];
 
 export function createLifecycleActions(store, host) {
   const api = {
@@ -15,7 +13,7 @@ export function createLifecycleActions(store, host) {
         name: index >= DEFAULT_LAYERS.length ? `New layer ${index - DEFAULT_LAYERS.length + 1}` : "New layer",
         detail: "Main motif",
         role: "motif",
-        color: LAYER_PALETTE[index % LAYER_PALETTE.length],
+        color: ROLE_COLORS.motif,
         muted: false,
         instrument: "Glass bell",
         instrumentConfig: null,
@@ -75,6 +73,7 @@ export function createLifecycleActions(store, host) {
           ...layer,
           role,
           detail: LAYER_ROLES[role].label,
+          color: ROLE_COLORS[role],
           steps: convertStepsForRole(layer.steps, layer.role, role),
         };
       });

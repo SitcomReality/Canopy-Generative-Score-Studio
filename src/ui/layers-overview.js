@@ -3,7 +3,7 @@
 // without clicking through layers. Clicking a row selects that layer.
 // The grid rebuilds only on project/selection changes; the per-step playhead
 // and live "sounding now" highlights are class toggles without a rebuild.
-import { LAYER_ROLES } from "../music/default-project.js";
+import { LAYER_ROLES, ROLE_COLORS } from "../music/default-project.js";
 import { renderOn } from "./render-batch.js";
 
 export function initLayersOverview(store, actions) {
@@ -37,7 +37,7 @@ function render(root, state) {
 
   root.innerHTML = `<div class="overview-heading"><span class="kicker">All layers</span></div>` +
     project.layers.map((layer) => `
-      <div class="overview-row${layer.id === selectedTrack ? " selected" : ""}" data-track="${layer.id}" style="--row-color:${layer.color}" title="${layer.name}">
+      <div class="overview-row${layer.id === selectedTrack ? " selected" : ""}" data-track="${layer.id}" style="--row-color:${ROLE_COLORS[layer.role]}" title="${layer.name}">
         <span class="overview-name">${layer.name}</span>
         <span class="overview-cells">${cellsFor(layer)}</span>
       </div>`).join("");

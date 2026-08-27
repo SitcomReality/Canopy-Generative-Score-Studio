@@ -44,6 +44,17 @@ export const LAYER_ROLES = {
   percussion: { label: "Rhythm", kind: "steps" },
 };
 
+// A layer's color is derived from its function (role), not authored per layer,
+// so every layer playing the same role reads the same. Kept as the single
+// source of truth the UI paints from; the persisted per-layer `color` is only
+// retained so older scores hydrate without breaking.
+export const ROLE_COLORS = {
+  harmony: "#9dc98d",
+  motif: "#f1c97a",
+  bass: "#d98868",
+  percussion: "#b8a5d7",
+};
+
 // Song-level reactive space. `contexts` are named presets over `axes`
 // (derived from music/contexts.js CONTEXTS); `bindings` map an axis to a
 // song-level parameter. v5 removed the tempo binding — bpm is static during
