@@ -22,6 +22,12 @@
   --accent-rail: #7fc4de;   /* sky — layers rail + layer inspector */
   --accent-editor: #cde596; /* lime — phrase editor (global accent) */
   --accent-song: #c9a6e8;   /* lilac — song bar */
+  /* Song-bar banks: each group is tagged with one of these to make it obvious
+     whether a control edits the fixed score, modulates the live performance,
+     or shapes the room/mix. */
+  --bank-score: #c9a6e8;    /* lilac — the composed score */
+  --bank-live:  #e8c877;    /* amber — the live/reactive layer */
+  --bank-room:  #7fc4de;    /* sky   — the room/mix */
   /* Written notes */
   --note: #e6cb84;
   /* Live-state hues (shared with the runtime view) */

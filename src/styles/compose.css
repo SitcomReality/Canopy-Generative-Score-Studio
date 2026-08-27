@@ -73,10 +73,20 @@
 .song-bar { min-height: 128px; max-height: min(252px, 26vh); flex: none; display: grid; grid-template-columns: 0.85fr 1.1fr 1fr 1.1fr 0.85fr; grid-template-rows: minmax(0, 1fr); border-top: 1px solid var(--line-strong); background: var(--surface-1); }
 .song-group { min-width: 0; min-height: 0; overflow: hidden; padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px; }
 .song-group + .song-group { border-left: 1px solid var(--line); }
-.song-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-4); }
-.song-heading svg { color: var(--accent-song); }
+.song-heading { display: flex; align-items: center; gap: 8px; color: var(--text-4); }
+.song-heading > svg { margin-left: auto; color: var(--accent-song); }
 .kicker { font-size: var(--kicker-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-4); }
 .song-heading .kicker { color: var(--accent-song); }
+/* Three-bank framing: each song group is tagged Score / Live / Room and its
+   header + tag take that bank's hue, so a glance answers "does this edit the
+   score, the live performance, or the room?" */
+.song-group[data-bank="score"] { --bank-c: var(--bank-score); }
+.song-group[data-bank="live"] { --bank-c: var(--bank-live); }
+.song-group[data-bank="room"] { --bank-c: var(--bank-room); }
+.song-group[data-bank] .song-heading .kicker,
+.song-group[data-bank] .song-heading > svg { color: var(--bank-c); }
+.bank-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border: 1px solid color-mix(in srgb, var(--bank-c) 42%, transparent); border-radius: 999px; color: var(--bank-c); font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.bank-tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--bank-c); box-shadow: 0 0 6px var(--bank-c); }
 .song-controls { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
 
 /* Journey strip: sparkline of the long-form energy curve + playhead. */
