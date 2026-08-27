@@ -32,6 +32,9 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
   // The live axis vector, eased toward the active context's targets each bar.
   let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
   let driftRng = Math.random; // seeded via setDriftRng on play
+  // Per-voice last absolute start time, so the dispatch layer can enforce
+  // Tone's strict-increase rule across every step (see ./event-dispatch.js).
+  const lastTimes = {};
 
   const firstVoiceOf = (kind) =>
     store.get().project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
@@ -86,7 +89,7 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
     // off to its voice. Generation (computeStepFrame) was unconditional, so a
     // muted layer's RNG stream is intact; only realization is skipped.
     const audible = events.filter((ev) => engine.isLayerAudible(ev.layerId));
-    const sounding = dispatchEvents({ score, voices, events: audible, time: when });
+    const sounding = dispatchEvents({ score, voices, events: audible, time: when, lastTimes });
 
     // One-shot flourish (v5): a queued game milestone plays across this bar
     // via the lead voice, then resolves the context it narrates.
@@ -131,6 +134,7 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
     reset() {
       barCount = 0;
       driftRng = Math.random;
+      Object.keys(lastTimes).forEach((id) => delete lastTimes[id]);
       Object.keys(restCounter).forEach((id) => delete restCounter[id]);
       Object.keys(resting).forEach((id) => delete resting[id]);
       for (const layer of store.get().project.layers) {
