@@ -81,6 +81,9 @@ export function createAudioEngine(store) {
     setReverb(value) {
       chain.setReverb(value);
     },
+    setSpace(space) {
+      chain.setSpace(space);
+    },
     setSwing(value) {
       // The UI stores swing as a 0-100 percentage; the engine wants a 0-1
       // off-beat delay ratio (0 = straight).

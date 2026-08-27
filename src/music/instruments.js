@@ -15,7 +15,7 @@
 export const INSTRUMENTS = {
   "Glass bell": {
     motif: { oscillator: { type: "sine" }, envelope: { attack: 0.04, decay: 0.3, sustain: 0.22, release: 2.8 } },
-    harmony: { oscillator: { type: "sine" }, envelope: { attack: 1.3, decay: 1.5, sustain: 0.5, release: 4.5 } },
+    harmony: { oscillator: { type: "sine" }, envelope: { attack: 0.7, decay: 1.1, sustain: 0.3, release: 2.6 } },
     bass: {
       oscillator: { type: "sine" },
       envelope: { attack: 0.03, decay: 0.3, sustain: 0.24, release: 0.8 },
@@ -28,7 +28,7 @@ export const INSTRUMENTS = {
   },
   "Warm reed": {
     motif: { oscillator: { type: "square8" }, envelope: { attack: 0.12, decay: 0.22, sustain: 0.3, release: 1.8 } },
-    harmony: { oscillator: { type: "square8" }, envelope: { attack: 0.9, decay: 1.2, sustain: 0.45, release: 3.2 } },
+    harmony: { oscillator: { type: "square8" }, envelope: { attack: 0.8, decay: 1.1, sustain: 0.3, release: 2.6 } },
     bass: {
       oscillator: { type: "square8" },
       envelope: { attack: 0.05, decay: 0.25, sustain: 0.26, release: 0.7 },
@@ -54,7 +54,7 @@ export const INSTRUMENTS = {
   },
   "Velvet pad": {
     motif: { oscillator: { type: "sawtooth" }, envelope: { attack: 0.5, decay: 0.6, sustain: 0.4, release: 3.4 } },
-    harmony: { oscillator: { type: "sawtooth" }, envelope: { attack: 1.8, decay: 1.4, sustain: 0.55, release: 5.2 } },
+    harmony: { oscillator: { type: "sawtooth" }, envelope: { attack: 1.4, decay: 1.3, sustain: 0.4, release: 3.4 } },
     bass: {
       oscillator: { type: "sawtooth" },
       envelope: { attack: 0.25, decay: 0.3, sustain: 0.3, release: 1.0 },
@@ -80,7 +80,7 @@ export const INSTRUMENTS = {
   },
   "Deep root": {
     motif: { oscillator: { type: "sine" }, envelope: { attack: 0.06, decay: 0.4, sustain: 0.3, release: 2.2 } },
-    harmony: { oscillator: { type: "sine" }, envelope: { attack: 1.5, decay: 1.6, sustain: 0.5, release: 4.8 } },
+    harmony: { oscillator: { type: "sine" }, envelope: { attack: 1.2, decay: 1.3, sustain: 0.35, release: 3.0 } },
     bass: {
       oscillator: { type: "sine" },
       envelope: { attack: 0.02, decay: 0.35, sustain: 0.34, release: 0.9 },

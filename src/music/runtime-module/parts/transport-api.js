@@ -20,26 +20,36 @@ let axisOverride = null;
 let driftRng = Math.random;
 
 function setup() {
+  const sp = score.space || { lead: 0.3, bed: 0.32, bass: 0.12, echo: 0.2 };
   const master = new Tone.Gain(0.74).toDestination();
   const limiter = new Tone.Limiter(-1).connect(master);
   const glue = new Tone.Compressor({ threshold: -20, ratio: 2.4, attack: 0.01, release: 0.25 }).connect(limiter);
   const reverb = new Tone.Reverb({ decay: 5.5, preDelay: 0.08, wet: score.reverb / 100 }).connect(glue);
   const delay = new Tone.FeedbackDelay("8n.", 0.28).connect(reverb);
-  delay.wet.value = 0.26;
+  delay.wet.value = 0.25;
   const toneShaper = new Tone.Filter({ type: "lowpass", frequency: 7800 }).connect(glue);
-  // Slow subtle chorus widens the harmony/pad path; space sends let harmony
-  // and bass share the room with the plucks (mirror of master-chain.js).
+  // Slow subtle chorus widens the harmony/pad path; space sends let each role
+  // share the room as a controllable parallel tail (mirror of master-chain.js).
   const chorus = new Tone.Chorus({ frequency: 0.6, delayTime: 3.5, depth: 0.6, spread: 90, wet: 0.35 }).connect(toneShaper).start();
-  const motifBus = new Tone.Panner(-0.18).connect(delay);
+  // Dry stereo paths: the motif lands on the glue (clean + snappy), the
+  // harmony path keeps its chorus/shaper character, bass is dry with a whisper.
+  const motifBus = new Tone.Panner(-0.18).connect(glue);
   const harmonyBus = new Tone.Panner(0.18).connect(chorus);
-  const harmonySend = new Tone.Gain(0.4);
-  harmonyBus.connect(harmonySend);
-  harmonySend.connect(reverb);
   const bassBus = new Tone.Gain(1).connect(limiter);
-  const bassSend = new Tone.Gain(0.12);
+  // Per-role parallel space sends into the shared reverb (+ lead echo).
+  const leadSend = new Tone.Gain(sp.lead);
+  motifBus.connect(leadSend);
+  leadSend.connect(reverb);
+  const echoSend = new Tone.Gain(sp.echo);
+  motifBus.connect(echoSend);
+  echoSend.connect(delay);
+  const bedSend = new Tone.Gain(sp.bed);
+  harmonyBus.connect(bedSend);
+  bedSend.connect(reverb);
+  const bassSend = new Tone.Gain(sp.bass);
   bassBus.connect(bassSend);
   bassSend.connect(reverb);
-  nodes = { reverb, delay, glue, limiter, master, toneShaper, chorus, motifBus, harmonyBus, harmonySend, bassBus, bassSend };
+  nodes = { reverb, delay, glue, limiter, master, toneShaper, chorus, motifBus, harmonyBus, bassBus, leadSend, echoSend, bedSend, bassSend };
   drumExtras = [];
   voices = {};
   perfSteps = {};

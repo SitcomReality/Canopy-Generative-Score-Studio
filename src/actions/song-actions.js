@@ -56,6 +56,14 @@ export function createSongActions(store, host) {
       store.updateProject({ variationSeed: seed });
     },
 
+    // Per-role space/room sends (0..1) applied live to the master chain.
+    setSpace(patch) {
+      const fallback = { lead: 0.3, bed: 0.32, bass: 0.12, echo: 0.2 };
+      const space = { ...fallback, ...(store.get().project.space ?? {}), ...patch };
+      store.updateProject({ space });
+      host.engine?.setSpace(space);
+    },
+
     // Reshape how a context feels: its axis targets ease in at bar boundaries.
     setContextTarget(contextId, axis, value) {
       const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0.5));

@@ -11,8 +11,17 @@ export function initRefinePanel(store, actions) {
     humanize: createParameterSlider(document.getElementById("slider-humanize"), { label: "Human feel", low: "Exact", high: "Loose", onChange: (value) => actions.setParameter("humanize", value) }),
   };
   const sharedSliders = {
-    reverb: createParameterSlider(document.getElementById("slider-reverb"), { label: "Reverb space", low: "Close", high: "Vast", onChange: (value) => actions.setParameter("reverb", value) }),
-    swing: createParameterSlider(document.getElementById("slider-swing"), { label: "Rhythmic sway", low: "Straight", high: "Sway", onChange: (value) => actions.setParameter("swing", value) }),
+    reverb: createParameterSlider(document.getElementById("slider-reverb"), { label: "Room", low: "Close", high: "Vast", onChange: (value) => actions.setParameter("reverb", value) }),
+    swing: createParameterSlider(document.getElementById("slider-swing"), { label: "Sway", low: "Straight", high: "Sway", onChange: (value) => actions.setParameter("swing", value) }),
+  };
+  // Per-role space sends (0..1) into the shared reverb/echo. A role's send is a
+  // parallel tail — the voice keeps its dry path, so a low send stays clean and
+  // close while a high send pushes it into the room.
+  const spaceSliders = {
+    lead: createParameterSlider(document.getElementById("slider-lead-space"), { label: "Lead", low: "Tight", high: "Wide", onChange: (value) => actions.setSpace({ lead: value / 100 }) }),
+    bed: createParameterSlider(document.getElementById("slider-bed-space"), { label: "Bed", low: "Tight", high: "Wide", onChange: (value) => actions.setSpace({ bed: value / 100 }) }),
+    bass: createParameterSlider(document.getElementById("slider-bass-space"), { label: "Bass", low: "Tight", high: "Wide", onChange: (value) => actions.setSpace({ bass: value / 100 }) }),
+    echo: createParameterSlider(document.getElementById("slider-echo"), { label: "Echo", low: "Close", high: "Trailing", onChange: (value) => actions.setSpace({ echo: value / 100 }) }),
   };
   const journeyDepthSlider = createParameterSlider(document.getElementById("slider-depth"), { label: "Journey strength", low: "Subtle", high: "Dramatic", onChange: (value) => actions.setJourney({ depth: value }) });
 
@@ -64,6 +73,7 @@ export function initRefinePanel(store, actions) {
 
   function paintShared(project) {
     Object.keys(sharedSliders).forEach((key) => sharedSliders[key].set(project[key]));
+    Object.keys(spaceSliders).forEach((key) => spaceSliders[key].set(Math.round((project.space?.[key] ?? 0) * 100)));
     progressionSelect.value = project.progressionName;
     journeyShapeSelect.value = project.journey?.shape ?? "flat";
     journeyLengthSelect.value = String(project.journey?.length ?? 16);

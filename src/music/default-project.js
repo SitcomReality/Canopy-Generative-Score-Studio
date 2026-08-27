@@ -73,6 +73,13 @@ export const DEFAULT_CONTEXTS = CONTEXTS.map(({ id, name, targets }) => ({
 
 export const DEFAULT_BINDINGS = [];
 
+// Song-level space/room sends (0..1): how much of each pitched role rides the
+// shared reverb, and how much echo the lead carries. These are parallel sends —
+// pitched voices always keep a dry path into the glue/limiter, so the note
+// stays clean and the room is a controllable tail rather than the note itself
+// being drenched in delay+reverb.
+export const DEFAULT_SPACE = { lead: 0.3, bed: 0.32, bass: 0.12, echo: 0.2 };
+
 export const DEFAULT_LAYERS = [
   {
     id: "chords",
@@ -187,6 +194,7 @@ export const DEFAULT_PROJECT = {
   progressionName: "Open sky",
   reverb: 64,
   swing: 8,
+  space: DEFAULT_SPACE,
   journey: { shape: "flat", length: 16, depth: 35 },
   variationSeed: 0,
   axes: AXES,
@@ -340,6 +348,19 @@ function sanitizeJourney(value) {
     shape: JOURNEY_SHAPES.includes(raw.shape) ? raw.shape : DEFAULT_PROJECT.journey.shape,
     length: clampInt(raw.length, 4, 64, DEFAULT_PROJECT.journey.length),
     depth: clampPercent(raw.depth, DEFAULT_PROJECT.journey.depth),
+  };
+}
+
+// Per-role space sends. Unknown/missing keys fall back to the close-and-clean
+// defaults so a consumed runtime with an older/newer score always has a value.
+function sanitizeSpace(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  const send = (key, fallback) => clamp01(raw[key], fallback);
+  return {
+    lead: send("lead", DEFAULT_SPACE.lead),
+    bed: send("bed", DEFAULT_SPACE.bed),
+    bass: send("bass", DEFAULT_SPACE.bass),
+    echo: send("echo", DEFAULT_SPACE.echo),
   };
 }
 
@@ -497,6 +518,7 @@ export function hydrateProject(value) {
         : DEFAULT_PROJECT.progressionName,
     reverb: clampPercent(source.reverb, DEFAULT_PROJECT.reverb),
     swing: clampPercent(source.swing, DEFAULT_PROJECT.swing),
+    space: sanitizeSpace(source.space),
     journey: sanitizeJourney(source.journey),
     axes: sanitizeAxes(source.axes),
     contexts: sanitizeContexts(source.contexts),

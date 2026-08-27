@@ -89,6 +89,14 @@
 .bank-tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--bank-c); box-shadow: 0 0 6px var(--bank-c); }
 .song-controls { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
 
+/* The Room bank holds more controls (room size + echo + per-role sends + sway),
+   so pack its sliders into a tight multi-column grid with compact labels. */
+.song-group[data-bank="room"] .song-controls { grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 8px 10px; }
+.song-group[data-bank="room"] .parameter-slider { height: 34px; }
+.song-group[data-bank="room"] .parameter-slider > span { width: auto; flex: none; gap: 6px; }
+.song-group[data-bank="room"] .parameter-slider > span strong { white-space: nowrap; }
+.song-group[data-bank="room"] .parameter-slider > span b { min-width: 30px; text-align: right; }
+
 /* Journey strip: sparkline of the long-form energy curve + playhead. */
 #journey-strip { flex: none; height: 26px; border: 1px solid var(--line); background: var(--surface-2); }
 #journey-strip svg { display: block; width: 100%; height: 100%; }

@@ -58,16 +58,22 @@ styling and the shorter bar.
 (`layers-panel.js` / `default-project.js`); keep the schema field for
 migration.
 
-## Phase 2 — Sound quality (kill the drowning organ)
+## Phase 2 — Sound quality (kill the drowning organ) — DONE
 
-2a. Add a per-layer **Space / dry** control and a genuine dry path; stop forcing
-every motif voice through `delay → reverb` (`master-chain.js`).
+2a. Give pitched voices a **dry path** — the motif no longer routes through
+`delay → reverb`; it lands on the glue and carries the room only as a parallel
+tail (`master-chain.js`, mirrored in `runtime-module/parts/transport-api.js`).
 
-2b. Retune the harmony bed envelopes/timbres so it is not an endless organ pad
-(`instruments.js`) and cut its reverb send.
+2b. Retune the most organ-like **harmony** envelopes (`instruments.js`) so the
+bed decays instead of holding an endless chord, and cut its reverb send via the
+`space.bed` default.
 
-2c. Expose Reverb amount + character and per-role sends under the ROOM bank as
-understandable controls.
+2c. Add a song-level **`space`** config `{ lead, bed, bass, echo }` (schema-backed,
+defaulted, round-trips) and expose it in the ROOM bank as compact sliders: Room
+(reverb size), Lead / Bed / Bass (each role's parallel reverb send), Echo (lead
+trailing delay) and Sway (rhythm). Note: we used **song-level per-role sends**
+rather than per-layer for the first pass — cleaner, and matches "per-role sends
+as understandable controls".
 
 ## Phase 3 — Instruments as data + kinds/roles split
 
