@@ -88,13 +88,33 @@ away. Bumped `PROJECT_VERSION` to 6.
 voice family (synth/FM/pluck), waveform, ADSR, FM/pluck params, and the
 percussion kit; the layer instrument picker merges custom instruments.
 
-3c. **Split editor kind vs function + per-step percussion kits — PENDING.**
+3c. **Split editor kind vs function + per-step percussion — PENDING, DESIGN LOCKED.**
 Decouple a layer's *editor kind* (piano roll vs beat) from its *function*
-(harmony/motif/bass/rhythm) — the engine currently hard-codes `role -> kind`
-and voicing in `computeStepFrame`, so this needs a careful rewrite of the
-shared dynamics core (studio + runtime splice). Add per-step kit assignment on
-percussion layers (individual kick/hat/snare per step) and let fills reference
-the same pieces.
+(harmony/motif/bass/rhythm). For beat-kind layers, upgrade the step format to
+**hit lists** so percussion gets real complexity:
+
+```
+steps[i] = [ { "piece":"kick", "at":0 }, { "piece":"hat","at":0.5 } ]
+```
+- `piece` — a key into the **piece catalog** (`kick`, `rim`, `hat`, `hat-open`,
+  `snare`, `tom-hi`, `tom-lo`, `bongo-hi`, `bongo-lo`, `keyed`, `steel`, `shaker`).
+- `at` — onset within the 8th-note step as a fraction 0..1 (0 = on-beat,
+  0.5 = double-time, 0.25/0.75 = 16ths). Editor snaps to a per-cell subdivision
+  (1/2/4/8) but stores the fraction, so the format is grid-agnostic.
+- `vel` — optional per-hit velocity. `pitch` — optional scale degree (0..7) for
+  pitched pieces (toms/bongos/rim/keyed/steel), keeping them in the key.
+
+This applies to **all beat layers** (subdivision everywhere; `piece` is
+selected/ignored per layer). **Backward compatibility is intentionally dropped**
+for this update — old songs are not a priority and old-format migration code
+(`layersFromV1`, boolean-step hydration) should be removed.
+
+This is a **shared-dynamics-core rewrite** (studio `computeStepFrame` + the
+runtime splice + voice builders + the beat-cell editor) and can't be
+browser-verified from the dev environment, so it's deferred to a dedicated,
+carefully-verified pass rather than shipping mid-conversion. The piece catalog
+(`src/music/pieces.js`) was designed and reverted to keep the app in its current
+working state; rebuild it when implementing.
 
 ## Phase 4 — Complete the editable surface
 
