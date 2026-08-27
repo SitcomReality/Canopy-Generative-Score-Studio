@@ -503,13 +503,23 @@ function sanitizeActivity(value) {
   return best;
 }
 
-function sanitizeLayer(raw, index, usedIds) {
+function sanitizeLayer(raw, index, usedIds, instruments = {}) {
   const fallback = DEFAULT_LAYERS[index] ?? DEFAULT_LAYERS[1];
   const role = raw && raw.role in LAYER_ROLES ? raw.role : "motif";
   const kind = LAYER_ROLES[role].kind;
   let id = typeof raw?.id === "string" && raw.id ? raw.id : `layer-${index + 1}`;
   while (usedIds.has(id)) id = `${id}-x`;
   usedIds.add(id);
+  // A layer's instrument is either a built-in catalog preset name or the id of
+  // a song-owned custom instrument (project.instruments). Preserve a custom id
+  // so imported songs keep sounding their defined voice/kit; anything that is
+  // neither (a stray preset name, an unknown id, or a dropped instrument)
+  // falls back to the role's default preset.
+  const rawInstrument = typeof raw?.instrument === "string" && raw.instrument ? raw.instrument : null;
+  const instrument = rawInstrument &&
+    (INSTRUMENT_NAMES.includes(rawInstrument) || Object.hasOwn(instruments, rawInstrument))
+    ? rawInstrument
+    : fallback.instrument;
   return {
     id,
     name: typeof raw?.name === "string" && raw.name ? raw.name : fallback.name,
@@ -517,7 +527,7 @@ function sanitizeLayer(raw, index, usedIds) {
     role,
     color: typeof raw?.color === "string" && /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : fallback.color,
     muted: Boolean(raw?.muted),
-    instrument: INSTRUMENT_NAMES.includes(raw?.instrument) ? raw.instrument : fallback.instrument,
+    instrument,
     instrumentConfig:
       raw?.instrumentConfig !== undefined
         ? sanitizeInstrumentConfig(raw.instrumentConfig)
@@ -591,6 +601,7 @@ export function hydrateProject(value) {
   const scale = typeof source.scale === "string" && source.scale in SCALES ? source.scale : null;
   const rawLayers = Array.isArray(source.layers) && source.layers.length > 0 ? source.layers : null;
   const usedIds = new Set();
+  const instruments = sanitizeInstruments(source.instruments);
   return {
     version: PROJECT_VERSION,
     name: typeof source.name === "string" && source.name ? source.name : DEFAULT_PROJECT.name,
@@ -610,14 +621,14 @@ export function hydrateProject(value) {
     reverb: clampPercent(source.reverb, DEFAULT_PROJECT.reverb),
     swing: clampPercent(source.swing, DEFAULT_PROJECT.swing),
     space: sanitizeSpace(source.space),
-    instruments: sanitizeInstruments(source.instruments),
+    instruments,
     journey: sanitizeJourney(source.journey),
     axes: sanitizeAxes(source.axes),
     bindings: sanitizeBindings(source.bindings),
     sections: sanitizeSections(source.sections),
     variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
-      ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))
-      : DEFAULT_LAYERS.map((layer, index) => sanitizeLayer(layer, index, usedIds)),
+      ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds, instruments))
+      : DEFAULT_LAYERS.map((layer, index) => sanitizeLayer(layer, index, usedIds, instruments)),
   };
 }

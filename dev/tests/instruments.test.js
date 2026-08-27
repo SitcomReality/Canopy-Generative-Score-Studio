@@ -57,6 +57,32 @@ test("emitted runtime embeds per-layer overrides and their resolver", () => {
   assert.ok(engine.includes("resolveInstrumentConfig(layer, \"harmony\")"), "setup consumes resolved configs");
 });
 
+test("hydrateProject preserves a layer's custom-instrument id", () => {
+  const instruments = {
+    "my-bell": {
+      label: "My Bell",
+      voice: { voice: "fm", oscillator: { type: "sine" }, envelope: { attack: 0.1 } },
+      percussion: { kick: { pitchDecay: 0.03 }, hat: { noise: { type: "white" } } },
+    },
+  };
+  const project = hydrateProject({
+    instruments,
+    layers: [
+      { id: "melody", role: "motif", instrument: "my-bell", steps: [4, null, 6] },
+      { id: "perc", role: "percussion", instrument: "my-bell", steps: [[{ piece: "kick", at: 0 }]] },
+      { id: "chords", role: "harmony", instrument: "Warm reed", steps: [[{ at: 0 }]] },
+    ],
+  });
+  // A custom id that exists in the song's instruments is kept on the layer...
+  assert.equal(project.layers.find((l) => l.id === "melody").instrument, "my-bell");
+  // ...for pitched layers (the resolver finds the custom voice) ...
+  assert.equal(resolveInstrumentConfig(project.layers.find((l) => l.id === "melody"), "motif", project).voice, "fm");
+  // ...and for percussion layers (makeDrums finds the custom kit).
+  assert.equal(project.layers.find((l) => l.id === "perc").instrument, "my-bell");
+  // A catalog preset name is preserved as-is; an unknown id still falls back.
+  assert.equal(project.layers.find((l) => l.id === "chords").instrument, "Warm reed");
+});
+
 test("hydrateProject rejects unknown instruments", () => {
   const project = hydrateProject({ layers: [{ ...DEFAULT_LAYERS[0], id: "x", instrument: "Theremin" }] });
   assert.equal(project.layers[0].instrument, DEFAULT_LAYERS[0].instrument);
