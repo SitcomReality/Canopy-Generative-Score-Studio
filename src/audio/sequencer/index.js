@@ -118,9 +118,11 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
 
     const sounding = dispatchEvents({ score, voices, events: audible, time: when, lastTimes });
 
-    // One-shot flourish (v5): a queued game milestone plays across this bar
-    // via the lead voice, then resolves the context it narrates.
-    if (step === 0) {
+    // One-shot flourish (v5): a queued game milestone plays across the next
+    // bar via the lead voice and begins resolving the context it narrates at
+    // that same boundary (end of the current bar / start of the next), so the
+    // new character arrives promptly instead of a full bar later.
+    if (isBar) {
       const queued = store.get().flourishQueued;
       if (queued && FLOURISH_NAMES.includes(queued)) {
         const lead = firstVoiceOf("melody") ?? firstVoiceOf("chords");

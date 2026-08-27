@@ -110,6 +110,12 @@ endpoints revert instead of corrupting the engine lookup.
 are currently dormant schema (no consumer calls `bindingValue` yet) — add a
 minimal editor for completeness and/or wire it into the engine.
 
+**Flourish timing — DONE.** The studio sequencer only queued flourishes at
+`step === 0` while the runtime already fired at both bar boundaries
+(`step === 0 || step === 8`), so a preview flourish could lag ~2 bars. Now both
+fire at the next boundary and begin resolving the context there — trigger at the
+end of the current bar, transition at the start of the next.
+
 ## Phase 5 — Score-file format refactor
 
 - Studio exports **data-only** `export const score = {...}` (schema-versioned,
