@@ -90,11 +90,15 @@ steps arrays are padded/truncated to 16. A valid file round-trips losslessly.
 
 A layer's `steps` array always has exactly 16 entries:
 
-- **Degree layers** (roles `motif`; harmony/bass may hold degrees too after
-  conversion): each entry is a degree `0..7` or `null` for a rest.
-- **On/off layers** (roles `harmony`, `bass`, `percussion`): each entry is
-  `true` or `false`. Harmony hits sound the current chord once per hit;
-  bass sounds the chord root; percussion triggers kit voices.
+- **Degree layers** (role `motif`): each entry is a degree `0..7` or `null` for a
+  rest.
+- **Hit-list layers** (roles `harmony`, `bass`, `percussion`): each entry is an
+  **array of hits** `[{ piece, at, vel?, pitch? }]` (schema v8). `at` is the
+  onset fraction (0..1) within the 8th-note step (0 = on-beat, 0.5 = the
+  halfway 16th); empty `[]` is a rest. `piece` selects a kit catalog piece
+  (meaningful for `percussion`; for `harmony`/`bass` the role decides the voice
+  and `piece` is dropped). Harmony hits sound the current chord at that onset;
+  bass sounds the chord root; percussion triggers the named kit voice.
 
 ### Progression & chords
 
@@ -136,7 +140,7 @@ Each layer is one voice in the arrangement:
 Parameter semantics, precisely:
 
 - **density** — probability a written note actually sounds:
-  motif plays when `rng() < density/100 + 0.24`; on/off layers treat it via
+  motif plays when `rng() < density/100 + 0.24`; hit-list layers treat it via
   the composer/pattern tools rather than playback. Low values (< 40) feel
   airy and ambient; high values (> 70) feel busy and driven.
 - **variation** — two effects multiplied together: per-bar whole-phrase drift
@@ -172,14 +176,14 @@ Parameter semantics, precisely:
 ### Role → voice mapping
 
 - `motif` — polyphonic lead, fed through the delay send. Degree steps.
-- `harmony` — polyphonic pad/chords on the reverb bus. On/off steps; each hit
-  sounds the full current chord (long duration by default — automate it
-  shorter for pulsing beds).
-- `bass` — monophonic low voice, dry and centered. On/off steps sounding the
-  chord root at octave 2.
-- `percussion` — a drum kit (§4). On/off steps: downbeats (steps ≡ 0 mod 4)
-  fire the kick, other active steps fire the hat; fills add kicks, snares
-  and rolls.
+- `harmony` — polyphonic pad/chords on the reverb bus. Hit-list steps; each hit
+  sounds the full current chord at its onset (long duration by default — automate
+  it shorter for pulsing beds, or place more than one hit per step for a pulsing
+  rhythm).
+- `bass` — monophonic low voice, dry and centered. Hit-list steps sounding the
+  chord root at octave 2 (on-beat by default; place `at` hits for syncopation).
+- `percussion` — a drum kit (§4). Hit-list steps name the kit piece; fills add
+  kicks, snares and rolls on top.
 
 Any instrument works on any role (every preset defines all four voices), but
 voicing quality varies — see the pairing hints in §4.
@@ -209,12 +213,13 @@ Internally a preset carries a config per role: default voices are
 
 Percussion config per preset includes a `MembraneSynth` kick, a noise hat
 (optionally high-passed via `hatFilter`), and optionally a band-passed snare
-(`snare`, `snareFilter`). Presets without a snare route fill accents to the
-hat instead.
+(`snare`, `snareFilter`). From these the kit augments a tuneable membrane voice
+for toms/bongos, a pitched metallic voice for keyed/steel/rim, and open-hat +
+shaker noise voices; presets without a snare route snare hits to the hat instead.
 
 ---
 
-## 5. Reactive dynamics (the v7 core)
+## 5. Reactive dynamics (the v8 core)
 
 All reactive state flows one way: **setGameAxes target → eased live axes →
 parameters/events**, resolved per step inside `computeStepFrame()`
@@ -357,13 +362,17 @@ Recognized params and sane ranges:
 
 | Param | Applies to | Domain guidance |
 |---|---|---|
-| `velocity` | all pitched + kick/hat/snare | 0..1 (keep ≤ 0.7) |
+| `velocity` | all pitched + every kit piece | 0..1 (keep ≤ 0.7) |
 | `duration` | chords/motif/bass | `"1m"`,`"2n"`,`"4n"`,`"8n"` |
 | `density` | motif | 0..1 |
 | `octave` | motif | e.g. `[4, 5]` |
 | `kickProps` | percussion kick pitch+velocity | objects `{midi, vel}` |
 | `kick.velocity` / `hat.velocity` / `snare.velocity` | percussion | 0..1 |
 | `hat.variation` | percussion | 0..1 chance of extra hats |
+
+Kit pieces are the catalog keys `kick/rim/hat/hat-open/snare/tom-hi/tom-lo/
+bongo-hi/bongo-lo/keyed/steel/shaker` (`src/music/pieces.js`). Per-hit `vel`/
+`pitch` override the piece default and the in-key degree for pitched pieces.
 
 Defaults when unautomated: velocity 0.22–0.3 (chords), 0.4 (motif),
 0.45 (bass), 0.25 (kick), 0.16 (hat); durations `"1m"`/`"4n"`/`"16n"`.
@@ -388,25 +397,26 @@ boundaries musically.
 1. **Choose key/scale/tempo** — Major/Lydian for light, Dorian for ancient,
    Minor for shadowed; 64–84 BPM sits well under gameplay.
 2. **Pick a progression** (preset names or your own 4 degrees).
-3. **Write the harmony bed** — on/off steps, classically on steps 0/4/8/12.
+3. **Write the harmony bed** — hit-list steps, classically a hit on steps 0/4/8/12.
    Automate duration shorter (`["1m","2n"]`) for movement.
 4. **Write the motif** — degree steps with anchors at 0 and 15; contour by
    step (neighbors) rather than leaps; give it air with `null`s (3–6 rests
    per 16). Set variation 25–40, humanize 10–20, density 50–65.
-5. **Ground it** — bass on/off steps aligned with chord changes; automate
+5. **Ground it** — bass hit-list steps aligned with chord changes; automate
    velocity up by intensity.
-6. **Add rhythm** — kick-weighted pattern (downbeats true, some syncopation);
-   set `activity` intensity ≥ 0.35; add fills with staggered thresholds
-   (0.5 for accents, 0.7 for rolls). Give it `restWindow` 4–8.
+6. **Add rhythm** — kick-weighted hit list (kick on the downbeats, some
+   syncopation with `at` offsets, plus hats/secondary pieces); set `activity`
+   intensity ≥ 0.35; add fills with staggered thresholds (0.5 for accents, 0.7
+   for rolls). Give it `restWindow` 4–8.
 7. **Shape axes/journey/verses** — set per-layer activity/fills/automation so
    the song reacts across the axis space (explore sparse at low intensity,
    full-band at high), add bounds/levels for atmosphere, choose journey
    arc/tide with moderate depth, and add two or more sections with layer
    drop-in/out for verse variety. Set a non-zero seed if the game build must
    replay identically.
-8. **Validate mentally against hydration**: instrument names exact, degrees
-   0–7/null, bools for on/off layers, 4-entry progression of 0–6, domains
-   well-formed.
+8. **Validate mentally against hydration**: instrument names exact, motif
+   degrees 0–7/null, hit-list steps for the other roles, 4-entry progression
+   of 0–6, domains well-formed.
 
 ## 7. Complete example song
 
@@ -416,7 +426,7 @@ chorus moments.
 
 ```json
 {
-  "version": 7,
+  "version": 8,
   "name": "Vineheart Hollow",
   "bpm": 72,
   "key": "D",
@@ -462,7 +472,7 @@ chorus moments.
         { "param": "velocity", "axis": "intensity", "domain": [0.22, 0.32] },
         { "param": "duration", "axis": "intensity", "domain": ["1m", "2n"] }
       ],
-      "steps": [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false]
+      "steps": [ [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [] ]
     },
     {
       "id": "melody",
@@ -512,7 +522,7 @@ chorus moments.
         { "param": "velocity", "axis": "intensity", "domain": [0.32, 0.56] },
         { "param": "duration", "axis": "intensity", "domain": ["4n", "8n"] }
       ],
-      "steps": [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false]
+      "steps": [ [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [], [ { "at": 0 } ], [], [], [] ]
     },
     {
       "id": "percussion",
@@ -539,7 +549,12 @@ chorus moments.
         { "param": "hat.variation", "axis": "intensity", "domain": [0.0, 0.3] },
         { "param": "snare.velocity", "axis": "intensity", "domain": [0.28, 0.5] }
       ],
-      "steps": [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false]
+      "steps": [
+        [ { "piece": "kick", "at": 0 } ], [], [], [ { "piece": "hat", "at": 0 } ],
+        [ { "piece": "kick", "at": 0 } ], [], [ { "piece": "hat", "at": 0 } ], [],
+        [ { "piece": "kick", "at": 0 } ], [], [], [ { "piece": "hat", "at": 0 } ],
+        [ { "piece": "kick", "at": 0 } ], [], [ { "piece": "hat", "at": 0 } ], []
+      ]
     }
   ]
 }

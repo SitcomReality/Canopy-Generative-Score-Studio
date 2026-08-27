@@ -2,7 +2,7 @@
 
 How to drop an exported `.score.js` into a web game and drive its adaptive
 behavior. This is the counterpart to `songAuthoringGuide.md` (how songs are
-authored) and `dynamicsConvention.md` (the formal v7 reactive contract). It is
+authored) and `dynamicsConvention.md` (the formal v8 reactive contract). It is
 written so it can be handed to an LLM or a developer who has never seen the
 Canopy studio.
 
@@ -181,7 +181,7 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
 - Because transitions are bar-quantized, automated tests should advance time
   in whole bars (or stub `Tone.getTransport()`) when asserting axis changes.
 
-## 7. Known limits (as of schema v7)
+## 7. Known limits (as of schema v8)
 
 - Axes are not a per-frame fader: `setGameAxes` eases in at bar boundaries.
   Steer a target, not a per-tick value.
@@ -189,6 +189,10 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
   old v4 song sped up with intensity, re-export it: intensity now expresses
   itself through loudness, density, percussion and the shared atmosphere.
 - There is no one-shot flourish API anymore (removed in v7) — play your own SFX.
+- The exported score data is **schema v8**: beat layers carry a per-step hit
+  list (`steps[i] = [{ piece, at, vel?, pitch? }]`). Regenerate any `.score.js`
+  exported from a v7 (boolean-step) project — old files won't interpret the
+  new format.
 - One score instance per page is the supported shape (module-level state).
 - No pause/resume in the public API (see §4 for workarounds).
 - The runtime cannot load external samples; all sounds are synthesized, so

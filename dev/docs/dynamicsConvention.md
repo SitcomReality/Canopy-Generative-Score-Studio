@@ -1,8 +1,8 @@
-# Reactive Dynamics Convention (schema v7)
+# Reactive Dynamics Convention (schema v8)
 
 This is the **shared import/export contract** between Canopy and the games that
 consume its music. It answers "how does the music *react*", not just "what does
-it play". The `version: 7` project JSON carries both the composed material
+it play". The `version: 8` project JSON carries both the composed material
 (layers, steps, key/scale, progression) and the *rules* the playback engine uses
 to adapt.
 
@@ -38,7 +38,7 @@ what a "state" means and sets the axes directly.
 
 ```jsonc
 {
-  "version": 7,
+  "version": 8,
   "bpm": 76,
   "key": "D",
   "scale": "Lydian",
@@ -56,7 +56,7 @@ what a "state" means and sets the axes directly.
   "layers": [
     {
       "id": "percussion", "role": "percussion", "instrument": "Soft pluck",
-      "steps": [true, "..."],
+      "steps": [ [ { "piece": "kick", "at": 0 } ], [], [] ],
       "level": 0,                     // static trim in dB (-24..6), default 0
       "activity": { "axis": "intensity", "range": [0.35, 1] },
       "fills": [
@@ -101,6 +101,35 @@ an axis onto one of these targets:
   baseline, so an added binding never drags the rest of the mix with it.
 - `target` is only meaningful for the six atmosphere params above. Any other
   target is inert, and a `tempo.offset` target is dropped on hydration.
+
+## Beat-layer steps (hit lists)
+
+From schema v8 every non-degree layer (`harmony`, `bass`, `percussion`) stores
+a **per-step hit list** instead of a boolean on/off grid:
+
+```jsonc
+"steps": [
+  [ { "piece": "kick", "at": 0, "vel": 0.8 }, { "piece": "hat", "at": 0.5 } ],
+  [],
+  [ { "piece": "tom-hi", "at": 0.25, "pitch": 4 } ]
+]
+```
+
+- `piece` — a key into the **kit catalog** (`src/music/pieces.js`): `kick`, `rim`,
+  `hat`, `hat-open`, `snare`, `tom-hi`, `tom-lo`, `bongo-hi`, `bongo-lo`,
+  `keyed`, `steel`, `shaker`. Meaningful only for `percussion`; for
+  `harmony`/`bass` the layer's role decides the voice and `piece` is dropped.
+- `at` — onset as a fraction of the 8th-note step (0 = on-beat, 0.5 = the
+  halfway 16th, 0.25/0.75 = 16ths). Grid-agnostic: the editor snaps to a
+  1/2/4/8 subdivision but stores the fraction.
+- `vel` — optional per-hit velocity (0..1; else the piece default).
+- `pitch` — optional scale **degree** (0..7) for the pitched pieces
+  (toms/bongos/rim/keyed/steel). Mapped through the song's scale, so these stay
+  in-key (harmony guard).
+
+Reactive fills and rolls still reference the same kit, so a flair never sounds
+like an unrelated glitch: `computeStepFrame` emits one routed event per authored
+piece (positioned by `at`), and fills/rolls/hat-variation layer on top.
 
 ## Verses (sections)
 
@@ -149,11 +178,12 @@ boundary — transitions are smooth, not snap cuts, always at bar boundaries
 (musical, never mid-chord). The game triggers its own one-shot SFX; the engine
 has no flourish API.
 
-## Migration from v4/v5/v6
+## Migration from v4/v5/v6/v7
 
-Hydration accepts older projects directly:
+Hydration accepts older projects directly (schema v8 intentionally drops
+backward compatibility for the old boolean-step / flat-v1 format):
 
-- `version` becomes 7;
+- `version` becomes 8;
 - every layer gains `level: 0` (if absent) and keeps `sections`/`bindings`;
 - the legacy `contexts` presets and `flourishes` overrides are **dropped** (no
   built-in states / one-shot events from v7 on);

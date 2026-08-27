@@ -88,7 +88,7 @@ away. Bumped `PROJECT_VERSION` to 6.
 voice family (synth/FM/pluck), waveform, ADSR, FM/pluck params, and the
 percussion kit; the layer instrument picker merges custom instruments.
 
-3c. **Split editor kind vs function + per-step percussion — PENDING, DESIGN LOCKED.**
+3c. **Split editor kind vs function + per-step percussion — DONE (schema v8).**
 Decouple a layer's *editor kind* (piano roll vs beat) from its *function*
 (harmony/motif/bass/rhythm). For beat-kind layers, upgrade the step format to
 **hit lists** so percussion gets real complexity:
@@ -107,14 +107,13 @@ steps[i] = [ { "piece":"kick", "at":0 }, { "piece":"hat","at":0.5 } ]
 This applies to **all beat layers** (subdivision everywhere; `piece` is
 selected/ignored per layer). **Backward compatibility is intentionally dropped**
 for this update — old songs are not a priority and old-format migration code
-(`layersFromV1`, boolean-step hydration) should be removed.
+(`layersFromV1`, boolean-step hydration) was removed.
 
-This is a **shared-dynamics-core rewrite** (studio `computeStepFrame` + the
-runtime splice + voice builders + the beat-cell editor) and can't be
-browser-verified from the dev environment, so it's deferred to a dedicated,
-carefully-verified pass rather than shipping mid-conversion. The piece catalog
-(`src/music/pieces.js`) was designed and reverted to keep the app in its current
-working state; rebuild it when implementing.
+The **shared-dynamics-core rewrite** landed in one pass (studio
+`computeStepFrame` + the runtime splice + the piece-catalog voice builders +
+the beat-cell editor). The piece catalog lives at (`src/music/pieces.js`) and is
+spliced into the exported engine alongside the dynamics core. Fills/rolls still
+reference the same kit so flairs don't sound like unrelated glitches.
 
 ## Phase 4 — Complete the editable surface
 
@@ -178,10 +177,10 @@ SFX and nudge the axes instead.
   song group. The Shared Atmosphere panel is a "Score" bank group with an inline
   bindings editor per param.
 - **Dynamics core**: removed `contextTargets`, `FLOURISH_NAMES`, `flourishEvents`.
-- **Percussion hit-format rewrite** (Phase 3c) and **song-level `bindings`
-  editor (Phase 4b)** are now closed by Phase 7's atmosphere-panel bindings
-  editor. The one still-open item is the **percussion hit-format rewrite**
-  (per-step hits + full kit), still deferred to a dedicated pass.
+- **Song-level `bindings` editor (Phase 4b)** is closed by Phase 7's
+  atmosphere-panel bindings editor. The **percussion hit-format rewrite**
+  (Phase 3c, per-step hits + full kit) is DONE in **schema v8** — see Phase 3c.
+  With that, every roadmap phase is complete.
 
 ## Recommended execution order
 
