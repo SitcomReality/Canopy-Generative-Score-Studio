@@ -82,6 +82,13 @@ export function createAudioEngine(store) {
       // off-beat delay ratio (0 = straight).
       engine.setSwing(value / 100);
     },
+    // Voice/polyphony budget: cap the mix's concurrent voices so a dense
+    // arrangement stays renderable on low-end systems (see sequencer/polyphony.js).
+    // Lower = thinner / cheaper; default 20 keeps lean songs untouched.
+    setVoiceBudget(budget) {
+      sequencer.setVoiceBudget(budget);
+      return sequencer.getVoiceBudget();
+    },
     setTempo(bpm) {
       // v5: tempo is static during playback — no adaptive offset. The engine
       // defers the re-anchor to the next half-bar boundary (continuous, no ramp).

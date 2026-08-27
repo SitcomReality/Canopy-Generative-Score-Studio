@@ -7,6 +7,13 @@ import { resolveInstrumentConfig } from "../music/instrument-override.js";
 // Per-kind base loudness in dB for pitched voices.
 export const ROLE_VOLUME = { melody: -9, chords: -13, bass: -11 };
 
+// A bounded per-layer PolySynth voice cap so no pitched layer can strand a huge
+// pool of simultaneous voices. Tone's default is 32; bounding it keeps a dense
+// layer's active voices in check (it steals the oldest masked note instead of
+// growing), which is friendlier to low-end systems. The global mix budget lives
+// in audio/sequencer/polyphony.js; this is the per-layer safety bound.
+const POLYPHONY_CAP = { melody: 16, chords: 12, bass: 1 };
+
 // Build a pitched voice from a role config: a plain PolySynth(Tone.Synth)
 // unless the preset declares `voice: "fm"` (PolySynth(FMSynth)) or
 // `voice: "pluck"` (Karplus-strong PluckSynth).
@@ -17,9 +24,11 @@ export function makePitched(roleKey, cfg) {
     return synth;
   }
   if (voice === "fm") {
-    return new Tone.PolySynth(Tone.FMSynth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+    return new Tone.PolySynth(Tone.FMSynth)
+      .set({ ...options, volume: ROLE_VOLUME[roleKey], maxPolyphony: POLYPHONY_CAP[roleKey] ?? 16 });
   }
-  return new Tone.PolySynth(Tone.Synth).set({ ...options, volume: ROLE_VOLUME[roleKey] });
+  return new Tone.PolySynth(Tone.Synth)
+    .set({ ...options, volume: ROLE_VOLUME[roleKey], maxPolyphony: POLYPHONY_CAP[roleKey] ?? 16 });
 }
 
 // Build the percussion kit for one layer. Targets decide where each drum

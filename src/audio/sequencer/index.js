@@ -19,6 +19,13 @@ import {
 import { applyBarStart, applyPhraseDrift } from "./arrangement.js";
 import { dispatchEvents } from "./event-dispatch.js";
 import { playFlourish } from "./flourish.js";
+import {
+  noteVoices,
+  noteDurSec,
+  roleOfLayer,
+  activeVoiceCost,
+  thinByBudget,
+} from "./polyphony.js";
 
 export function createSequencer({ store, voices, perfSteps, engine }) {
   // Long-form arrangement state: absolute bar count for the journey curve,
@@ -35,6 +42,14 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
   // Per-voice last absolute start time, so the dispatch layer can enforce
   // Tone's strict-increase rule across every step (see ./event-dispatch.js).
   const lastTimes = {};
+  // Voice budget: cap the number of simultaneous voices sustained by the mix so
+  // a dense arrangement stays renderable on low-end machines. When a step would
+  // push concurrent voices past `voiceBudget`, the lowest-priority events (fills,
+  // ghost hats) are dropped first; structural downbeats/bass/harmony survive.
+  // Deterministic given a fixed budget (thinning happens AFTER computeStepFrame,
+  // so the seeded RNG stream is untouched).
+  let voiceBudget = 20; // concurrent voices; tuned per-song/platform via setVoiceBudget
+  const active = []; // { end: number, cost: number } for currently-sustaining voices
 
   const firstVoiceOf = (kind) =>
     store.get().project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
@@ -88,7 +103,19 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
     // GATE at the emission boundary: mute/solo filter whether an event hands
     // off to its voice. Generation (computeStepFrame) was unconditional, so a
     // muted layer's RNG stream is intact; only realization is skipped.
-    const audible = events.filter((ev) => engine.isLayerAudible(ev.layerId));
+    let audible = events.filter((ev) => engine.isLayerAudible(ev.layerId));
+
+    // VOICE BUDGET: retire voices that have finished, then thin this step's
+    // events so concurrent voices stay under the budget. Dropping happens after
+    // the RNG draw (mute/RNG-neutral), so a fixed budget stays deterministic.
+    for (let i = active.length - 1; i >= 0; i -= 1) {
+      if (active[i].end <= when) active.splice(i, 1);
+    }
+    audible = thinByBudget(audible, activeVoiceCost(active), voiceBudget, (layerId) => roleOfLayer(score, layerId));
+    for (const ev of audible) {
+      active.push({ end: when + noteDurSec(ev.duration, score.bpm), cost: noteVoices(ev) });
+    }
+
     const sounding = dispatchEvents({ score, voices, events: audible, time: when, lastTimes });
 
     // One-shot flourish (v5): a queued game milestone plays across this bar
@@ -129,11 +156,18 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
     setDriftRng(rng) {
       driftRng = rng;
     },
+    setVoiceBudget(budget) {
+      voiceBudget = Math.max(1, budget);
+    },
+    getVoiceBudget() {
+      return voiceBudget;
+    },
     // Discard all arrangement/drift state so the next playback starts from
     // the score as written.
     reset() {
       barCount = 0;
       driftRng = Math.random;
+      active.length = 0;
       Object.keys(lastTimes).forEach((id) => delete lastTimes[id]);
       Object.keys(restCounter).forEach((id) => delete restCounter[id]);
       Object.keys(resting).forEach((id) => delete resting[id]);
