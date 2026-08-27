@@ -56,5 +56,32 @@ export function createReactiveActions(store) {
       });
       store.updateProject({ layers });
     },
+
+    // ---- automation mapping management -------------------------------
+    addLayerAutomation(layerId) {
+      const layers = store.get().project.layers.map((layer) =>
+        layer.id === layerId
+          ? { ...layer, automation: [...(layer.automation ?? []), { param: "velocity", axis: "intensity", domain: [0.3, 0.6] }] }
+          : layer);
+      store.updateProject({ layers });
+    },
+
+    setLayerAutomation(layerId, index, patch) {
+      const layers = store.get().project.layers.map((layer) => {
+        if (layer.id !== layerId || !layer.automation?.[index]) return layer;
+        const automation = layer.automation.map((entry, i) => (i === index ? { ...entry, ...patch } : entry));
+        return { ...layer, automation };
+      });
+      store.updateProject({ layers });
+    },
+
+    removeLayerAutomation(layerId, index) {
+      const layers = store.get().project.layers.map((layer) => {
+        if (layer.id !== layerId || !layer.automation?.[index]) return layer;
+        const automation = layer.automation.filter((_, i) => i !== index);
+        return { ...layer, automation };
+      });
+      store.updateProject({ layers });
+    },
   };
 }

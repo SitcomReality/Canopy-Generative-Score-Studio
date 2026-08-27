@@ -7,6 +7,42 @@ import { AXES } from "../music/default-project.js";
 const AXIS_IDS = Object.keys(AXES);
 const AXIS_LABEL = (id) => AXES[id]?.label ?? id;
 
+// Params the engine actually reads via automationLookup (see dynamics/step-frame.js).
+// Offered as a datalist for discoverability; free text is allowed so a layer can
+// target any param its kind reads, now or later.
+const AUTOMATION_PARAMS = [
+  "velocity",
+  "duration",
+  "density",
+  "octave",
+  "kickProps",
+  "kick.velocity",
+  "kick.pitch",
+  "hat.velocity",
+  "hat.variation",
+  "snare.velocity",
+];
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+// Parse a domain endpoint back into a number, object (JSON) or string.
+function parseDomainValue(raw) {
+  const trimmed = String(raw ?? "").trim();
+  if (trimmed === "") return null;
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
+function automationAt(project, layerId, index) {
+  return project.layers.find((layer) => layer.id === layerId)?.automation?.[index] ?? null;
+}
+
 export function initLayerReactive(store, actions) {
   const root = document.getElementById("layer-reactive");
   if (!root) return;
@@ -34,6 +70,32 @@ export function initLayerReactive(store, actions) {
     if (fillAxis) {
       actions.updateFill(layerId, Number(fillAxis.dataset.fillAxis), { axis: fillAxis.value });
     }
+    const autoParam = event.target.closest("[data-auto-param]");
+    if (autoParam) {
+      actions.setLayerAutomation(layerId, Number(autoParam.dataset.autoParam), { param: autoParam.value });
+    }
+    const autoAxis = event.target.closest("[data-auto-axis]");
+    if (autoAxis) {
+      actions.setLayerAutomation(layerId, Number(autoAxis.dataset.autoAxis), { axis: autoAxis.value });
+    }
+    const autoDomain = event.target.closest("[data-auto-domain]");
+    if (autoDomain) {
+      const [indexStr, whichStr] = autoDomain.dataset.autoDomain.split(":");
+      const index = Number(indexStr);
+      const entry = automationAt(store.get().project, layerId, index);
+      if (!entry) return;
+      const which = Number(whichStr);
+      const parsed = parseDomainValue(autoDomain.value);
+      // Empty input is a revert, not a null domain (a null endpoint would
+      // break the engine's domainValue lookup).
+      if (parsed === null) {
+        autoDomain.value = String(entry.domain[which]);
+        return;
+      }
+      const domain = [...entry.domain];
+      domain[which] = parsed;
+      actions.setLayerAutomation(layerId, index, { domain });
+    }
   });
 
   root.addEventListener("input", (event) => {
@@ -54,6 +116,10 @@ export function initLayerReactive(store, actions) {
       actions.removeFill(store.get().selectedTrack, Number(event.target.closest("[data-fill-remove]").dataset.fillRemove));
     } else if (event.target.closest("#add-fill-button")) {
       actions.addFill(store.get().selectedTrack);
+    } else if (event.target.closest("[data-auto-remove]")) {
+      actions.removeLayerAutomation(store.get().selectedTrack, Number(event.target.closest("[data-auto-remove]").dataset.autoRemove));
+    } else if (event.target.closest("#add-automation-button")) {
+      actions.addLayerAutomation(store.get().selectedTrack);
     }
   });
 
@@ -69,10 +135,6 @@ function activityOf(project, layerId) {
 
 function fillAt(project, layerId, index) {
   return project.layers.find((layer) => layer.id === layerId)?.fills?.[index] ?? null;
-}
-
-function summarizeDomain(domain) {
-  return domain.map((value) => (typeof value === "object" ? JSON.stringify(value) : String(value))).join(" → ");
 }
 
 function render(root, state) {
@@ -117,13 +179,30 @@ function render(root, state) {
             <i class="${fill.at.includes(step) ? " on" : ""}" data-fill-step="${step}" data-fill-index="${index}" title="Step ${step + 1}"></i>`).join("")}
         </div>
       </div>`).join("")}`;
+  const domainEndpoint = (value, index, which) =>
+    typeof value === "number"
+      ? `<input type="number" step="any" value="${value}" data-auto-domain="${index}:${which}" />`
+      : `<input type="text" value="${escapeHtml(typeof value === "object" ? JSON.stringify(value) : value)}" data-auto-domain="${index}:${which}" />`;
+
   const automationHtml = `
-    <div class="reactive-heading"><span>Automation</span></div>
+    <div class="reactive-heading">
+      <span>Automation</span>
+      <button id="add-automation-button" title="Add an axis-driven parameter mapping">Add</button>
+    </div>
     ${(layer.automation ?? []).length === 0
-      ? `<p class="reactive-empty">No automation mappings.</p>`
-      : `<ul class="automation-chips">${layer.automation.map((entry) =>
-          `<li title="${AXIS_LABEL(entry.axis)} drives ${entry.param} from ${summarizeDomain(entry.domain)}">${entry.param} ← ${AXIS_LABEL(entry.axis).toLowerCase()}</li>`).join("")}</ul>`}
-    <p class="reactive-hint">Automation domains are edited in the exported JSON for now.</p>`;
+      ? `<p class="reactive-empty">No automation mappings — add one to drive a parameter off a live axis.</p>`
+      : `<ul class="automation-list">${layer.automation.map((entry, index) => `
+        <li class="automation-row">
+          <div class="auto-top">
+            <input type="text" value="${escapeHtml(entry.param)}" list="automation-params" data-auto-param="${index}" title="Parameter this mapping drives" />
+            <button class="fill-remove" data-auto-remove="${index}" aria-label="Remove mapping"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+          </div>
+          <div class="auto-bottom">
+            <select data-auto-axis="${index}" title="Which live axis drives it">${AXIS_IDS.map((id) => `<option value="${id}"${entry.axis === id ? " selected" : ""}>${AXIS_LABEL(id)}</option>`).join("")}</select>
+            <span class="auto-domain" title="Domain (low → high)">${domainEndpoint(entry.domain[0], index, 0)}<i>→</i>${domainEndpoint(entry.domain[1], index, 1)}</span>
+          </div>
+        </li>`).join("")}</ul>`}
+    <datalist id="automation-params">${AUTOMATION_PARAMS.map((p) => `<option value="${p}"></option>`).join("")}</datalist>`;
 
   root.innerHTML = `
     <div class="reactive-heading"><span>Reactive</span></div>
