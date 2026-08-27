@@ -28,6 +28,7 @@ import {
   effectiveGate,
 } from "./core.js";
 import { createTimerService } from "./timer-service.js";
+import { createGovernor } from "./governor.js";
 
 const LOOKAHEAD = 0.1; // seconds of event window pushed ahead each tick
 const TICK_MS = 25; // coarse ticker cadence (rAF acceptable; interval used here)
@@ -54,6 +55,10 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   let stepSource = null; // { onEvents(frame), onPause() } | null
   let publisher = null; // (frame) => void, set by the host to publish UI position
   let initialWindow = false; // first tick after (re)anchor starts the window at the anchor
+  let onGovern = null; // (budget) => void, set by the host to apply adaptive thinning
+  // Adaptive voice budget: when a tick must catch up 2+ steps, the main thread
+  // is falling behind; shrink the budget so the mix thins itself under load.
+  const governor = createGovernor(20, { min: 8, max: 32 });
 
   // ---- audio-time source ------------------------------------------------
 
@@ -117,6 +122,20 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
       : renderWindow(t, LOOKAHEAD);
     initialWindow = false;
     const steps = dueSteps(baseline, win);
+
+    // Adaptive governor: a tick that must catch up 2+ steps means the main
+    // thread is behind the audio clock; suggest a tighter voice budget so the
+    // mix thins itself (see ./governor.js).
+    if (onGovern) {
+      const suggested = governor.observe(steps.length >= 2);
+      if (suggested !== null) {
+        try {
+          onGovern(suggested);
+        } catch (err) {
+          console.error("[timing] governor error:", err);
+        }
+      }
+    }
 
     for (const stepIndex of steps) {
       // Off-beat 8ths (odd steps) are delayed by the swing amount for a swung
@@ -207,6 +226,7 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     onBarBoundary = null;
     stepSource = null;
     publisher = null;
+    onGovern = null;
     timer.clear();
     gates.clear();
     soloedId = null;
@@ -264,6 +284,12 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     publisher = fn;
   }
 
+  // Register the adaptive voice-budget governor callback (the host adjusts the
+  // sequencer's budget). Pass null to disable adaptive thinning.
+  function setGovernor(fn) {
+    onGovern = fn;
+  }
+
   // ---- tempo / seek -----------------------------------------------------
 
   function setTempo(nextBpm) {
@@ -302,6 +328,7 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     registerStep,
     registerBarBoundary,
     attachPublisher,
+    setGovernor,
     isLayerAudible,
     setLayerEnabled,
     setLayerSolo,

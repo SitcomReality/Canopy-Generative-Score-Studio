@@ -48,6 +48,10 @@ export function createAudioEngine(store) {
   }
   const sequencer = createSequencer({ store, voices, perfSteps, engine });
   sequencer.attach();
+  // Adaptive voice budget: when the engine's tick loop falls behind the audio
+  // clock (a catch-up burst), it suggests a tighter budget; apply it to the
+  // sequencer so a dense mix thins itself to keep up on low-end machines.
+  engine.setGovernor((budget) => sequencer.setVoiceBudget(budget));
 
   const firstVoiceOf = (kind) => project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
 
