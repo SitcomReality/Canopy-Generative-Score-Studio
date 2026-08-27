@@ -95,20 +95,7 @@
         </div>
       </div>
       <div class="deck-live">
-        <div class="axis-meters" id="axis-meters" aria-label="Live reactive axes" title="The live axis values the engine eases toward the active context's targets"></div>
-        <strong id="context-status" aria-label="Live state status"></strong>
-        <div class="context-switcher" id="context-switcher"></div>
-        <label class="threat-control">
-          <span>Threat</span>
-          <input type="range" min="0" max="100" id="threat-slider" />
-          <strong id="threat-value">12%</strong>
-        </label>
-        <label class="ribbon-field">
-          <span>Flourish</span>
-          <select id="flourish-select"></select>
-        </label>
-        <button class="event-button" id="flourish-button"><i data-icon="flag" data-size="15"></i> <span id="flourish-label">Queue flourish</span></button>
-        <button class="event-button" id="edit-flourishes-button" title="Edit the song's one-shot flourishes"><i data-icon="pencil" data-size="13"></i></button>
+        <div class="axis-control" id="axis-control" aria-label="Reactive axis targets" title="Steer the three reactive axes — the studio equivalent of a game's setGameAxes call. The readout shows each axis' live value easing toward the slider."></div>
       </div>
     </section>
 
@@ -258,16 +245,6 @@
         </div>
       </div>
 
-      <div class="song-group" data-bank="live">
-        <header class="song-heading" title="Reactive dynamics: each context steers the three axes, and the engine derives tempo, density, velocity and more from them. Drag a slider to reshape how that context feels.">
-          <span class="kicker">Reactive axes</span>
-          <span class="bank-tag">Live</span>
-          <i data-icon="zap" data-size="14"></i>
-        </header>
-        <div class="context-targets" id="context-targets"></div>
-        <p class="binding-note">Tempo is static while playing (v5): intensity now expresses itself through loudness, density and percussion.</p>
-      </div>
-
       <div class="song-group" data-bank="score">
         <header class="song-heading" title="Arrangement sections (verses) that rotate at bar boundaries. Toggle which layers play in each; length is in bars.">
           <span class="kicker">Structure</span>
@@ -278,20 +255,13 @@
         <button class="event-button structure-edit-button" id="verse-edit-button" type="button"><i data-icon="pencil" data-size="13"></i> Edit verses</button>
       </div>
 
-      <div class="song-group" data-bank="room">
-        <header class="song-heading" title="The room: how much space the whole song shares. Room is the reverb size; Lead/Bed/Bass are each role's parallel reverb send; Echo is the lead's trailing delay; Sway is rhythmic. A low Lead send keeps it clean and close.">
+      <div class="song-group" data-bank="score">
+        <header class="song-heading" title="The atmosphere: how much space the whole song shares. Room is the reverb size; Lead/Bed/Bass are each role's parallel reverb send; Echo is the lead's trailing delay; Sway is rhythmic. Use Bind to drive any of these off a live axis.">
           <span class="kicker">Shared atmosphere</span>
-          <span class="bank-tag">Room</span>
+          <span class="bank-tag">Score</span>
           <i data-icon="sparkles" data-size="14"></i>
         </header>
-        <div class="song-controls">
-          <div id="slider-reverb"></div>
-          <div id="slider-lead-space"></div>
-          <div id="slider-bed-space"></div>
-          <div id="slider-bass-space"></div>
-          <div id="slider-echo"></div>
-          <div id="slider-swing"></div>
-        </div>
+        <div class="song-controls" id="shared-atmosphere-panel"></div>
       </div>
     </section>
 
@@ -323,18 +293,6 @@
         <div class="instrument-library" id="instrument-library"></div>
       </div>
     </div>
-
-    <!-- Flourish editor: tune the one-shot game milestone events. -->
-    <div class="structure-modal" id="flourish-modal" hidden>
-      <div class="structure-modal-card flourish-modal-card">
-        <header class="structure-modal-head">
-          <strong>Flourishes</strong>
-          <span class="structure-modal-hint">One-shot musical events a game triggers with musicEvent(). Each has degree (scale position), octave, at (beats into the bar), duration and velocity.</span>
-          <button class="structure-modal-close" id="flourish-modal-close" aria-label="Close flourish editor"><i data-icon="x" data-size="16"></i></button>
-        </header>
-        <div class="flourish-editor" id="flourish-editor"></div>
-      </div>
-    </div>
   </main>
 
   <main class="content-view runtime-view main-view" id="view-runtime" hidden>
@@ -360,26 +318,13 @@
               <button class="event-button" id="harness-stop" disabled>Stop</button>
               <button class="event-button" id="harness-dispose" disabled>Dispose</button>
             </div>
-            <label class="harness-state-row" title="Feeds setGameMusicState — the same call your game makes every frame">
-              <span>Threat</span>
-              <input type="range" min="0" max="100" value="0" id="harness-threat" />
-              <strong id="harness-threat-value">0%</strong>
-            </label>
-            <label class="harness-state-row" title="Feeds setGameMusicState({ inCombat: true })">
-              <span>In combat</span>
-              <input type="checkbox" id="harness-combat" />
-            </label>
-            <div class="harness-flourish-row" title="One-shot flourish calls; each plays across the next bar and resolves its context">
-              <span>musicEvent</span>
-              <div id="harness-flourishes"></div>
-            </div>
-            <div class="harness-flourish-row" title="setGameAxes — manual axis targets; eased in at bar boundaries instead of the context's targets until cleared">
+            <div class="harness-flourish-row" title="setGameAxes — manual axis targets; liveAxes eases toward them at each bar boundary until reset">
               <span>setGameAxes</span>
               <div class="harness-axes-override" id="harness-axes-override">
                 <label><span>Int</span><input type="range" min="0" max="100" value="50" data-harness-axis="intensity" /></label>
                 <label><span>Ten</span><input type="range" min="0" max="100" value="50" data-harness-axis="tension" /></label>
                 <label><span>Bri</span><input type="range" min="0" max="100" value="50" data-harness-axis="brightness" /></label>
-                <button type="button" class="event-button" id="harness-axes-clear">Follow context</button>
+                <button type="button" class="event-button" id="harness-axes-clear">Reset axes</button>
               </div>
             </div>
           </div>

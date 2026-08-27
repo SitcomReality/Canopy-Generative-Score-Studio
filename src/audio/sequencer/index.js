@@ -2,7 +2,7 @@
 // step source. Each step it reads the store's project, asks the shared
 // dynamics core which events sound, gates them (mute/solo) at the emission
 // boundary, triggers the layer voices, and applies bar-boundary arrangement
-// (./arrangement.js) and one-shot flourishes (./flourish.js).
+// (./arrangement.js).
 //
 // The sequencer is the engine's *step adapter*: it owns WHAT plays and HOW it
 // is realized, while the engine owns WHEN (the audio↔musical baseline, lookahead
@@ -11,14 +11,11 @@
 // audio clock, not accumulated here.
 import {
   computeStepFrame,
-  contextTargets,
   easeToward,
   orderEvents,
-  FLOURISH_NAMES,
 } from "../../music/dynamics.js";
 import { applyBarStart, applyPhraseDrift } from "./arrangement.js";
 import { dispatchEvents } from "./event-dispatch.js";
-import { playFlourish } from "./flourish.js";
 import {
   noteVoices,
   noteDurSec,
@@ -36,7 +33,7 @@ export function createSequencer({ store, voices, perfSteps, engine, applyAtmosph
   let sectionId = null;
   const restCounter = {};
   const resting = {};
-  // The live axis vector, eased toward the active context's targets each bar.
+  // The live axis vector, eased toward the store's target axes each bar.
   let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
   let driftRng = Math.random; // seeded via setDriftRng on play
   // Per-voice last absolute start time, so the dispatch layer can enforce
@@ -50,9 +47,6 @@ export function createSequencer({ store, voices, perfSteps, engine, applyAtmosph
   // so the seeded RNG stream is untouched).
   let voiceBudget = 20; // concurrent voices; tuned per-song/platform via setVoiceBudget
   const active = []; // { end: number, cost: number } for currently-sustaining voices
-
-  const firstVoiceOf = (kind) =>
-    store.get().project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
 
   function computeFeatures(score) {
     const features = {};
@@ -74,20 +68,16 @@ export function createSequencer({ store, voices, perfSteps, engine, applyAtmosph
   function onEvents(frame) {
     const { step, when, bar } = frame;
     const score = store.get().project;
-    let context = store.get().currentContext;
     const isBar = step === 0 || step === 8;
-    const queuedContext = store.get().queuedContext;
 
-    if (isBar && queuedContext) {
-      context = queuedContext;
-      store.set({ currentContext: context, queuedContext: null });
-    }
-
-    // Ease live axes toward the active context's targets every bar boundary.
-    // v5: bpm stays at the song's written tempo — intensity expresses itself
-    // through loudness, density, percussion and register instead.
+    // Ease live axes toward the studio's target axes every bar boundary.
+    // v7: the target is the axis vector the user/game steers directly — there
+    // are no built-in context presets anymore. bpm stays at the written tempo;
+    // intensity expresses itself through loudness, density, percussion, register
+    // and the shared atmosphere.
     if (isBar) {
-      liveAxes = easeToward(liveAxes, contextTargets(score, context), 0.5);
+      const target = store.get().targetAxes ?? liveAxes;
+      liveAxes = easeToward(liveAxes, target, 0.5);
       applyPhraseDrift({ score, perfSteps, rng: driftRng });
       // Song-level bindings -> shared atmosphere (reverb/space/swing). Applied
       // only to the params that have a binding; the rest keep the song's
@@ -121,20 +111,6 @@ export function createSequencer({ store, voices, perfSteps, engine, applyAtmosph
     }
 
     const sounding = dispatchEvents({ score, voices, events: audible, time: when, lastTimes });
-
-    // One-shot flourish (v5): a queued game milestone plays across the next
-    // bar via the lead voice and begins resolving the context it narrates at
-    // that same boundary (end of the current bar / start of the next), so the
-    // new character arrives promptly instead of a full bar later.
-    if (isBar) {
-      const queued = store.get().flourishQueued;
-      if (queued && FLOURISH_NAMES.includes(queued)) {
-        const lead = firstVoiceOf("melody") ?? firstVoiceOf("chords");
-        const resolve = playFlourish({ score, leadVoice: lead, time: when, name: queued });
-        store.set({ flourishQueued: null, currentContext: resolve, queuedContext: null });
-        liveAxes = easeToward(liveAxes, contextTargets(score, resolve), 1);
-      }
-    }
 
     publish(frame, isBar, sounding);
     void bar; // bar is already reflected via `barCount`; kept for the signature
@@ -180,7 +156,7 @@ export function createSequencer({ store, voices, perfSteps, engine, applyAtmosph
       for (const layer of store.get().project.layers) {
         if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
       }
-      store.set({ step: 0, sounding: [], perfSteps: { ...perfSteps }, bar: 0, sectionId: null, flourishQueued: null });
+      store.set({ step: 0, sounding: [], perfSteps: { ...perfSteps }, bar: 0, sectionId: null });
     },
   };
 }

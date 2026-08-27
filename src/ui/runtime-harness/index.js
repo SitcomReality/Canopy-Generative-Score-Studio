@@ -1,9 +1,9 @@
 // Runtime harness: loads the actual exported .score.js module in-page (blob
 // import with the vendored Tone UMD shimmed in) and drives it exclusively
-// through its public API — startScore/stopScore/disposeScore,
-// setGameMusicState, musicEvent — so what you hear is exactly what a game
-// consumes. Live state comes from the additive getRuntimeInfo() reader.
-// Painting lives in ./readout.js, control wiring in ./controls.js.
+// through its public API — startScore/stopScore/disposeScore/setGameAxes — so
+// what you hear is exactly what a game consumes. Live state comes from the
+// additive getRuntimeInfo() reader. Painting lives in ./readout.js, control
+// wiring in ./controls.js.
 import { runtimeModule, scoreEngineSource } from "../../music/runtime-module.js";
 import { safeFileName } from "../../utils/download.js";
 import { createToneShimUrl } from "../../utils/tone-shim.js";
@@ -23,10 +23,6 @@ export function initRuntimeHarness(store) {
     start: document.getElementById("harness-start"),
     stop: document.getElementById("harness-stop"),
     dispose: document.getElementById("harness-dispose"),
-    threat: document.getElementById("harness-threat"),
-    threatValue: document.getElementById("harness-threat-value"),
-    combat: document.getElementById("harness-combat"),
-    flourishes: document.getElementById("harness-flourishes"),
     axesOverride: document.getElementById("harness-axes-override"),
     axesClear: document.getElementById("harness-axes-clear"),
     core: document.getElementById("orbit-core"),
@@ -105,7 +101,6 @@ export function initRuntimeHarness(store) {
       return;
     }
     if (last) {
-      if (info.context !== last.context) log(`bar ${info.bar}: context → ${info.context}`);
       if (info.sectionId !== last.sectionId) log(`bar ${info.bar}: verse → ${info.sectionId ?? "(none)"}`);
       if (info.playing !== last.playing) log(info.playing ? "transport started" : "transport stopped");
     }

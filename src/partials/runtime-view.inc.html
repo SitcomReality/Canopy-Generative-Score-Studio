@@ -21,26 +21,13 @@
               <button class="event-button" id="harness-stop" disabled>Stop</button>
               <button class="event-button" id="harness-dispose" disabled>Dispose</button>
             </div>
-            <label class="harness-state-row" title="Feeds setGameMusicState — the same call your game makes every frame">
-              <span>Threat</span>
-              <input type="range" min="0" max="100" value="0" id="harness-threat" />
-              <strong id="harness-threat-value">0%</strong>
-            </label>
-            <label class="harness-state-row" title="Feeds setGameMusicState({ inCombat: true })">
-              <span>In combat</span>
-              <input type="checkbox" id="harness-combat" />
-            </label>
-            <div class="harness-flourish-row" title="One-shot flourish calls; each plays across the next bar and resolves its context">
-              <span>musicEvent</span>
-              <div id="harness-flourishes"></div>
-            </div>
-            <div class="harness-flourish-row" title="setGameAxes — manual axis targets; eased in at bar boundaries instead of the context's targets until cleared">
+            <div class="harness-flourish-row" title="setGameAxes — manual axis targets; liveAxes eases toward them at each bar boundary until reset">
               <span>setGameAxes</span>
               <div class="harness-axes-override" id="harness-axes-override">
                 <label><span>Int</span><input type="range" min="0" max="100" value="50" data-harness-axis="intensity" /></label>
                 <label><span>Ten</span><input type="range" min="0" max="100" value="50" data-harness-axis="tension" /></label>
                 <label><span>Bri</span><input type="range" min="0" max="100" value="50" data-harness-axis="brightness" /></label>
-                <button type="button" class="event-button" id="harness-axes-clear">Follow context</button>
+                <button type="button" class="event-button" id="harness-axes-clear">Reset axes</button>
               </div>
             </div>
           </div>

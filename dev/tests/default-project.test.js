@@ -135,7 +135,7 @@ test("JSON round-trip through hydrateProject is lossless", () => {
   assert.deepEqual(hydrateProject(round), DEFAULT_PROJECT);
 });
 
-test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/fills/automation", () => {
+test("v4 reactive fields hydrate: axes, bindings, per-layer activity/fills/automation", () => {
   const v3 = {
     version: 3,
     name: "Legacy",
@@ -150,11 +150,13 @@ test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/f
     layers: [{ id: "perc", name: "Drums", role: "percussion", instrument: "Soft pluck", density: 60, variation: 10, humanize: 5, restWindow: 0, energyRole: "recessive", steps: [true, false, false, false, true, false, true, false, true, false, true, false, true, false, true, false] }],
   };
   const hydrated = hydrateProject(v3);
-  // v3 -> v5: reactive fields get defaults, tempo bindings stay empty.
+  // v3 -> v7: reactive fields get defaults, tempo bindings stay empty, and the
+  // legacy context presets/flourish overrides are dropped on migration.
   assert.equal(hydrated.version, PROJECT_VERSION);
   assert.deepEqual(hydrated.axes, DEFAULT_PROJECT.axes);
   assert.deepEqual(hydrated.bindings, DEFAULT_PROJECT.bindings);
-  assert.deepEqual(hydrated.contexts, DEFAULT_PROJECT.contexts);
+  assert.ok(!("contexts" in hydrated));
+  assert.ok(!("flourishes" in hydrated));
   // Legacy v3 layer had no reactive fields -> defaults applied: activity/fills
   // stay null; automation defaults to the index-matched fallback layer's
   // automation (DEFAULT_LAYERS[0] = chords here), never undefined.
@@ -169,14 +171,14 @@ test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/f
   v4.bindings = [{ target: "tempo.offset", axis: "tension", domain: [0, 18] }];
   const again = hydrateProject(v4);
   assert.deepEqual(again.bindings, []);
-  assert.equal(again.version, 6);
+  assert.equal(again.version, 7);
   const perc = again.layers.find((l) => l.id === "percussion");
   assert.deepEqual(perc.activity, { axis: "intensity", range: [0.35, 1] });
   assert.ok(Array.isArray(perc.automation) && perc.automation.length > 0);
   assert.deepEqual(perc.fills, [{ at: [8, 11, 14], axis: "intensity", threshold: 0.4 }, { at: [12], axis: "intensity", threshold: 0.6 }]);
 });
 
-test("v5 expressive fields hydrate: layer level, sections, flourishes", () => {
+test("v5 expressive fields hydrate: layer level, sections; flourishes are dropped", () => {
   const project = hydrateProject({
     layers: [{ id: "melody", level: -3 }],
     sections: [
@@ -188,15 +190,13 @@ test("v5 expressive fields hydrate: layer level, sections, flourishes", () => {
       bogus: [{ degree: 0 }],
     },
   });
-  assert.equal(project.version, 6);
+  assert.equal(project.version, 7);
   assert.equal(project.layers[0].level, -3);
   assert.equal(project.sections.length, 2);
   assert.equal(project.sections[1].length, 16); // clamped to 1..16
   assert.deepEqual(project.sections[0].layers.melody, { gain: 2 });
   assert.deepEqual(project.sections[0].layers.percussion, { active: false });
   assert.equal(project.sections[1].layers.bass, undefined); // non-numeric gain dropped
-  // Out-of-range flourish values clamp into the harmony guard; unknown
-  // flourish names are dropped.
-  assert.deepEqual(project.flourishes.victory, [{ degree: 7, octave: 2, at: 3.75, dur: 0.05, vel: 1 }]);
-  assert.ok(!("bogus" in project.flourishes));
+  // v7 removes one-shot flourishes entirely — hydration silently drops them.
+  assert.ok(!("flourishes" in project));
 });

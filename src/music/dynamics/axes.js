@@ -19,15 +19,9 @@ export function domainValue(domain, value) {
   return domain[index];
 }
 
-// The axis target vector a context preset steers toward, from the project's
-// `contexts` array. Falls back to explore.
-export function contextTargets(project, contextId) {
-  const preset = (project.contexts ?? []).find((ctx) => ctx.id === contextId);
-  return preset ? { ...preset.targets } : { intensity: 0.3, tension: 0.25, brightness: 0.7 };
-}
-
 // One smoothing step of a live axis toward a target (hosts call this each bar
-// boundary; `rate` = transition speed). Returns a new axis vector.
+// boundary; `rate` = transition speed). Returns a new axis vector. The target
+// is the axis vector a game (or the studio's axis sliders) steers toward.
 export function easeToward(live, target, rate = 0.35) {
   const out = {};
   for (const key of ["intensity", "tension", "brightness"]) {

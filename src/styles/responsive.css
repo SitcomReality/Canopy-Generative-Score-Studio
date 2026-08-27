@@ -10,7 +10,6 @@
   .axis-meters { display: none; }
   .song-bar { height: auto; min-height: 120px; grid-template-columns: 1fr 1fr; grid-template-rows: none; max-height: 46vh; overflow-y: auto; }
   .song-group:nth-child(3) { border-left: 0; }
-  .deck-live > strong { display: none; }
 }
 
 @media (max-width: 1100px) {
@@ -40,7 +39,7 @@
 
   .song-bar { grid-template-columns: 1fr; max-height: none; }
   .song-group { overflow: visible; }
-  .verse-editor, .context-targets { overflow-y: visible; }
+  .verse-editor { overflow-y: visible; }
   .song-group + .song-group { border-left: 0; border-top: 1px solid var(--line); }
 
   .runtime-view { padding-left: 24px; padding-right: 24px; }

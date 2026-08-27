@@ -12,16 +12,16 @@ import { createTabActions } from "./ui/tab-actions.js";
 import { mountIcons } from "./ui/icons.js";
 import { initHeader } from "./ui/header.js";
 import { initTransportBar } from "./ui/transport-bar.js";
-import { initContextRibbon } from "./ui/context-ribbon.js";
+import { initAxisControl } from "./ui/axis-control.js";
 import { initLayersPanel } from "./ui/layers-panel.js";
 import { initSequencePanel } from "./ui/sequence-panel.js";
 import { initRefinePanel } from "./ui/refine-panel.js";
 import { initInstrumentEditor } from "./ui/instrument-editor.js";
 import { initInstrumentLibrary } from "./ui/instrument-library.js";
-import { initFlourishEditor } from "./ui/flourish-editor.js";
 import { initLayersOverview } from "./ui/layers-overview.js";
 import { initJourneyStrip } from "./ui/journey-strip.js";
 import { initDynamicsPanel } from "./ui/dynamics-panel.js";
+import { initAtmospherePanel } from "./ui/atmosphere-panel.js";
 import { initLayerReactive } from "./ui/layer-reactive.js";
 import { initRuntimeHarness } from "./ui/runtime-harness.js";
 
@@ -38,19 +38,19 @@ const actions = {
 
 initHeader(store, actions);
 initTransportBar(store, actions);
-initContextRibbon(store, actions);
+initAxisControl(store, actions);
 initLayersPanel(store, actions);
 initLayersOverview(store, actions);
 initSequencePanel(store, actions);
 initRefinePanel(store, actions);
 initInstrumentEditor(store, actions);
 initInstrumentLibrary(store, actions);
-initFlourishEditor(store, actions);
 initJourneyStrip(store);
 initDynamicsPanel(store, actions);
+initAtmospherePanel(store, actions);
 initLayerReactive(store, actions);
 initRuntimeHarness(store);
 mountIcons(document);
 
-// While playing, the audio engine writes step/context/victory changes
-// straight into the store; each view reacts through its own subscription.
+// While playing, the audio engine writes step/verse changes straight into the
+// store; each view reacts through its own subscription.

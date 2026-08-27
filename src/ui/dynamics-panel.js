@@ -1,13 +1,10 @@
-// Reactive dynamics panel: live axis meters in the deck plus editors for the
-// song-level reactive schema — per-context axis targets and v5 verses.
+// Dynamics panel: editors for the song-level reactive schema — v5 verses
+// (sections) and the structure strip. The axis sliders now live in the deck
+// (ui/axis-control.js), and the shared-atmosphere bindings in the song bar
+// (ui/atmosphere-panel.js); this module only owns the verse arrangement editor.
 // Everything writes through updateProject so exports stay valid.
-import { AXES } from "../music/default-project.js";
-
-const AXIS_IDS = Object.keys(AXES);
 
 export function initDynamicsPanel(store, actions) {
-  const meters = document.getElementById("axis-meters");
-  const targetsRoot = document.getElementById("context-targets");
   const verseRoot = document.getElementById("verse-editor");
   const stripRoot = document.getElementById("structure-strip");
   const modal = document.getElementById("structure-modal");
@@ -26,19 +23,8 @@ export function initDynamicsPanel(store, actions) {
   });
 
   store.subscribe((changed) => {
-    if (changed.includes("liveAxes")) renderMeters(meters, store.get().liveAxes);
     if (changed.includes("project")) paint(store.get().project, store.get().sectionId);
     if (changed.includes("sectionId")) paintVersePlayhead(verseRoot, store.get().sectionId);
-  });
-
-  targetsRoot.addEventListener("change", (event) => {
-    const input = event.target.closest("input[data-context]");
-    if (!input) return;
-    actions.setContextTarget(input.dataset.context, input.dataset.axis, Number(input.value) / 100);
-  });
-  targetsRoot.addEventListener("input", (event) => {
-    const input = event.target.closest("input[data-context]");
-    if (input) paintSliderFill(input);
   });
 
   verseRoot.addEventListener("change", (event) => onVerseChange(event, verseRoot, store, actions));
@@ -61,34 +47,12 @@ export function initDynamicsPanel(store, actions) {
   document.getElementById("verse-clear").addEventListener("click", () => actions.setSections([]));
 
   // Initial paint.
-  renderMeters(meters, store.get().liveAxes);
   paint(store.get().project, store.get().sectionId);
 }
 
-function renderMeters(root, liveAxes) {
-  root.innerHTML = AXIS_IDS.map((id) => {
-    const pct = Math.round(Math.max(0, Math.min(1, liveAxes?.[id] ?? 0)) * 100);
-    return `<span class="axis-meter" title="${AXES[id].label} (live)">
-      <small>${AXES[id].label.slice(0, 3)}</small>
-      <span class="axis-track"><i style="width:${pct}%"></i></span>
-    </span>`;
-  }).join("");
-}
-
 function paint(project, sectionId = null) {
-  const targetsRoot = document.getElementById("context-targets");
   const verseRoot = document.getElementById("verse-editor");
-  if (!targetsRoot || !verseRoot) return;
-
-  targetsRoot.innerHTML = (project.contexts ?? []).map((ctx) => `
-    <div class="target-row">
-      <strong>${ctx.label}</strong>
-      ${AXIS_IDS.map((axis) => `
-        <label title="${ctx.label}: target ${AXES[axis].label.toLowerCase()}">
-          <span>${AXES[axis].label.slice(0, 3)}</span>
-          <input type="range" min="0" max="100" value="${Math.round((ctx.targets?.[axis] ?? 0.5) * 100)}" data-context="${ctx.id}" data-axis="${axis}" />
-        </label>`).join("")}
-    </div>`).join("");
+  if (!verseRoot) return;
 
   const layerIds = (project.layers ?? []).map((layer) => ({ id: layer.id, name: layer.name }));
   verseRoot.innerHTML = (project.sections ?? []).map((section, index) => `
@@ -181,9 +145,4 @@ function onVerseChange(event, verseRoot, store, actions) {
 function onVerseToggle(button, verseRoot, store, actions) {
   button.classList.toggle("off");
   commitVerses(verseRoot, store, actions);
-}
-
-// Raw range inputs draw their accent fill via a --value custom property.
-function paintSliderFill(input) {
-  input.style.setProperty("--value", `${input.value}%`);
 }

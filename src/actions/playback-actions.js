@@ -1,8 +1,6 @@
 // Transport and adaptive-performance actions: play/pause/stop, live-take
-// recording, context requests (queued to bar boundaries while playing),
-// threat-driven context, one-shot flourishes, and the starter-score reset.
+// recording, direct axis-target steering, and the starter-score reset.
 import { hydrateProject } from "../music/default-project.js";
-import { FLOURISH_NAMES } from "../music/dynamics.js";
 import { startRecording, stopRecording, isRecording } from "../audio/recorder.js";
 import { encodeWav } from "../utils/wav.js";
 import { encodeMp3 } from "../utils/mp3.js";
@@ -35,7 +33,7 @@ export function createPlaybackActions(store, host) {
       store.set({ step: stepValue });
     },
 
-    // Record the live master mix (contexts, flourishes and all) and save the
+    // Record the live master mix (axes, atmosphere and all) and save the
     // take as WAV or MP3 when recording stops. Starting a recording also
     // starts playback if the transport is idle — there is otherwise nothing
     // to record.
@@ -79,34 +77,18 @@ export function createPlaybackActions(store, host) {
       store.set({ recording: true });
     },
 
-    requestContext(next) {
-      const { playing, currentContext, queuedContext } = store.get();
-      if (playing) {
-        store.set({ queuedContext: next });
-      } else if (next !== currentContext || queuedContext) {
-        store.set({ currentContext: next, queuedContext: null });
-        // Keep tempo in sync even when paused: rebuild applies bpm at start,
-        // but a live engine should ramp now.
-        host.engine?.setTempo(store.get().project.bpm);
-      }
-    },
-
-    setThreat(value) {
-      store.set({ threat: value });
-      const next = value > 68 ? "combat" : value > 30 ? "unease" : "explore";
-      const { currentContext, queuedContext } = store.get();
-      if (next !== currentContext && next !== queuedContext) api.requestContext(next);
-    },
-
-    queueFlourish(name) {
-      if (!FLOURISH_NAMES.includes(name)) return;
-      store.set({ flourishQueued: name });
-      notify(store.get().playing ? `Flourish queued for the next bar` : "Flourish will play after playback starts");
+    // Steer one reactive axis' target (0..1). The sequencer eases liveAxes
+    // toward the store's targetAxes at each bar boundary, so moving a slider
+    // here is the studio equivalent of a game's setGameAxes call.
+    setAxisTarget(axis, value) {
+      const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0.5));
+      const targetAxes = { ...store.get().targetAxes, [axis]: clamped };
+      store.set({ targetAxes });
     },
 
     resetProject() {
       api.stopPlayback();
-      store.set({ project: hydrateProject({}), currentContext: "explore", threat: 12, selectedTrack: "melody" });
+      store.set({ project: hydrateProject({}), targetAxes: { intensity: 0.3, tension: 0.25, brightness: 0.7 }, selectedTrack: "melody" });
       // The engine's voice graph mirrors the old project's layers/roles;
       // rebuild so restored ids always have matching voices. Playback is
       // already stopped.

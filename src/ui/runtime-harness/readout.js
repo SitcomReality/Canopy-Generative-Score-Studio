@@ -33,8 +33,8 @@ export function paintAxes(els, liveAxes) {
 
 export function paintCore(els, info) {
   const playing = Boolean(info?.playing);
-  els.core.className = `orbit-core state-${info?.context ?? "explore"}${playing ? " pulsing" : ""}`;
-  els.core.innerHTML = `<strong>${info?.context ?? "—"}</strong><span>${playing ? "Score running" : "Score ready"}</span>`;
+  els.core.className = `orbit-core state-live${playing ? " pulsing" : ""}`;
+  els.core.innerHTML = `<strong>${playing ? "Live" : "Ready"}</strong><span>${playing ? "Score running" : "Score ready"}</span>`;
   els.bar.textContent = info ? String(info.bar).padStart(2, "0") : "—";
   els.verse.textContent = info?.sectionId ?? "—";
 }

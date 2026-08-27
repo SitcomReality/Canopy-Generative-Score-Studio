@@ -36,8 +36,7 @@ export default score;
 // The shared engine module a game vendors once. Imports Tone from its own path,
 // embeds the pure dynamics core, voice builders and the transport loop, and
 // exposes createScoreEngine(score) — the public API lives on the returned
-// runtime (startScore/stopScore/setGameMusicState/musicEvent/setGameAxes/
-// getRuntimeInfo/disposeScore).
+// runtime (startScore/stopScore/setGameAxes/getRuntimeInfo/disposeScore).
 export function scoreEngineSource() {
   const dynamics = DYNAMICS_SOURCE;
   return `import * as Tone from "tone";

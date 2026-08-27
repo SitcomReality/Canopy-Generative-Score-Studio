@@ -1,10 +1,7 @@
 // Emitted-source part: the standalone runtime's live state, audio-graph
 // setup, transport loop, and public API. This is the code a game actually
 // calls; its API must stay stable (see AGENTS.md).
-export const TRANSPORT_API_SRC = `let context = "explore";
-let queuedContext = null;
-let flourishQueued = null;
-let step = 0;
+export const TRANSPORT_API_SRC = `let step = 0;
 let loopId = null;
 let nodes = null;
 let voices = {};
@@ -14,9 +11,9 @@ let barCount = 0;
 const restCounter = {};
 const resting = {};
 let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
-// Manual axis targets (setGameAxes). When present, its entries override the
-// active context's targets at each boundary; null restores context control.
-let axisOverride = null;
+// The axis vector liveAxes eases toward at each bar boundary. The game steers
+// it with setGameAxes (partial merges; null restores the neutral default).
+let axisTarget = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
 let driftRng = Math.random;
 
 function setup() {
@@ -111,13 +108,8 @@ function setup() {
   transport.swingSubdivision = "8n";
   loopId = transport.scheduleRepeat((time) => {
     const boundary = step === 0 || step === 8;
-    if (boundary && queuedContext) {
-      context = queuedContext;
-      queuedContext = null;
-    }
     if (boundary) {
-      const target = { ...contextTargets(score, context), ...(axisOverride ?? {}) };
-      liveAxes = easeToward(liveAxes, target, 0.5);
+      liveAxes = easeToward(liveAxes, axisTarget, 0.5);
       // Song-level bindings -> shared atmosphere (reverb/space/swing). Applied
       // only to the params that have a binding; the rest keep the static baseline.
       const ab = atmosphereBindings(score, liveAxes);
@@ -187,23 +179,6 @@ function setup() {
         target.triggerAttackRelease(ev.duration || "16n", when, ev.velocity);
       }
     }
-    // One-shot flourish (v5): queued game milestones play across one bar via
-    // the lead voice, then resolve the context they narrate.
-    if (boundary && flourishQueued) {
-      const lead = score.layers.find((layer) => layer.role === "motif" && !layer.muted);
-      const synth = lead && voices[lead.id] ? voices[lead.id].synth : null;
-      if (synth) {
-        const spb = 60 / score.bpm;
-        for (const ev of flourishEvents(score, flourishQueued)) {
-          synth.triggerAttackRelease(note(ev.degree, ev.octave), ev.dur * spb, time + ev.at * spb, ev.vel);
-        }
-      }
-      const resolve = { victory: "explore", defeat: "explore", calm: "explore", relief: "explore", combat: "combat", unease: "unease" }[flourishQueued] || "explore";
-      context = resolve;
-      queuedContext = null;
-      liveAxes = easeToward(liveAxes, contextTargets(score, resolve), 1);
-      flourishQueued = null;
-    }
     step = (step + 1) % 16;
   }, "8n");
 }
@@ -221,22 +196,12 @@ function stopScore() {
   driftRng = Math.random;
   barCount = 0;
   liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
+  axisTarget = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
   for (const k of Object.keys(restCounter)) delete restCounter[k];
   for (const k of Object.keys(resting)) delete resting[k];
   for (const layer of score.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
   }
-}
-
-function setGameMusicState({ threat = 0, inCombat = false } = {}) {
-  queuedContext = inCombat || threat > 0.7 ? "combat" : threat > 0.3 ? "unease" : "explore";
-}
-
-// Queue a one-shot flourish by name: "victory", "defeat", "combat", "calm",
-// "relief" or "unease" (the legacy boolean-style "victory" call is kept).
-// The flourish plays at the next bar boundary and lasts a full bar.
-function musicEvent(name) {
-  if (FLOURISH_NAMES.includes(name)) flourishQueued = name;
 }
 
 // Read-only snapshot of the runtime's live state — handy for game HUDs and
@@ -245,21 +210,23 @@ function musicEvent(name) {
 function getRuntimeInfo() {
   return {
     playing: Tone.getTransport().state === "started",
-    context,
     bar: barCount,
     liveAxes: { ...liveAxes },
-    axisOverride: axisOverride ? { ...axisOverride } : null,
+    axisTarget: { ...axisTarget },
     sectionId: activeSection(score, barCount)?.id ?? null,
   };
 }
 
-// Manually steer the reactive axes: pass any subset of { intensity, tension,
-// brightness } in 0..1 and those axes ease toward your values at each bar
-// boundary instead of the active context's targets. Unlisted axes (and the
-// context itself) keep behaving normally; call setGameAxes(null) to hand
-// control fully back to the context.
+// Steer the reactive axes: pass any subset of { intensity, tension, brightness }
+// in 0..1 and liveAxes ease toward those values at each bar boundary. Partial
+// objects merge over the current target; unlisted axes keep their target.
+// Call setGameAxes(null) to reset to the neutral default. Games typically wrap
+// this in their own named state setter, e.g. setMusicState("combat") =>
+// setGameAxes({ intensity: 1, tension: 1, brightness: 0.35 }).
 function setGameAxes(axes) {
-  axisOverride = axes && typeof axes === "object" ? { ...axes } : null;
+  axisTarget = axes && typeof axes === "object"
+    ? { ...axisTarget, ...axes }
+    : { intensity: 0.3, tension: 0.25, brightness: 0.7 };
 }
 
 function disposeScore() {
@@ -274,5 +241,5 @@ function disposeScore() {
   voices = {};
 }
 
-  return { startScore, stopScore, setGameMusicState, musicEvent, getRuntimeInfo, setGameAxes, disposeScore };
+  return { startScore, stopScore, getRuntimeInfo, setGameAxes, disposeScore };
 `;

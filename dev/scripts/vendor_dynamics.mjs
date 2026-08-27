@@ -27,7 +27,6 @@ const DYNAMICS_PARTS = [
   "src/music/dynamics/axes.js",
   "src/music/dynamics/humanize.js",
   "src/music/dynamics/gates.js",
-  "src/music/dynamics/flourishes.js",
   "src/music/dynamics/sections.js",
   "src/music/dynamics/step-frame.js",
   "src/music/dynamics/arrangement.js",

@@ -47,7 +47,7 @@ test("runtime public API surface is stable", async () => {
   const mod = await import(pathToFileURL(file).href);
   assert.equal(typeof mod.createScoreEngine, "function", "exports createScoreEngine");
   const rt = mod.createScoreEngine(DEFAULT_PROJECT);
-  const pub = ["startScore", "stopScore", "setGameMusicState", "musicEvent", "disposeScore", "getRuntimeInfo", "setGameAxes"];
+  const pub = ["startScore", "stopScore", "setGameAxes", "disposeScore", "getRuntimeInfo"];
   for (const name of pub) {
     assert.equal(typeof rt[name], "function", `runtime exposes ${name}`);
   }

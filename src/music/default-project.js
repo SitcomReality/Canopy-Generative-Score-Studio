@@ -1,26 +1,27 @@
-// The serialized project schema (version 5). Keep this shape stable: exported
+// The serialized project schema (version 7). Keep this shape stable: exported
 // .canopy.json files and saved localStorage drafts must keep round-tripping.
 // Version 2 moved per-track data into a `layers` array so layers can be added,
 // removed and renamed. Version 3 added long-form fields: per-layer restWindow +
 // energyRole, song-level journey + variationSeed. Version 4 adds the reactive
-// dynamics contract: song-level `axes`/`contexts`/`bindings` and per-layer
+// dynamics contract: song-level `axes`/`bindings` and per-layer
 // `activity`/`fills`/`automation`. Version 5 adds expressive arrangement:
 // per-layer `level` (static loudness trim), song-level `sections` (verse-scale
 // arrangement rotation) and `flourishes` (one-shot musical events), and drops
-// runtime tempo modulation — intensity now expresses only through loudness,
-// density, percussion and register. hydrateProject still accepts version 1
-// flat projects and versions 2-4 (migrating them to v5 defaults).
+// runtime tempo modulation. Version 6 adds song-defined `instruments` as data.
+// Version 7 removes "music state": built-in `contexts` presets and one-shot
+// `flourishes` are gone — the game steers the three axes directly (and may
+// trigger its own SFX), and hydration silently drops both.
+// hydrateProject still accepts version 1 flat projects and versions 2-6.
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
 import { sanitizeInstrumentConfig } from "./instrument-override.js";
-import { CONTEXTS } from "./contexts.js";
 import { clamp01, domainValue } from "./dynamics.js";
 
 // Re-exported so schema consumers share the single source of truth for these
 // helpers (see dev/tests/dynamics-parity.test.js).
 export { clamp01, domainValue };
 
-export const PROJECT_VERSION = 6;
+export const PROJECT_VERSION = 7;
 
 // The canonical reactive axes every context target and every binding maps
 // from. Each is a continuous 0..1 dimension; the game (or a context preset)
@@ -55,21 +56,16 @@ export const ROLE_COLORS = {
   percussion: "#b8a5d7",
 };
 
-// Song-level reactive space. `contexts` are named presets over `axes`
-// (derived from music/contexts.js CONTEXTS); `bindings` map an axis to a
-// song-level parameter. v5 removed the tempo binding — bpm is static during
-// playback — so the default list is empty; custom bindings stay supported.
+// The canonical reactive axes (v7): the three continuous 0..1 dimensions a
+// game steers directly (there are no built-in preset "contexts" anymore).
+// `bindings` map an axis to a song-level shared-atmosphere parameter. v5
+// removed the tempo binding — bpm is static during playback — so the default
+// binding list is empty; authoring bindings is fully supported.
 export const AXES = {
   intensity: { label: "Intensity" },
   tension: { label: "Tension" },
   brightness: { label: "Brightness" },
 };
-
-export const DEFAULT_CONTEXTS = CONTEXTS.map(({ id, name, targets }) => ({
-  id,
-  label: name,
-  targets: { ...targets },
-}));
 
 export const DEFAULT_BINDINGS = [];
 
@@ -208,10 +204,8 @@ export const DEFAULT_PROJECT = {
   journey: { shape: "flat", length: 16, depth: 35 },
   variationSeed: 0,
   axes: AXES,
-  contexts: DEFAULT_CONTEXTS,
   bindings: DEFAULT_BINDINGS,
   sections: [],
-  flourishes: null,
   layers: DEFAULT_LAYERS,
 };
 
@@ -243,30 +237,6 @@ function sanitizeAxes(value) {
     out[id] = { label: typeof raw?.label === "string" && raw.label ? raw.label : AXES[id].label };
   }
   return out;
-}
-
-// Named context presets over the axes: { id, label, targets }. Defaults to
-// the DEFAULT_CONTEXTS list when missing; unknown ids are dropped.
-function sanitizeContexts(value) {
-  if (!Array.isArray(value) || value.length === 0) return DEFAULT_CONTEXTS.map((ctx) => ({ ...ctx, targets: { ...ctx.targets } }));
-  const known = new Set(DEFAULT_CONTEXTS.map((ctx) => ctx.id));
-  const out = [];
-  for (const raw of value) {
-    if (!raw || typeof raw !== "object") continue;
-    const id = typeof raw.id === "string" && raw.id ? raw.id : null;
-    if (!id || !known.has(id)) continue;
-    const fallback = DEFAULT_CONTEXTS.find((ctx) => ctx.id === id);
-    const targets = {};
-    for (const axis of DEFAULT_AXES) {
-      targets[axis] = clamp01(raw.targets?.[axis], fallback.targets[axis]);
-    }
-    out.push({
-      id,
-      label: typeof raw.label === "string" && raw.label ? raw.label : fallback.label,
-      targets,
-    });
-  }
-  return out.length > 0 ? out : DEFAULT_CONTEXTS.map((ctx) => ({ ...ctx, targets: { ...ctx.targets } }));
 }
 
 // Song-level axis->parameter maps. Only known targets are kept. The v4
@@ -321,33 +291,6 @@ function sanitizeSections(value) {
     });
   }
   return out.length > 0 ? out : [];
-}
-
-// v5 one-shot flourishes: optional per-song overrides of the built-in catalog
-// in dynamics.js. Shape: { <name>: [{ degree, octave, at, dur, vel }] } with
-// at/dur in beat units inside the bar; degrees are scale-relative so the
-// harmony guard holds.
-const FLOURISH_NAMES = ["victory", "defeat", "combat", "calm", "relief", "unease"];
-
-function sanitizeFlourishes(value) {
-  if (!value || typeof value !== "object") return null;
-  const out = {};
-  for (const name of FLOURISH_NAMES) {
-    const events = value[name];
-    if (!Array.isArray(events) || events.length === 0) continue;
-    const clean = events
-      .filter((ev) => ev && typeof ev === "object")
-      .map((ev) => ({
-        degree: Math.max(0, Math.min(7, Math.round(Number(ev.degree ?? 0)) || 0)),
-        octave: Math.max(1, Math.min(6, Math.round(Number(ev.octave ?? 5)) || 5)),
-        at: Math.max(0, Math.min(3.75, Number(ev.at) || 0)),
-        dur: Math.max(0.05, Math.min(4, Number(ev.dur) || 0.25)),
-        vel: Math.max(0.05, Math.min(1, Number(ev.vel ?? 0.6))),
-      }))
-      .filter((ev) => Number.isFinite(ev.at) && Number.isFinite(ev.dur));
-    if (clean.length > 0) out[name] = clean;
-  }
-  return Object.keys(out).length > 0 ? out : null;
 }
 
 const JOURNEY_SHAPES = ["flat", "arc", "tide"];
@@ -600,10 +543,8 @@ export function hydrateProject(value) {
     instruments: sanitizeInstruments(source.instruments),
     journey: sanitizeJourney(source.journey),
     axes: sanitizeAxes(source.axes),
-    contexts: sanitizeContexts(source.contexts),
     bindings: sanitizeBindings(source.bindings),
     sections: sanitizeSections(source.sections),
-    flourishes: source.flourishes !== undefined ? sanitizeFlourishes(source.flourishes) : null,
     variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
       ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))

@@ -31,7 +31,7 @@ function fresh(extra = {}) {
   onChange.length = 0;
   const project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
   const store = {
-    get: () => ({ project, currentContext: "explore", queuedContext: null, flourishQueued: null }),
+    get: () => ({ project, targetAxes: { intensity: 0.3, tension: 0.25, brightness: 0.7 } }),
     set(patch) { Object.assign(project, patch); Object.keys(patch).forEach((k) => onChange.push(k)); },
     updateProject(patch) { Object.assign(project, patch); },
   };

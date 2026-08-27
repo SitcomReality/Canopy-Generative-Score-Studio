@@ -33,30 +33,20 @@
 .tempo-controls small { color: var(--text-4); font-size: 10px; }
 .tempo-controls select { min-width: 58px; border: 0; background: var(--surface-1); color: var(--text-2); padding: 0 14px 0 0; font-size: var(--value-size); text-transform: none; letter-spacing: normal; cursor: pointer; }
 
-/* Live-state inset panel pushed to the right edge of the deck. */
+/* Live-state inset panel pushed to the right edge of the deck. It now holds
+   the steerable reactive axis sliders (the studio's setGameAxes equivalent). */
 .deck-live { flex: none; margin-left: auto; display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--surface-3); border: 1px solid var(--line-strong); }
-.deck-live > strong { max-width: 190px; color: var(--text-3); font-size: var(--kicker-size); font-weight: 500; line-height: 1.45; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.context-switcher { height: 35px; display: flex; align-items: center; padding: 3px; border: 1px solid var(--line-strong); background: var(--surface-2); }
-.context-option { min-width: 92px; height: 27px; position: relative; border: 0; display: flex; align-items: center; justify-content: center; gap: 6px; background: transparent; color: var(--text-3); font-size: var(--label-size); font-weight: 600; cursor: pointer; padding: 0 11px; }
-.context-option > * { position: relative; z-index: 1; }
-.context-option.active { color: var(--accent-ink); }
-.context-option.queued { color: var(--text-1); }
-.context-active-bg { position: absolute; inset: 0; z-index: 0; background: var(--ctx-explore); }
-.context-option > i { width: 4px; height: 4px; border-radius: 50%; background: #e8ca75; box-shadow: 0 0 8px #e8ca75; }
-.context-option.active[data-context="explore"] .context-active-bg { background: var(--ctx-explore); }
-.context-option.active[data-context="unease"] .context-active-bg { background: var(--ctx-unease); }
-.context-option.active[data-context="combat"] .context-active-bg { background: var(--ctx-combat); }
-.threat-control { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
-.threat-control input { appearance: none; height: 2px; width: 88px; background: linear-gradient(to right, var(--accent) var(--value), var(--line-strong) var(--value)); cursor: pointer; }
-.threat-control input::-webkit-slider-thumb, .parameter-slider input::-webkit-slider-thumb, .seek-bar input::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
-.threat-control strong { min-width: 28px; color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); }
+.axis-control { display: flex; flex-direction: column; gap: 6px; }
+.axis-slider { display: flex; align-items: center; gap: 8px; }
+.axis-slider-label { width: 26px; color: var(--text-4); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
+.axis-slider input { appearance: none; flex: 1; min-width: 0; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
+.axis-slider input::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.axis-live { width: 30px; color: var(--text-3); font-family: var(--font-num); font-size: var(--kicker-size); text-align: right; }
+.axis-live.settled { color: var(--accent); }
 /* Loop-position seek bar: a slim scrubber across the 2-bar loop (16 steps). */
 .seek-bar { display: flex; align-items: center; padding: 0 18px; }
 .seek-bar input { appearance: none; height: 2px; width: 120px; background: linear-gradient(to right, var(--accent) var(--value, 0%), var(--line-strong) var(--value, 0%)); cursor: pointer; }
 .event-button { height: 32px; padding: 0 11px; display: flex; align-items: center; gap: 6px; border: 1px solid #584f38; background: #1c1d16; color: #e8c877; font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }
-.ribbon-field { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
-.ribbon-field select { height: 32px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); padding: 0 7px; font-size: var(--label-size); letter-spacing: normal; text-transform: none; cursor: pointer; }
-.ribbon-field select:hover, .ribbon-field select:focus { border-color: #9d8a4d; }
 .event-button:hover, .event-button.queued { background: #2a2819; border-color: #9d8a4d; color: #f1d780; }
 
 /* --- Workspace --------------------------------------------------------- */
@@ -66,39 +56,44 @@
 /* --- Song bar ---------------------------------------------------------- */
 /* The bar grows with its content instead of clipping it: min-height keeps the
    compact look, max-height bounds it so the flexible workspace above always
-   keeps the majority of the viewport. When content exceeds the cap the
-   per-group scroll lists (context targets) scroll internally with thin
-   scrollbars. minmax(0, 1fr) lets the row shrink under the cap — without it
-   the tallest group's min-content expands the track and pushes content
-   off-viewport. Five columns for the five groups. Verses are edited in a modal
-   (they no longer grow the bar), which is what keeps the piano roll from being
-   clipped. */
-.song-bar { min-height: 128px; max-height: min(252px, 26vh); flex: none; display: grid; grid-template-columns: 0.85fr 1.1fr 1fr 1.1fr 0.85fr; grid-template-rows: minmax(0, 1fr); border-top: 1px solid var(--line-strong); background: var(--surface-1); }
+   keeps the majority of the viewport. minmax(0, 1fr) lets the row shrink under
+   the cap. Four columns for the four score groups (chord path, long form,
+   structure, shared atmosphere). Verses are edited in a modal (they no longer
+   grow the bar), which is what keeps the piano roll from being clipped. */
+.song-bar { min-height: 128px; max-height: min(252px, 26vh); flex: none; display: grid; grid-template-columns: 0.9fr 1.15fr 1fr 1.15fr; grid-template-rows: minmax(0, 1fr); border-top: 1px solid var(--line-strong); background: var(--surface-1); }
 .song-group { min-width: 0; min-height: 0; overflow: hidden; padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px; }
 .song-group + .song-group { border-left: 1px solid var(--line); }
 .song-heading { display: flex; align-items: center; gap: 8px; color: var(--text-4); }
 .song-heading > svg { margin-left: auto; color: var(--accent-song); }
 .kicker { font-size: var(--kicker-size); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-4); }
 .song-heading .kicker { color: var(--accent-song); }
-/* Three-bank framing: each song group is tagged Score / Live / Room and its
-   header + tag take that bank's hue, so a glance answers "does this edit the
-   score, the live performance, or the room?" */
+/* Song groups carry a "Score" bank tag: every group here edits authored song
+   data (chord path, long form, structure, shared atmosphere). Header + tag take
+   that bank's hue. */
 .song-group[data-bank="score"] { --bank-c: var(--bank-score); }
-.song-group[data-bank="live"] { --bank-c: var(--bank-live); }
-.song-group[data-bank="room"] { --bank-c: var(--bank-room); }
 .song-group[data-bank] .song-heading .kicker,
 .song-group[data-bank] .song-heading > svg { color: var(--bank-c); }
 .bank-tag { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 2px 7px; border: 1px solid color-mix(in srgb, var(--bank-c) 42%, transparent); border-radius: 999px; color: var(--bank-c); font-size: 9px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .bank-tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--bank-c); box-shadow: 0 0 6px var(--bank-c); }
 .song-controls { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: start; }
 
-/* The Room bank holds more controls (room size + echo + per-role sends + sway),
-   so pack its sliders into a tight multi-column grid with compact labels. */
-.song-group[data-bank="room"] .song-controls { grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 8px 10px; }
-.song-group[data-bank="room"] .parameter-slider { height: 34px; }
-.song-group[data-bank="room"] .parameter-slider > span { width: auto; flex: none; gap: 6px; }
-.song-group[data-bank="room"] .parameter-slider > span strong { white-space: nowrap; }
-.song-group[data-bank="room"] .parameter-slider > span b { min-width: 30px; text-align: right; }
+/* Shared atmosphere group: one row per atmosphere param (base slider + bind
+   control). Rows stack into a tight grid so the panel stays compact. */
+.atmosphere-row { display: flex; flex-direction: column; gap: 5px; }
+.atmosphere-slider { flex: 1; min-width: 0; }
+#shared-atmosphere-panel { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; }
+.atmosphere-slider .parameter-slider { height: 30px; }
+.atmosphere-slider .parameter-slider > span { width: auto; flex: none; gap: 6px; }
+.atmosphere-slider .parameter-slider > span strong { white-space: nowrap; }
+.atmosphere-slider .parameter-slider > span b { min-width: 30px; text-align: right; }
+.atmosphere-bind { display: flex; align-items: center; gap: 6px; min-height: 20px; }
+.bind-toggle { appearance: none; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-4); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.bind-toggle:hover, .bind-toggle.active { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.bind-axis { height: 20px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: 9px; letter-spacing: .02em; padding: 0 3px; cursor: pointer; }
+.bind-domain-low, .bind-domain-high { width: 46px; height: 20px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: 9px; padding: 0 4px; font-family: var(--font-num); }
+.bind-arrow { color: var(--text-4); font-size: 10px; }
+.bind-remove { appearance: none; border: none; background: transparent; color: var(--text-4); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; padding: 0 2px; }
+.bind-remove:hover { color: var(--accent); }
 
 /* Journey strip: sparkline of the long-form energy curve + playhead. */
 #journey-strip { flex: none; height: 26px; border: 1px solid var(--line); background: var(--surface-2); position: relative; }
@@ -106,22 +101,12 @@
 #journey-strip .journey-progress { fill: var(--accent); opacity: 0.10; }
 #journey-strip .journey-readout { position: absolute; top: 3px; right: 6px; color: var(--text-3); font-family: var(--font-num); font-size: 9px; letter-spacing: .08em; pointer-events: none; }
 
-/* Live axis meters in the deck's live inset (intensity/tension/brightness). */
+/* Live axis meters (used by the Runtime harness readout). */
 .axis-meters { display: flex; flex-direction: column; gap: 3px; }
 .axis-meter { display: flex; align-items: center; gap: 6px; }
 .axis-meter small { width: 26px; color: var(--text-4); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
 .axis-track { width: 64px; height: 3px; background: var(--line-strong); }
 .axis-track i { display: block; height: 100%; background: var(--accent); transition: width .6s ease; }
-
-/* Reactive axes song group: per-context target sliders + tempo binding. */
-.context-targets { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; gap: 8px; overflow-y: auto; padding-right: 2px; }
-.target-row { display: grid; grid-template-columns: 62px repeat(3, minmax(0, 1fr)); align-items: center; gap: 8px; }
-.target-row strong { color: var(--text-3); font-size: var(--kicker-size); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.target-row label { display: flex; align-items: center; gap: 5px; color: var(--text-4); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
-.target-row input, .binding-row input[type="range"] { appearance: none; flex: 1; min-width: 0; height: 2px; background: linear-gradient(to right, var(--accent) var(--value, 50%), var(--line-strong) var(--value, 50%)); cursor: pointer; }
-.target-row input::-webkit-slider-thumb, .binding-row input::-webkit-slider-thumb { appearance: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
-.binding-row { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
-.binding-row strong { color: var(--text-2); font-family: var(--font-num); white-space: nowrap; }
 
 /* Verses song group (v5): rotating arrangement sections. Layer chips wrap
    onto a second line inside a row instead of overflowing it horizontally. */

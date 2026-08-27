@@ -16,11 +16,8 @@ export function createAppState() {
     sounding: [],
     perfSteps: {},
     liveAxes: { intensity: 0.3, tension: 0.25, brightness: 0.7 },
+    targetAxes: { intensity: 0.3, tension: 0.25, brightness: 0.7 },
     bar: 0,
-    currentContext: "explore",
-    queuedContext: null,
-    threat: 12,
-    flourishQueued: null,
     sectionId: null,
     savedAt: "Local draft",
   };
