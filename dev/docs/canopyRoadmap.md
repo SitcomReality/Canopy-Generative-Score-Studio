@@ -77,16 +77,24 @@ as understandable controls".
 
 ## Phase 3 — Instruments as data + kinds/roles split
 
-3a. Add the project-level `instruments` map (id → voice spec per role/family);
-built-ins become seeds. Add editor `kind` (`piano-roll` / `beat`) independent of
-function; migrate `role` → function + kind. Bump the schema version once, here,
-coordinated with Phase 5.
+3a. **Song-owned instruments (schema v6) — DONE.** Add `project.instruments`
+(`{ id -> { label, voice, percussion } }`); `resolveInstrumentConfig` + the
+runtime `makeDrums` consult custom instruments before the catalog preset,
+mirrored into the exported runtime. Unknown/untrusted configs are sanitized
+away. Bumped `PROJECT_VERSION` to 6.
 
-3b. Build a real instrument editor (voice family, osc, envelope, filter, FM,
-pluck, percussion kit) replacing the current waveform+ADSR-only editor
-(`instrument-editor.js`), which currently hides percussion & pluck voices.
+3b. **Instrument editor — DONE (UI).** A "Manage instruments…" modal
+(`ui/instrument-library.js`) to clone a built-in preset or start blank, choose
+voice family (synth/FM/pluck), waveform, ADSR, FM/pluck params, and the
+percussion kit; the layer instrument picker merges custom instruments.
 
-3c. Per-step percussion kit assignment; fills/rolls reference the same kit.
+3c. **Split editor kind vs function + per-step percussion kits — PENDING.**
+Decouple a layer's *editor kind* (piano roll vs beat) from its *function*
+(harmony/motif/bass/rhythm) — the engine currently hard-codes `role -> kind`
+and voicing in `computeStepFrame`, so this needs a careful rewrite of the
+shared dynamics core (studio + runtime splice). Add per-step kit assignment on
+percussion layers (individual kick/hat/snare per step) and let fills reference
+the same pieces.
 
 ## Phase 4 — Complete the editable surface
 

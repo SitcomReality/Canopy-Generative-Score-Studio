@@ -118,6 +118,16 @@ test("v6 untrusted custom-instrument configs are sanitized away", () => {
   assert.equal(project.instruments.bad, undefined);
 });
 
+test("emitted runtime resolves custom instruments and kits", () => {
+  const project = hydrateProject({
+    instruments: { "my-bell": { label: "My Bell", voice: { voice: "fm", oscillator: { type: "sine" }, envelope: { attack: 0.1 } }, percussion: { kick: { pitchDecay: 0.03, octaves: 6 }, hat: { noise: { type: "white" } } } } },
+  });
+  const emitted = runtimeModule(project);
+  assert.ok(emitted.includes('"my-bell"'), "score JSON carries the custom instrument");
+  assert.ok(emitted.includes("score.instruments?.[layer.instrument]"), "resolve consults custom voice");
+  assert.ok(emitted.includes("score.instruments?.[instrument]?.percussion"), "makeDrums consults custom kit");
+});
+
 test("hydrateProject round-trips a valid instrumentConfig and drops bad ones", () => {
   const good = { oscillator: "triangle", envelope: { attack: 0.3, release: 2 } };
   const project = hydrateProject({

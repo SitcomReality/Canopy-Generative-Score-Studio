@@ -116,7 +116,7 @@ export function createAudioEngine(store) {
       if (target.kind === "drums") {
         // Swap the kit live; dispose the old nodes afterwards.
         const old = [target.kick, target.hat, ...(target.snare ? [target.snare] : []), ...(target.extras ?? [])];
-        const next = makeDrums(instrument, { kick: chain.limiter, hat: chain.reverb, snare: chain.glue });
+        const next = makeDrums(instrument, { kick: chain.limiter, hat: chain.reverb, snare: chain.glue }, store.get().project);
         voices[layerId] = next;
         disposables.push(next.kick, next.hat, ...(next.snare ? [next.snare] : []), ...(next.extras ?? []));
         old.forEach((node) => node.dispose());

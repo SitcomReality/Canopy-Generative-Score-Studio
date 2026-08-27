@@ -33,9 +33,11 @@ export function makePitched(roleKey, cfg) {
 
 // Build the percussion kit for one layer. Targets decide where each drum
 // lands in the graph (the studio routes into buses; the runtime template
-// connects straight to destinations).
-export function makeDrums(instrument, targets) {
-  const preset = instrumentSettings(instrument, "percussion");
+// connects straight to destinations). A custom instrument's kit (project
+// instruments) overrides the catalog preset.
+export function makeDrums(instrument, targets, project = {}) {
+  const custom = project.instruments?.[instrument]?.percussion;
+  const preset = custom ?? instrumentSettings(instrument, "percussion");
   const extras = [];
   const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).connect(targets.kick);
   const hatFilter = preset.hatFilter

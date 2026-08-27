@@ -2,8 +2,23 @@
 // shared mix parameters (reverb/swing), the journey macro, variation seed,
 // and the reactive schema's song-level pieces (context targets, verses).
 import { PROGRESSIONS } from "../music/progressions.js";
+import { INSTRUMENTS } from "../music/instruments.js";
 
 export function createSongActions(store, host) {
+  // Seed a new custom instrument either from a catalog preset or a blank pluck.
+  function seedCustom(seedPreset) {
+    if (seedPreset && INSTRUMENTS[seedPreset]) {
+      return {
+        voice: { ...INSTRUMENTS[seedPreset].motif },
+        percussion: { ...INSTRUMENTS[seedPreset].percussion },
+      };
+    }
+    return {
+      voice: { oscillator: { type: "triangle" }, envelope: { attack: 0.02, decay: 0.4, sustain: 0.1, release: 1.2 } },
+      percussion: { kick: { pitchDecay: 0.05, octaves: 5, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.2 } }, hat: { noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.02 } } },
+    };
+  }
+
   return {
     renameProject(name) {
       store.updateProject({ name });
@@ -75,6 +90,30 @@ export function createSongActions(store, host) {
     // Replace the whole sections list; the engine rotates it at bar boundaries.
     setSections(sections) {
       store.updateProject({ sections });
+    },
+
+    // ---- custom instruments (v6) --------------------------------------
+    addCustomInstrument(name, seedPreset) {
+      const id = `custom-${Date.now().toString(36)}`;
+      const instruments = { ...store.get().project.instruments, [id]: { label: name || "New instrument", ...seedCustom(seedPreset) } };
+      store.updateProject({ instruments });
+      host.rebuild?.();
+      return id;
+    },
+
+    updateCustomInstrument(id, patch) {
+      const instruments = { ...store.get().project.instruments };
+      if (!instruments[id]) return;
+      instruments[id] = { ...instruments[id], ...patch };
+      store.updateProject({ instruments });
+    },
+
+    removeCustomInstrument(id) {
+      const instruments = { ...store.get().project.instruments };
+      if (!instruments || !instruments[id]) return;
+      delete instruments[id];
+      store.updateProject({ instruments });
+      host.rebuild?.();
     },
   };
 }

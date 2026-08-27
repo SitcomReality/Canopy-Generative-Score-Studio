@@ -135,6 +135,7 @@
             <div id="slider-release"></div>
             <button class="reset-link" id="reset-instrument-config"><i data-icon="rotate-ccw" data-size="13"></i> Back to preset sound</button>
           </div>
+          <button class="link-button" id="manage-instruments-button" type="button" title="Create and edit the song's own instruments"><i data-icon="sliders-horizontal" data-size="14"></i> Manage instruments…</button>
           <label class="field-row" title="Static loudness trim for this layer, in dB — its base voice level under all dynamics.">
             <span>Level</span>
             <input type="range" min="-24" max="6" step="1" id="slider-level" />
@@ -255,6 +256,18 @@
           <button class="event-button" id="verse-add">+ Add verse</button>
           <button class="event-button" id="verse-clear">Reset</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Instrument library: create and edit the song's own instruments (data). -->
+    <div class="structure-modal" id="instrument-modal" hidden>
+      <div class="structure-modal-card instrument-modal-card">
+        <header class="structure-modal-head">
+          <strong>Instruments</strong>
+          <span class="structure-modal-hint">Songs define their own instruments as data — pick a preset to clone or start blank, then shape the voice + kit. Layers select them from the instrument list.</span>
+          <button class="structure-modal-close" id="instrument-modal-close" aria-label="Close instrument editor"><i data-icon="x" data-size="16"></i></button>
+        </header>
+        <div class="instrument-library" id="instrument-library"></div>
       </div>
     </div>
   </main>

@@ -95,6 +95,8 @@ function renderRows(list, project, selectedTrack) {
       <select class="instrument-select" aria-label="${layer.name} instrument" title="How this layer sounds">
         ${INSTRUMENT_NAMES.map((name) =>
           `<option${name === layer.instrument ? " selected" : ""}>${name}</option>`).join("")}
+        ${Object.entries(project.instruments ?? {}).map(([id, inst]) =>
+          `<option value="${id}"${id === layer.instrument ? " selected" : ""}>${inst.label} (custom)</option>`).join("")}
       </select>
       <span class="mute-toggle" role="button" tabindex="0">${iconSvg(layer.muted ? "volume-x" : "volume-2", 14)}</span>
     </div>`).join("");
