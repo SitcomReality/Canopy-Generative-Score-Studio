@@ -8,6 +8,7 @@ import { runtimeModule } from "../../music/runtime-module.js";
 import { safeFileName } from "../../utils/download.js";
 import { createToneShimUrl } from "../../utils/tone-shim.js";
 import { notify } from "../toast.js";
+import { getTimingEngine } from "../../timing/index.js";
 import { createLogger, paintTransport, paintAxes, paintCore } from "./readout.js";
 import { wireControls } from "./controls.js";
 
@@ -59,7 +60,7 @@ export function initRuntimeHarness(store) {
       module = null;
     }
     if (moduleUrl) URL.revokeObjectURL(moduleUrl);
-    clearInterval(pollTimer);
+    getTimingEngine().clearInterval(pollTimer);
     pollTimer = null;
     last = null;
     try {
@@ -69,7 +70,7 @@ export function initRuntimeHarness(store) {
       els.sourceLabel.textContent = name;
       log(`Loaded ${name}`);
       paintTransport(els, Boolean(module));
-      pollTimer = setInterval(poll, POLL_MS);
+      pollTimer = getTimingEngine().setInterval(poll, POLL_MS);
     } catch (error) {
       module = null;
       els.sourceLabel.textContent = "No score loaded";

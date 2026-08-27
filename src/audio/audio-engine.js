@@ -8,7 +8,7 @@
 import { createMasterChain } from "./master-chain.js";
 import { createVoices, createLayerVoice, makeDrums, ROLE_VOLUME } from "./voices.js";
 import { createSequencer } from "./sequencer.js";
-import { createTimingEngine } from "../timing/index.js";
+import { getTimingEngine } from "../timing/index.js";
 import { makeRng } from "../music/variation.js";
 import { resolveInstrumentConfig } from "../music/instrument-override.js";
 
@@ -34,7 +34,11 @@ export function createAudioEngine(store) {
   // The single time authority for this preview. It owns the baseline, the
   // lookahead ticker (real Tone.now() + interval), and per-layer gates; the
   // sequencer plugs in as its step source.
-  const engine = createTimingEngine();
+  // The app's single time authority. It is a module singleton so the whole app
+  // (playback AND the UI timer/frame service) shares one clock and one ticker;
+  // the sequencer plugs in as its step source. `createTimingEngine()` is used
+  // only by tests.
+  const engine = getTimingEngine();
   engine.setTempo(project.bpm); // initial rate; play() honors it as a cold-start rate
   engine.setSwing((project.swing ?? 0) / 100);
   // Sync the engine's gates from the persisted project so a fresh or rebuilt
@@ -145,10 +149,11 @@ export function createAudioEngine(store) {
       sequencer.reset();
     },
     dispose() {
-      // Full teardown: stop scheduling, release the ticker, free voices. The
-      // engine's dispose must free queues/voices BEFORE releasing the ticker,
-      // and must be safe even if a previous dispose was interrupted.
-      engine.dispose();
+      // Stop scheduling + release in-flight voices, then free the graph nodes.
+      // The shared engine itself is NOT disposed here (it is the app's one
+      // time authority, kept alive for the UI timer service across rebuilds);
+      // the next audio-engine re-registers its sequencer and re-syncs gates.
+      engine.stop();
       disposables.forEach((node) => node.dispose());
     },
   };

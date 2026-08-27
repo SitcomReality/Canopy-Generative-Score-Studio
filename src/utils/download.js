@@ -1,4 +1,5 @@
 // File download and name helpers used by every export path.
+import { getTimingEngine } from "../timing/index.js";
 
 export function downloadBlob(name, content, type) {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -6,7 +7,7 @@ export function downloadBlob(name, content, type) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 500);
+  getTimingEngine().setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
 export function safeFileName(name) {

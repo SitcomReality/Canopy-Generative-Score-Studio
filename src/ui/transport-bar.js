@@ -1,6 +1,7 @@
 // Transport bar: project identity, play/stop, bar/beat readout, tempo/key/scale.
 import { KEYS } from "../music/keys.js";
 import { SCALES } from "../music/scales.js";
+import { getTimingEngine } from "../timing/index.js";
 import { iconSvg, mountIcons } from "./icons.js";
 
 export function initTransportBar(store, actions) {
@@ -24,15 +25,17 @@ export function initTransportBar(store, actions) {
     button.setAttribute("aria-label", recording ? "Stop recording" : "Record");
     mountIcons(button);
     timeLabel.hidden = !recording;
-    window.clearInterval(recordTimer);
+    getTimingEngine().clearInterval(recordTimer);
     if (recording) {
-      const startedAt = Date.now();
+      // Elapsed readout uses the shared engine's clock and a timer-task, so
+      // the app still has exactly one timing authority + one ticker.
+      const startedAt = getTimingEngine().audioNow();
       const tick = () => {
-        const seconds = Math.floor((Date.now() - startedAt) / 1000);
+        const seconds = Math.floor(getTimingEngine().audioNow() - startedAt);
         timeLabel.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
       };
       tick();
-      recordTimer = window.setInterval(tick, 500);
+      recordTimer = getTimingEngine().setInterval(tick, 500);
     }
   });
   document.getElementById("bpm-input").addEventListener("change", (event) => actions.setBpm(Number(event.target.value)));
