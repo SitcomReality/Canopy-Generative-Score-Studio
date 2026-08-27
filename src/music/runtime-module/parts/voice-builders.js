@@ -19,9 +19,9 @@ function makeVelocityPath(synth, connectTo, baseGain) {
   velGain.baseGain = baseGain === undefined ? 1 : baseGain;
   return { synth, velGain };
 }
-function makeDrums(instrument, reverb, glue) {
+function makeDrums(instrument, reverb, glue, activeScore) {
   // v6: a custom instrument's kit (score.instruments) overrides the catalog.
-  const custom = (typeof score !== "undefined") ? (score.instruments?.[instrument]?.percussion) : undefined;
+  const custom = activeScore?.instruments?.[instrument]?.percussion;
   const preset = custom || instrumentSettings(instrument, "percussion");
   const extras = [];
   const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).toDestination();

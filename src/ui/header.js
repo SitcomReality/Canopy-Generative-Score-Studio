@@ -25,6 +25,10 @@ export function initHeader(store, actions) {
     exportMenu.hidden = true;
     actions.exportRuntime();
   });
+  document.getElementById("export-engine").addEventListener("click", () => {
+    exportMenu.hidden = true;
+    actions.exportEngine();
+  });
   document.getElementById("export-midi").addEventListener("click", () => {
     exportMenu.hidden = true;
     actions.exportMidi();

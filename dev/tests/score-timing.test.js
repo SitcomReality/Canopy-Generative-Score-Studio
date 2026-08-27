@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { computeStepFrame, orderEvents } from "../../src/music/dynamics.js";
-import { runtimeModule } from "../../src/music/runtime-module.js";
+import { scoreEngineSource } from "../../src/music/runtime-module.js";
 import { DEFAULT_PROJECT } from "../../src/music/default-project.js";
 
 // Offsets within each physical voice (pitched synth / kick / perc-noise,
@@ -83,6 +83,6 @@ for (let step = 0; step < 16; step += 1) {
 }
 
 test("emitted runtime orders events through orderEvents (parity of the guard)", () => {
-  const emitted = runtimeModule(DEFAULT_PROJECT);
+  const emitted = scoreEngineSource();
   assert.match(emitted, /orderEvents\(computeStepFrame\(/, "runtime step loop must wrap events in orderEvents");
 });

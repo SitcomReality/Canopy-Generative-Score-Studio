@@ -99,7 +99,7 @@ function setup() {
       }
       voices[layer.id] = bundle;
     } else if (layer.role === "percussion") {
-      const drums = makeDrums(layer.instrument, reverb, glue);
+      const drums = makeDrums(layer.instrument, reverb, glue, score);
       voices[layer.id] = drums;
       nodes[layer.id] = { kick: drums.kick, hat: drums.hat };
       drumExtras.push(...drums.extras);
@@ -199,14 +199,14 @@ function setup() {
   }, "8n");
 }
 
-export async function startScore() {
+async function startScore() {
   await Tone.start();
   if (!nodes) setup();
   driftRng = makeRng(score.variationSeed || 0);
   Tone.getTransport().start();
 }
 
-export function stopScore() {
+function stopScore() {
   Tone.getTransport().stop();
   step = 0;
   driftRng = Math.random;
@@ -219,21 +219,21 @@ export function stopScore() {
   }
 }
 
-export function setGameMusicState({ threat = 0, inCombat = false } = {}) {
+function setGameMusicState({ threat = 0, inCombat = false } = {}) {
   queuedContext = inCombat || threat > 0.7 ? "combat" : threat > 0.3 ? "unease" : "explore";
 }
 
 // Queue a one-shot flourish by name: "victory", "defeat", "combat", "calm",
 // "relief" or "unease" (the legacy boolean-style "victory" call is kept).
 // The flourish plays at the next bar boundary and lasts a full bar.
-export function musicEvent(name) {
+function musicEvent(name) {
   if (FLOURISH_NAMES.includes(name)) flourishQueued = name;
 }
 
 // Read-only snapshot of the runtime's live state — handy for game HUDs and
 // test harnesses. Never mutates anything; additive, so older consumers that
 // ignore it are unaffected.
-export function getRuntimeInfo() {
+function getRuntimeInfo() {
   return {
     playing: Tone.getTransport().state === "started",
     context,
@@ -249,11 +249,11 @@ export function getRuntimeInfo() {
 // boundary instead of the active context's targets. Unlisted axes (and the
 // context itself) keep behaving normally; call setGameAxes(null) to hand
 // control fully back to the context.
-export function setGameAxes(axes) {
+function setGameAxes(axes) {
   axisOverride = axes && typeof axes === "object" ? { ...axes } : null;
 }
 
-export function disposeScore() {
+function disposeScore() {
   if (loopId !== null) Tone.getTransport().clear(loopId);
   Object.values(nodes || {}).forEach((node) => {
     if (Array.isArray(node)) node.forEach((child) => child.dispose());
@@ -263,4 +263,7 @@ export function disposeScore() {
   drumExtras = [];
   nodes = null;
   voices = {};
-}`;
+}
+
+  return { startScore, stopScore, setGameMusicState, musicEvent, getRuntimeInfo, setGameAxes, disposeScore };
+`;

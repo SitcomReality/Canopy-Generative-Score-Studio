@@ -4,7 +4,7 @@
 // setGameMusicState, musicEvent — so what you hear is exactly what a game
 // consumes. Live state comes from the additive getRuntimeInfo() reader.
 // Painting lives in ./readout.js, control wiring in ./controls.js.
-import { runtimeModule } from "../../music/runtime-module.js";
+import { runtimeModule, scoreEngineSource } from "../../music/runtime-module.js";
 import { safeFileName } from "../../utils/download.js";
 import { createToneShimUrl } from "../../utils/tone-shim.js";
 import { notify } from "../toast.js";
@@ -54,7 +54,10 @@ export function initRuntimeHarness(store) {
     }
   };
 
-  async function loadSource(source, name, isProject) {
+  // The exported score is DATA ONLY; the engine comes from the shared
+  // scoreEngineSource(). Both are blob-imported and combined here so the
+  // harness drives the exact public API a game consumes.
+  async function loadSource(scoreSource, engineSource, name, isProject) {
     if (module) {
       try { module.disposeScore(); } catch { /* already gone */ }
       module = null;
@@ -64,8 +67,12 @@ export function initRuntimeHarness(store) {
     pollTimer = null;
     last = null;
     try {
-      moduleUrl = URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
-      module = await import(moduleUrl);
+      const shim = createToneShimUrl();
+      const scoreUrl = URL.createObjectURL(new Blob([scoreSource], { type: "text/javascript" }));
+      const scoreModule = await import(scoreUrl);
+      const engineUrl = URL.createObjectURL(new Blob([engineSource.replace(/from\s*"tone"/, `from "${shim}"`)], { type: "text/javascript" }));
+      const engineModule = await import(engineUrl);
+      module = engineModule.createScoreEngine(scoreModule.score);
       fromProject = isProject;
       els.sourceLabel.textContent = name;
       log(`Loaded ${name}`);
@@ -80,16 +87,13 @@ export function initRuntimeHarness(store) {
 
   const loadFromProject = () => {
     const project = store.get().project;
-    const shim = createToneShimUrl();
-    const source = runtimeModule(project).replace(/from\s*"tone"/, `from "${shim}"`);
-    return loadSource(source, `${safeFileName(project.name)}.score.js (current project)`, true);
+    return loadSource(runtimeModule(project), scoreEngineSource(), `${safeFileName(project.name)}.score.js (current project)`, true);
   };
 
   const loadFromFile = async (file) => {
     if (!file) return;
-    const shim = createToneShimUrl();
     const text = await file.text();
-    await loadSource(text.replace(/from\s*"tone"/, `from "${shim}"`), file.name, false);
+    await loadSource(text, scoreEngineSource(), file.name, false);
   };
 
   function poll() {

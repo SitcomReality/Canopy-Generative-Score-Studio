@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { INSTRUMENTS, INSTRUMENT_NAMES, instrumentSettings } from "../../src/music/instruments.js";
 import { resolveInstrumentConfig, sanitizeInstrumentConfig } from "../../src/music/instrument-override.js";
 import { DEFAULT_LAYERS, LAYER_ROLES, hydrateProject, DEFAULT_PROJECT } from "../../src/music/default-project.js";
-import { runtimeModule } from "../../src/music/runtime-module.js";
+import { runtimeModule, scoreEngineSource } from "../../src/music/runtime-module.js";
 
 test("every instrument has a config for every layer role", () => {
   for (const name of INSTRUMENT_NAMES) {
@@ -46,13 +46,15 @@ test("default layers only use catalog instruments", () => {
 
 test("emitted runtime embeds per-layer overrides and their resolver", () => {
   const layer = { ...DEFAULT_LAYERS[0], instrumentConfig: { oscillator: "sawtooth", envelope: { attack: 0.3 } } };
-  const emitted = runtimeModule({ ...DEFAULT_PROJECT, layers: [layer, ...DEFAULT_PROJECT.layers.slice(1)] });
-  // The override travels inside the embedded score JSON...
-  assert.ok(emitted.includes('"instrumentConfig"'), "score JSON carries the override");
-  assert.ok(emitted.includes('"attack": 0.3'), "override values are embedded");
-  // ...and the emitted template ships the same resolution logic.
-  assert.ok(emitted.includes("function sanitizeInstrumentConfig"), "resolver is spliced");
-  assert.ok(emitted.includes("resolveInstrumentConfig(layer, \"harmony\")"), "setup consumes resolved configs");
+  const project = { ...DEFAULT_PROJECT, layers: [layer, ...DEFAULT_PROJECT.layers.slice(1)] };
+  const data = runtimeModule(project);
+  const engine = scoreEngineSource();
+  // The override travels inside the embedded score data...
+  assert.ok(data.includes('"instrumentConfig"'), "score JSON carries the override");
+  assert.ok(data.includes('"attack": 0.3'), "override values are embedded");
+  // ...and the shared engine ships the same resolution logic.
+  assert.ok(engine.includes("function sanitizeInstrumentConfig"), "resolver is shipped");
+  assert.ok(engine.includes("resolveInstrumentConfig(layer, \"harmony\")"), "setup consumes resolved configs");
 });
 
 test("hydrateProject rejects unknown instruments", () => {
@@ -122,10 +124,11 @@ test("emitted runtime resolves custom instruments and kits", () => {
   const project = hydrateProject({
     instruments: { "my-bell": { label: "My Bell", voice: { voice: "fm", oscillator: { type: "sine" }, envelope: { attack: 0.1 } }, percussion: { kick: { pitchDecay: 0.03, octaves: 6 }, hat: { noise: { type: "white" } } } } },
   });
-  const emitted = runtimeModule(project);
-  assert.ok(emitted.includes('"my-bell"'), "score JSON carries the custom instrument");
-  assert.ok(emitted.includes("score.instruments?.[layer.instrument]"), "resolve consults custom voice");
-  assert.ok(emitted.includes("score.instruments?.[instrument]?.percussion"), "makeDrums consults custom kit");
+  const data = runtimeModule(project);
+  const engine = scoreEngineSource();
+  assert.ok(data.includes('"my-bell"'), "score data carries the custom instrument");
+  assert.ok(engine.includes("score.instruments?.[layer.instrument]"), "resolve consults custom voice");
+  assert.ok(engine.includes("activeScore?.instruments?.[instrument]?.percussion"), "makeDrums consults custom kit");
 });
 
 test("hydrateProject round-trips a valid instrumentConfig and drops bad ones", () => {

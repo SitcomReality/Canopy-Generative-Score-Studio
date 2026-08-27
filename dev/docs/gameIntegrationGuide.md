@@ -10,47 +10,62 @@ Canopy studio.
 
 ## 1. What you get
 
-Exporting a project produces **one self-contained ES module**, `name.score.js`.
-It contains:
+The studio exports two things (the Phase 5 split — **data** and **engine** are
+no longer duplicated per song):
 
-- `export const score` — the full `.canopy.json` song data (embedded verbatim).
-- The complete synth graph builder and 16-step sequencer built on Tone.js.
-- The reactive-dynamics decision core (axes, contexts, gates, fills,
-  automation, verses, flourishes) spliced in from the studio's shared core —
-  so the game hears exactly what the studio preview heard. A parity test
-  guards this.
+1. **`name.score.js`** — DATA ONLY. Just `export const score = {…}` (the
+   schema-versioned song — layers, journey, reactive axes, verses, flourishes,
+   space, custom instruments). No Tone import, no engine, ~the song JSON.
+2. **`scoreEngine.js`** — the SHARED engine. One copy per game. It imports Tone
+   once, embeds the synth-graph builders, the 16-step sequencer, and the
+   reactive-dynamics decision core (spliced verbatim from the studio's shared
+   core, guarded by a parity test), and exports a single factory:
 
-**Dependency:** `tone` (npm). That is the only import:
+   ```js
+   import * as Tone from "tone";
+   export function createScoreEngine(score) { /* ... */ }
+   ```
+
+Wire them together once:
 
 ```js
-import * as Tone from "tone";
+import { score } from "./music/battlefield.score.js";
+import { createScoreEngine } from "./scoreEngine.js";   // vendored once per game
+const music = createScoreEngine(score);
 ```
 
-Install it once in the game project (`npm install tone`) and let your
-bundler resolve it. The file must not be hand-edited below the `score`
-object — regenerate it from the studio instead.
+**Dependency:** `tone` (npm) — installed once for the game. `score.js` never
+imports it; only `scoreEngine.js` does.
 
-**Public API (stable, consumed by shipped games):**
+**Public API (stable, consumed by shipped games; live on the runtime instance):**
 
-| Function | Signature | Purpose |
+| Method (on the runtime) | Signature | Purpose |
 |---|---|---|
-| `startScore` | `async () => void` | Unlock audio, build the graph, start looping. Idempotent-ish: safe to call again after `stopScore`. |
-| `stopScore` | `() => void` | Stop transport and reset to bar 0 (written phrases, journey position, live axes). Nodes stay alive for a fast restart. |
-| `setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
-| `musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
-| `getRuntimeInfo` | `() => { playing, context, bar, liveAxes, axisOverride, sectionId }` | Read-only snapshot of the live state — context, bar count, eased axis values, any manual axis override, current verse id. Additive; handy for game HUDs and the studio's Runtime-tab harness. |
-| `setGameAxes` | `(axes: { intensity?, tension?, brightness? } \| null) => void` | Manually steer axes: listed entries (0..1) override the active context's targets at each bar boundary; unlisted axes keep following the context. `null` restores full context control. |
-| `disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
+| `music.startScore` | `async () => void` | Unlock audio, build the graph, start looping. Idempotent-ish: safe to call again after `stopScore`. |
+| `music.stopScore` | `() => void` | Stop transport and reset to bar 0. Nodes stay alive for a fast restart. |
+| `music.setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
+| `music.musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
+| `music.getRuntimeInfo` | `() => { playing, context, bar, liveAxes, axisOverride, sectionId }` | Read-only snapshot — context, bar count, eased axes, manual override, current verse id. Additive. |
+| `music.setGameAxes` | `(axes: { intensity?, tension?, brightness? } \| null) => void` | Manually steer axes; `null` restores full context control. |
+| `music.disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
+
+> **Note:** where the rest of this guide writes `startScore()`,
+> `setGameMusicState(...)`, etc., read it as `music.startScore()`,
+> `music.setGameMusicState(...)` — the API lives on the runtime returned by
+> `createScoreEngine(score)`.
 
 ## 2. Minimal integration
 
 ```js
-import { startScore } from "./music/battlefield.score.js";
+import { score } from "./music/battlefield.score.js";
+import { createScoreEngine } from "./scoreEngine.js";
+
+const music = createScoreEngine(score);
 
 // Browsers require a user gesture before audio can start — call this from
 // the first click/keypress, or your "press to start" screen.
 startButton.addEventListener("click", () => {
-  startScore(); // async internally; fire-and-forget is fine
+  music.startScore(); // async internally; fire-and-forget is fine
 });
 ```
 

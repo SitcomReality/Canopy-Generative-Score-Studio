@@ -137,16 +137,21 @@ seeds a custom override. **Bindings editor — PENDING**: song-level `bindings`
 fire at the next boundary and begin resolving the context there — trigger at the
 end of the current bar, transition at the start of the next.
 
-## Phase 5 — Score-file format refactor
+## Phase 5 — Score-file format refactor — DONE
 
-- Studio exports **data-only** `export const score = {...}` (schema-versioned,
-  no Tone import).
-- The game owns **one** `scoreEngine.js` importing Tone once from its own
-  vendored path and exporting `startScore / stopScore / setGameMusicState /
-  musicEvent / disposeScore`, taking the score data as an argument.
-- `musicDirector.js` imports the engine once + a small track→data registry.
-- Update `dev/docs/gameIntegrationGuide.md`, `dev/scripts/check_imports.py`, and
-  keep `dev/tests/dynamics-parity.test.js` green.
+- **Data-only** export (`runtimeModule`) = `export const score = {...}` (schema
+  v6, no Tone import, no engine).
+- **Shared engine** (`scoreEngineSource`) = one `scoreEngine.js` per game,
+  importing Tone once and exporting a single `createScoreEngine(score)` factory
+  whose returned runtime exposes the stable API
+  (`startScore/stopScore/setGameMusicState/musicEvent/setGameAxes/
+  getRuntimeInfo/disposeScore`).
+- A `musicDirector.js` pattern (import the engine once + a track→data registry)
+  is described in `dev/docs/gameIntegrationGuide.md`.
+- The studio's Runtime harness loads the data-only score + the engine and
+  combines them; the Export menu offers "Song data (.score.js)" and "Score
+  engine". Tests updated to assert the data/engine split; the dynamics parity
+  test now checks the engine source's splice.
 
 ## Phase 6 — Small fixes — DONE
 

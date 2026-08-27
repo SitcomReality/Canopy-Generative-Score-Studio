@@ -1,7 +1,7 @@
 // Project I/O actions: save/export in all three formats (JSON project,
 // standalone runtime module, MIDI sketch) plus JSON/MIDI import.
 import { hydrateProject } from "../music/default-project.js";
-import { runtimeModule } from "../music/runtime-module.js";
+import { runtimeModule, scoreEngineSource } from "../music/runtime-module.js";
 import { buildMidi, melodyFromMidi } from "../music/midi-adapter.js";
 import { downloadBlob, safeFileName } from "../utils/download.js";
 import { notify } from "../ui/toast.js";
@@ -21,7 +21,12 @@ export function createProjectIoActions(store, host) {
 
     exportRuntime() {
       downloadBlob(`${safeFileName(store.get().project.name)}.score.js`, runtimeModule(store.get().project), "text/javascript");
-      notify("Standalone Tone.js score module exported");
+      notify("Song data exported — pair it with the shared scoreEngine.js");
+    },
+
+    exportEngine() {
+      downloadBlob("scoreEngine.js", scoreEngineSource(), "text/javascript");
+      notify("Shared score engine exported — include once per game");
     },
 
     exportMidi() {
