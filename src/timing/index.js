@@ -4,13 +4,15 @@
 // and owns the baseline mapping. This is the ONLY site allowed to create raw
 // timers (see Rules in index.md); every timed thing in the app routes here.
 //
-// The engine owns *when*; layer adapters own *what* and *how*. Adapters
-// implement onEvents(events, when) — they receive the step being sounded and
-// its absolute audio-context start time — and are responsible for resolving
-// events (via computeStepFrame/orderEvents) and realizing them on voices,
-// resolving same-voice collisions, and owning revocable handles. Gating
-// (mute/solo) lives at the emission boundary here and must never touch
-// baselines or the RNG stream.
+// The engine owns *when* (the audio→musical baseline, lookahead windows, the
+// ticker) and *whether* (per-layer gates for mute/solo). A single "step
+// source" adapter — the sequencer — computes+realizes each step's events. It
+// is called once per due step with an ABSOLUTE audio-context start time and
+// consults isLayerAudible() at the emission boundary so a muted layer's RNG
+// stream is still consumed (gate-only, never generation).
+//
+// Gating is a pure boolean filter. A toggle must never cancel, restart, or
+// re-anchor anything; playback flows identically through every mute/solo.
 import {
   createBaseline,
   beatsPerSecond,
@@ -37,7 +39,7 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   const provideFrame = frame ?? ((fn) => window.requestAnimationFrame(fn));
 
   const timer = createTimerService(() => provideNow() * 1000);
-  const adapters = new Map(); // layerId -> { onEvents, onPause, enabled }
+  const gates = new Map(); // layerId -> boolean enabled (undefined = enabled)
   let soloedId = null; // at most one solo holds in this studio UI
 
   let baseline = null; // { audioOrigin, musicalOrigin, musicalRate } | null
@@ -47,19 +49,17 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   let bpm = 120; // current musical rate target (beats/min)
   let deferredBpm = null; // bpm queued for the next half-bar boundary
   let onBarBoundary = null; // sequencer hook for arrangement/context at step 0
-
+  let stepSource = null; // { onEvents(frame), onPause() } | null
   let publisher = null; // (frame) => void, set by the host to publish UI position
 
   // ---- audio-time source ------------------------------------------------
 
-  // Musically-safe clock read: the injected clock (or Tone.now()). Never read
-  // to anchor or schedule while the AudioContext is suspended (§5.7).
+  // The injected clock (or Tone.now()). Never read to anchor or schedule
+  // while the AudioContext is suspended (§5.7); clockReady() gates that.
   function audioNow() {
     return provideNow();
   }
 
-  // Whether the audio clock is trustworthy. While the AudioContext is
-  // suspended its currentTime does not advance, so we hold off scheduling.
   function clockReady() {
     const ctx = typeof Tone !== "undefined" ? Tone.getContext() : null;
     if (ctx && ctx.rawContext && ctx.rawContext.state !== "running") return false;
@@ -71,10 +71,11 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   function tick() {
     if (disposed || !baseline || !clockReady()) return;
 
+    const t = audioNow();
+
     // Tempo change lands here at a musical boundary: re-anchor at the next
     // half-bar (step 0 or 8) so position stays continuous, never mid-chord.
     if (deferredBpm !== null) {
-      const t = audioNow();
       const pos = musicalPositionAt(baseline, t);
       const frame = positionFrame(pos);
       if (frame.step === 0 || frame.step === 8) {
@@ -84,7 +85,6 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
       }
     }
 
-    const t = audioNow();
     const win = renderWindow(t, LOOKAHEAD);
     const steps = dueSteps(baseline, win);
 
@@ -101,14 +101,13 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
         }
       }
 
-      // Emit the step through each adapter's gate.
-      for (const [layerId, adapter] of adapters) {
-        if (!effectiveGate(layerId, adapter.enabled, soloedId)) continue;
+      // Dispatch the step to the sequencer, which computes, gates, and
+      // realizes. A throwing source must not stop the clock or starve others.
+      if (stepSource) {
         try {
-          adapter.onEvents({ step: frame.step, bar: frame.bar, when });
+          stepSource.onEvents({ step: frame.step, bar: frame.bar, when });
         } catch (err) {
-          // A throwing adapter must not stop the clock or starve other layers.
-          console.error("[timing] adapter error:", err);
+          console.error("[timing] step source error:", err);
         }
       }
 
@@ -130,7 +129,7 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
 
   // ---- lifecycle --------------------------------------------------------
 
-  function play(rng) {
+  function play() {
     if (disposed) return;
     // A tempo set before play (e.g. from the project on engine start) must be
     // honored as the initial rate, not deferred to a boundary that never comes.
@@ -148,7 +147,7 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   function pause() {
     if (!baseline) return;
     // Hold musical position, then revoke the lookahead: stop ticking first so
-    // no further events emit, then let adapters release in-flight handles.
+    // no further events emit, then let the source release in-flight handles.
     stopTicker();
     heldPosition = musicalPositionAt(baseline, audioNow());
     baseline = null;
@@ -164,8 +163,8 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
 
   function stop() {
     // Distinct from pause: clear the baseline, return to origin, and reset
-    // long-form state. The sequencer resets its own arrangement state via
-    // onBarBoundary teardown on the next start.
+    // long-form state. The sequencer resets its own arrangement state via its
+    // onPause / a next-start reset.
     stopTicker();
     releaseInFlight();
     baseline = null;
@@ -182,9 +181,10 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     heldPosition = null;
     deferredBpm = null;
     onBarBoundary = null;
+    stepSource = null;
     publisher = null;
     timer.clear();
-    adapters.clear();
+    gates.clear();
     soloedId = null;
   }
 
@@ -200,28 +200,25 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   }
 
   function releaseInFlight() {
-    for (const adapter of adapters.values()) {
-      try {
-        adapter.onPause?.();
-      } catch (err) {
-        console.error("[timing] release error:", err);
-      }
+    try {
+      stepSource?.onPause?.();
+    } catch (err) {
+      console.error("[timing] release error:", err);
     }
   }
 
-  // ---- adapters ---------------------------------------------------------
+  // ---- step source + gates ---------------------------------------------
 
-  function registerLayer(layerId, adapter) {
-    adapters.set(layerId, {
-      onEvents: adapter.onEvents,
-      onPause: adapter.onPause,
-      enabled: adapter.enabled !== false,
-    });
+  function registerStep(source) {
+    stepSource = source;
+  }
+
+  function isLayerAudible(layerId) {
+    return effectiveGate(layerId, gates.get(layerId) !== false, soloedId);
   }
 
   function setLayerEnabled(layerId, enabled) {
-    const adapter = adapters.get(layerId);
-    if (adapter) adapter.enabled = enabled;
+    gates.set(layerId, enabled);
   }
 
   function setLayerSolo(layerId) {
@@ -265,26 +262,25 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     return positionFrame(0);
   }
 
-  const baseTempo = () => bpm;
-
   const api = {
     play,
     pause,
     resume,
     stop,
     dispose,
-    registerLayer,
+    registerStep,
+    registerBarBoundary,
+    attachPublisher,
+    isLayerAudible,
     setLayerEnabled,
     setLayerSolo,
     clearSolo,
     setTempo,
     setPosition,
-    registerBarBoundary,
-    attachPublisher,
     position,
     audioNow,
     tempoNow,
-    bpm: baseTempo,
+    bpm: () => bpm,
     // Timer service surface (app-wide timers route here).
     setTimeout: (fn, ms) => timer.setTimeout(fn, ms),
     clearTimeout: (id) => timer.clearTimeout(id),
