@@ -27,7 +27,7 @@ import {
   thinByBudget,
 } from "./polyphony.js";
 
-export function createSequencer({ store, voices, perfSteps, engine }) {
+export function createSequencer({ store, voices, perfSteps, engine, applyAtmosphere }) {
   // Long-form arrangement state: absolute bar count for the journey curve,
   // per-layer pass counters for rest windows, and the current quiet-pass
   // flags consulted by the step callback. These are MUSICAL (not timing) and
@@ -89,6 +89,10 @@ export function createSequencer({ store, voices, perfSteps, engine }) {
     if (isBar) {
       liveAxes = easeToward(liveAxes, contextTargets(score, context), 0.5);
       applyPhraseDrift({ score, perfSteps, rng: driftRng });
+      // Song-level bindings -> shared atmosphere (reverb/space/swing). Applied
+      // only to the params that have a binding; the rest keep the song's
+      // static baseline. `applyAtmosphere` is injected by the audio engine.
+      applyAtmosphere?.(score, liveAxes);
     }
 
     if (step === 0) {

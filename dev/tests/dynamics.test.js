@@ -16,6 +16,8 @@ import {
   flourishEvents,
   FLOURISH_NAMES,
   domainValue,
+  atmosphereBindings,
+  ATMOSPHERE_TARGETS,
 } from "../../src/music/dynamics.js";
 
 const rng = () => 0.5; // deterministic mid roll
@@ -134,4 +136,43 @@ test("domainValue maps linear and step domains", () => {
   // Step domain picks an entry by rounded index.
   assert.equal(domainValue(["a", "b", "c"], 0.5), "b");
   assert.equal(domainValue(["a", "b", "c"], 0.99), "c");
+});
+
+test("atmosphereBindings returns undefined for every param when there are no bindings", () => {
+  const ab = atmosphereBindings(DEFAULT_PROJECT, { intensity: 0.5, tension: 0.5, brightness: 0.5 });
+  assert.equal(ab.reverb, undefined);
+  assert.equal(ab.swing, undefined);
+  assert.deepEqual(ab.space, {});
+  // The atmosphere target list is complete (all six shared-atmosphere params).
+  for (const t of ATMOSPHERE_TARGETS) assert.equal(typeof t, "string");
+  assert.deepEqual(ATMOSPHERE_TARGETS, ["reverb", "space.lead", "space.bed", "space.bass", "space.echo", "swing"]);
+});
+
+test("atmosphereBindings resolves a linear reverb binding to a percent", () => {
+  const project = { bindings: [{ target: "reverb", axis: "tension", domain: [0, 100] }] };
+  assert.equal(atmosphereBindings(project, { intensity: 0.5, tension: 0.5, brightness: 0.5 }).reverb, 50);
+  assert.equal(atmosphereBindings(project, { intensity: 0.5, tension: 0.25, brightness: 0.5 }).reverb, 25);
+});
+
+test("atmosphereBindings resolves per-role space sends only for bound params", () => {
+  const project = { bindings: [{ target: "space.lead", axis: "intensity", domain: [0.2, 0.8] }] };
+  const ab = atmosphereBindings(project, { intensity: 0.5, tension: 0.5, brightness: 0.5 });
+  assert.equal(ab.space.lead, 0.5);
+  assert.equal(ab.space.bed, undefined);
+  assert.equal(ab.space.bass, undefined);
+  assert.equal(ab.space.echo, undefined);
+  assert.equal(ab.reverb, undefined);
+});
+
+test("atmosphereBindings resolves swing and ignores non-atmosphere targets", () => {
+  const project = {
+    bindings: [
+      { target: "swing", axis: "brightness", domain: [0, 100] },
+      { target: "nonsense", axis: "tension", domain: [0, 1] },
+    ],
+  };
+  const ab = atmosphereBindings(project, { intensity: 0.5, tension: 0.5, brightness: 0.75 });
+  assert.equal(ab.swing, 75);
+  assert.equal(ab.reverb, undefined);
+  assert.deepEqual(ab.space, {});
 });

@@ -255,9 +255,30 @@ motion.
 
 ### Bindings
 
-Song-level axis → parameter maps. The v4 `tempo.offset` target is gone (tempo
-is static from v5 on; hydration drops such bindings). Keep `bindings: []`
-unless you add a custom song-level parameter of your own.
+Song-level axis → parameter maps for the **shared atmosphere** — global params a
+single layer doesn't own. Each `{ target, axis, domain }` drives one of:
+
+| target        | parameter              | unit     | default |
+|---------------|------------------------|----------|---------|
+| `reverb`      | room reverb wet        | 0..100 % | `64`    |
+| `space.lead`  | lead reverb send       | 0..1     | `0.3`   |
+| `space.bed`   | bed (harmony) send     | 0..1     | `0.32`  |
+| `space.bass`  | bass reverb send       | 0..1     | `0.12`  |
+| `space.echo`  | lead echo (delay) send | 0..1     | `0.2`   |
+| `swing`       | off-beat sway          | 0..100 % | `8`     |
+
+```jsonc
+"bindings": [
+  { "target": "space.lead", "axis": "intensity", "domain": [0.15, 0.55] }
+]
+```
+
+These resolve at every bar boundary (after the live axes ease) in both the
+studio preview and the exported runtime; only bound params are applied, so the
+rest of the song keeps its static baseline. The v4 `tempo.offset` target is gone
+(tempo is static from v5 on; hydration drops such bindings). Keep `bindings: []`
+unless you add an atmosphere binding above. `space.*` domains are always 0..1;
+`reverb`/`swing` domains are percentages (0..100).
 
 ### Verses (sections, v5)
 

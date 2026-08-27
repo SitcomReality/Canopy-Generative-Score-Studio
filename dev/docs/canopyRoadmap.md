@@ -127,9 +127,15 @@ endpoints revert instead of corrupting the engine lookup.
 4b. **Flourishes editor — DONE** (`ui/flourish-editor.js`, `actions/song-actions.js`).
 A modal to tune each one-shot flourish (degree/octave/at/dur/vel per event, add/remove,
 reset to built-in). Edits start from the built-in catalog so tweaking a preset
-seeds a custom override. **Bindings editor — PENDING**: song-level `bindings`
-(`{ target, axis, domain }`) are currently dormant schema (no consumer calls
-`bindingValue` yet) — add a minimal editor for completeness and/or wire it in.
+seeds a custom override. **Bindings wiring — DONE** (runtime): song-level
+`bindings` (`{ target, axis, domain }`) now drive the shared atmosphere —
+`reverb`, `space.lead/bed/bass/echo`, and `swing` — resolved at each bar
+boundary by `atmosphereBindings()` in the dynamics core (spliced into the
+runtime) and applied by both the studio sequencer and the exported engine.
+`DEFAULT_BINDINGS` stays empty, so the default mix is untouched. **Bindings
+editor — PENDING**: a UI to author those bindings (mirror the flourish editor);
+no UI yet — user has the JSON contract and wants UI deferred until the
+atmosphere-target editing is settled.
 
 **Flourish timing — DONE.** The studio sequencer only queued flourishes at
 `step === 0` while the runtime already fired at both bar boundaries

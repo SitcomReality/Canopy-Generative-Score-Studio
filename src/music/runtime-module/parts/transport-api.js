@@ -118,6 +118,15 @@ function setup() {
     if (boundary) {
       const target = { ...contextTargets(score, context), ...(axisOverride ?? {}) };
       liveAxes = easeToward(liveAxes, target, 0.5);
+      // Song-level bindings -> shared atmosphere (reverb/space/swing). Applied
+      // only to the params that have a binding; the rest keep the static baseline.
+      const ab = atmosphereBindings(score, liveAxes);
+      if (ab.reverb !== undefined) nodes.reverb.wet.rampTo(ab.reverb / 100, 0.2);
+      if (ab.swing !== undefined) Tone.getTransport().swing = ab.swing / 100;
+      if (ab.space.lead !== undefined) nodes.leadSend.gain.rampTo(ab.space.lead, 0.2);
+      if (ab.space.bed !== undefined) nodes.bedSend.gain.rampTo(ab.space.bed, 0.2);
+      if (ab.space.bass !== undefined) nodes.bassSend.gain.rampTo(ab.space.bass, 0.2);
+      if (ab.space.echo !== undefined) nodes.echoSend.gain.rampTo(ab.space.echo, 0.2);
     }
     if (step === 0) {
       barCount += 1;

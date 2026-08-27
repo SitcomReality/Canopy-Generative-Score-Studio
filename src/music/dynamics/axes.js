@@ -48,3 +48,29 @@ export function bindingValue(project, target, live) {
   const binding = (project.bindings ?? []).find((b) => b.target === target);
   return binding ? domainValue(binding.domain, live[binding.axis]) : undefined;
 }
+
+// ------------------------------------------------- atmosphere bindings
+
+// Song-level "shared atmosphere" params a binding may drive. These are global
+// (not owned by a single layer), so they use song-level bindings rather than
+// per-layer automation. Units match the project fields: reverb & swing are 0..100
+// (percent), space.* are 0..1 (parallel reverb/echo send levels).
+export const ATMOSPHERE_TARGETS = ["reverb", "space.lead", "space.bed", "space.bass", "space.echo", "swing"];
+
+// Resolve the song-level bindings that target atmosphere params against a live
+// axis vector. Returns { reverb?, swing?, space: { lead?, bed?, bass?, echo? } }
+// with ONLY the params that actually have a binding; the rest are undefined so
+// consumers fall back to the song's static baseline for that param (and leave
+// an unbound param untouched). Unknown/non-atmosphere targets are ignored.
+export function atmosphereBindings(project, live) {
+  const out = { reverb: undefined, swing: undefined, space: {} };
+  for (const key of ["lead", "bed", "bass", "echo"]) {
+    const value = bindingValue(project, `space.${key}`, live);
+    if (value !== undefined) out.space[key] = value;
+  }
+  const reverb = bindingValue(project, "reverb", live);
+  if (reverb !== undefined) out.reverb = reverb;
+  const swing = bindingValue(project, "swing", live);
+  if (swing !== undefined) out.swing = swing;
+  return out;
+}

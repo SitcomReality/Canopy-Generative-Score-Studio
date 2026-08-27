@@ -26,7 +26,7 @@ function makeVoices(project) {
 const triggered = [];
 const onChange = [];
 
-function fresh() {
+function fresh(extra = {}) {
   triggered.length = 0;
   onChange.length = 0;
   const project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
@@ -49,7 +49,7 @@ function fresh() {
   for (const layer of project.layers) {
     if (layer.role === "motif") perfSteps[layer.id] = [...layer.steps];
   }
-  const sequencer = createSequencer({ store, voices, perfSteps, engine });
+  const sequencer = createSequencer({ store, voices, perfSteps, engine, ...extra });
   sequencer.attach();
   // Seed the drift RNG so every step's event draw is deterministic in tests
   // (the app seeds it from variationSeed on play; Math.random otherwise).
@@ -98,6 +98,24 @@ test("sequencer publishes step/sounding to the store", () => {
   h.engine.stepSource.onEvents({ step: 3, bar: 1, when: 100 });
   assert.ok(onChange.includes("step"), "published the step");
   assert.ok(onChange.includes("sounding"), "published sounding");
+});
+
+test("sequencer applies song-level atmosphere bindings only at bar boundaries", () => {
+  let received = null;
+  const applied = (score, live) => { received = { score, live }; };
+  const h = fresh({ applyAtmosphere: applied });
+  // Bar boundary (step 0): the atmosphere callback fires with the project and
+  // the eased live axis vector.
+  h.engine.stepSource.onEvents({ step: 0, bar: 1, when: 100 });
+  assert.ok(received, "applyAtmosphere called at a bar boundary");
+  assert.equal(received.score, h.project, "handed the live project");
+  assert.equal(typeof received.live.intensity, "number");
+  assert.equal(typeof received.live.tension, "number");
+  assert.equal(typeof received.live.brightness, "number");
+  // Non-boundary step must not re-apply.
+  received = null;
+  h.engine.stepSource.onEvents({ step: 3, bar: 1, when: 200 });
+  assert.equal(received, null, "atmosphere is only applied on bar boundaries");
 });
 
 test("computeStepFrame is RNG-neutral to muted: mute never re-rolls other layers", () => {

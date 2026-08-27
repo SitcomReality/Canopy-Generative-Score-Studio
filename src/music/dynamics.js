@@ -25,6 +25,8 @@ export {
   contextTargets,
   easeToward,
   bindingValue,
+  ATMOSPHERE_TARGETS,
+  atmosphereBindings,
 } from "./dynamics/axes.js";
 export { activeSection, sectionGain, sectionActive, layerLevel } from "./dynamics/sections.js";
 export { FLOURISH_NAMES, flourishEvents } from "./dynamics/flourishes.js";

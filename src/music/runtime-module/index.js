@@ -55,12 +55,14 @@ ${dynamics}
 
 ${JOURNEY_ENERGY_SRC}
 
-${theorySrc(JSON.stringify(SCALES))}
-
 ${VARIATION_SRC}
 
 // ---- engine factory: one shared runtime per score (score is captured here) ---
 export function createScoreEngine(score) {
+// The harmony-guard helpers close over the score, so they must live INSIDE the
+// factory (not at module scope) — scale/key come from the injected score.
+${theorySrc(JSON.stringify(SCALES))}
+
 ${TRANSPORT_API_SRC}
 }
 `;

@@ -12,6 +12,7 @@ import { getTimingEngine } from "../timing/index.js";
 import { STEPS_PER_BEAT } from "../timing/core.js";
 import { makeRng } from "../music/variation.js";
 import { resolveInstrumentConfig } from "../music/instrument-override.js";
+import { atmosphereBindings } from "../music/dynamics.js";
 
 export function createAudioEngine(store) {
   const project = store.get().project;
@@ -47,7 +48,27 @@ export function createAudioEngine(store) {
   for (const layer of project.layers) {
     engine.setLayerEnabled(layer.id, !layer.muted);
   }
-  const sequencer = createSequencer({ store, voices, perfSteps, engine });
+  const sequencer = createSequencer({
+    store,
+    voices,
+    perfSteps,
+    engine,
+    // Song-level bindings -> shared atmosphere (reverb/space/swing), resolved
+    // each bar boundary after the live axes ease. Only the bound params are
+    // applied, so unbound params keep the song's static baseline (and a manual
+    // slider change to a bound param is simply overridden by the binding).
+    applyAtmosphere(score, live) {
+      const ab = atmosphereBindings(score, live);
+      if (ab.reverb !== undefined) chain.setReverb(ab.reverb);
+      if (ab.swing !== undefined) engine.setSwing(ab.swing / 100);
+      const spaceKeys = Object.keys(ab.space);
+      if (spaceKeys.length > 0) {
+        const space = { ...(store.get().project.space ?? {}) };
+        for (const key of spaceKeys) space[key] = ab.space[key];
+        chain.setSpace(space);
+      }
+    },
+  });
   sequencer.attach();
   // Adaptive voice budget: when the engine's tick loop falls behind the audio
   // clock (a catch-up burst), it suggests a tighter budget; apply it to the

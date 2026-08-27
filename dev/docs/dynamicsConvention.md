@@ -33,6 +33,9 @@ cutoffs, or drum patterns.
 7. **Tempo is static during playback** (v5). Intensity expresses itself through
    loudness, density, percussion and register only; the v4 `tempo.offset`
    binding no longer exists and hydration drops it on migration.
+8. **Song-level bindings** (`bindings`) map an axis onto a *global* (non-layer)
+   parameter — the shared atmosphere — so the whole mix breathes, not just one
+   voice. Applied at every bar boundary alongside the live-axis ease.
 
 ## Shape
 
@@ -80,6 +83,32 @@ cutoffs, or drum patterns.
 `automation.domain` is either a two-number **linear range** (velocity, density,
 octave) or a **step index** across a longer array (e.g. `["1m","2n"]` for
 duration, or `[{midi:"D1"...},{midi:"C1"...}]` for kick props).
+
+## Song-level atmosphere bindings
+
+Per-layer `automation` drives *layer-owned* parameters. Song-level `bindings`
+drive the **shared atmosphere** — global params no single layer owns. They map
+an axis onto one of these targets:
+
+```jsonc
+"bindings": [
+  { "target": "reverb",      "axis": "tension",    "domain": [30, 75] },   // room wet, 0..100 (%)
+  { "target": "space.lead",  "axis": "intensity",  "domain": [0.2, 0.7] }, // lead reverb send, 0..1
+  { "target": "space.bed",   "axis": "brightness", "domain": [0.1, 0.6] },
+  { "target": "space.bass",  "axis": "intensity",  "domain": [0.05, 0.4] },
+  { "target": "space.echo",  "axis": "tension",    "domain": [0.05, 0.45] },
+  { "target": "swing",       "axis": "brightness", "domain": [0, 30] }     // off-beat sway, 0..100 (%)
+]
+```
+
+- **Units match the project fields**: `reverb` and `swing` are percentages
+  (0..100); `space.*` are 0..1 parallel reverb/echo sends.
+- Resolved each **bar boundary** (steps 0 and 8) after the live axes ease, in
+  both the studio preview and the exported runtime. Only the params that have a
+  binding are applied; unbound atmosphere params keep the song's static
+  baseline, so an added binding never drags the rest of the mix with it.
+- `target` is only meaningful for the six atmosphere params above. Any other
+  target is inert, and a `tempo.offset` target is dropped on hydration.
 
 ## Verses (sections)
 
