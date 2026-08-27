@@ -66,6 +66,39 @@ test("harmony-guard: every pitched event is a scale degree 0..7", () => {
   }
 });
 
+test("hit-list percussion emits one routed event per authored kit piece", () => {
+  const project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
+  const perc = project.layers.find((l) => l.id === "percussion");
+  perc.activity = null; // sound at neutral axes so the core emits them
+  perc.steps = Array.from({ length: 16 }, () => []);
+  perc.steps[0] = [
+    { piece: "kick", at: 0 },
+    { piece: "tom-hi", at: 0.5, pitch: 4 },
+    { piece: "keyed", at: 0, pitch: 0 },
+  ];
+  perc.steps[4] = [{ piece: "snare", at: 0.25 }];
+  const live = { intensity: 0.5, tension: 0.5, brightness: 0.5 };
+  const ALL_PIECES = ["kick", "hat", "hat-open", "snare", "rim", "tom-hi", "tom-lo", "bongo-hi", "bongo-lo", "keyed", "steel", "shaker"];
+  for (const step of [0, 4]) {
+    const events = computeStepFrame(project, live, features(project), step, rng).filter((e) => e.layerId === "percussion");
+    assert.ok(events.length >= 1, `step ${step} should emit percussion`);
+    for (const ev of events) {
+      assert.equal(typeof ev.layerId, "string", "routable event");
+      assert.ok(ALL_PIECES.includes(ev.piece ?? ev.kind), `unknown piece ${ev.piece ?? ev.kind}`);
+      assert.ok(Number.isFinite(ev.offset), "hit has an onset offset");
+      // Pitched pieces carry an in-key scale degree (harmony guard).
+      if (ev.piece === "tom-hi" || ev.piece === "keyed") {
+        assert.ok(Number.isInteger(ev.degree) && ev.degree >= 0 && ev.degree <= 7, "pitched piece degree 0..7");
+        assert.ok(Number.isInteger(ev.octave), "pitched piece octave");
+      }
+    }
+  }
+  // The three authored pieces on step 0 each emit (kick/keyed/tom-hi) — no loss.
+  const step0 = computeStepFrame(project, live, features(project), 0, rng).filter((e) => e.layerId === "percussion");
+  const pieces = new Set(step0.map((e) => e.piece));
+  assert.ok(pieces.has("kick") && pieces.has("tom-hi") && pieces.has("keyed"), "all authored pieces sound");
+});
+
 test("easeToward moves toward target without overshooting", () => {
   const from = { intensity: 0, tension: 0, brightness: 0 };
   const target = { intensity: 1, tension: 1, brightness: 1 };

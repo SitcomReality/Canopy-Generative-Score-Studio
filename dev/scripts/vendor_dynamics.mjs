@@ -25,6 +25,7 @@ const ROOT = path.dirname(path.dirname(__dirname));
 
 const DYNAMICS_PARTS = [
   "src/music/dynamics/axes.js",
+  "src/music/pieces.js",
   "src/music/dynamics/humanize.js",
   "src/music/dynamics/gates.js",
   "src/music/dynamics/sections.js",

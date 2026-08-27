@@ -1,4 +1,4 @@
-// The serialized project schema (version 7). Keep this shape stable: exported
+// The serialized project schema (version 8). Keep this shape stable: exported
 // .canopy.json files and saved localStorage drafts must keep round-tripping.
 // Version 2 moved per-track data into a `layers` array so layers can be added,
 // removed and renamed. Version 3 added long-form fields: per-layer restWindow +
@@ -11,24 +11,34 @@
 // Version 7 removes "music state": built-in `contexts` presets and one-shot
 // `flourishes` are gone — the game steers the three axes directly (and may
 // trigger its own SFX), and hydration silently drops both.
-// hydrateProject still accepts version 1 flat projects and versions 2-6.
+// Version 8 replaces boolean on/off steps with per-step HIT LISTS so beat
+// layers get real percussion: `steps[i] = [{ piece, at, vel?, pitch? }]` where
+// `piece` keys a kit catalog and `at` is an onset fraction (0..1) within the
+// 8th-note step. Applied to all beat (non-degree) layers; `piece` is ignored
+// for harmony/bass. Backward compatibility for the old boolean-step format
+// (and flat v1 projects) is intentionally dropped — hydration no longer
+// migrates them.
 import { SCALES } from "./scales.js";
 import { INSTRUMENT_NAMES } from "./instruments.js";
 import { sanitizeInstrumentConfig } from "./instrument-override.js";
+import { PIECE_NAMES, pieceIsPitched } from "./pieces.js";
 import { clamp01, domainValue } from "./dynamics.js";
 
 // Re-exported so schema consumers share the single source of truth for these
 // helpers (see dev/tests/dynamics-parity.test.js).
 export { clamp01, domainValue };
 
-export const PROJECT_VERSION = 7;
+export const PROJECT_VERSION = 8;
 
 // The canonical reactive axes every context target and every binding maps
 // from. Each is a continuous 0..1 dimension; the game (or a context preset)
 // steers these and the engine derives musical parameters from them.
 export const DEFAULT_AXES = ["intensity", "tension", "brightness"];
 
-export const EMPTY_STEPS = Array.from({ length: 16 }, () => false);
+// Empty step templates for the two layer kinds: degree layers hold nulls
+// (rests), hit lists hold an empty hit array. New layers build from these.
+export const EMPTY_DEGREES = Array.from({ length: 16 }, () => null);
+export const EMPTY_HITS = Array.from({ length: 16 }, () => []);
 
 // How a layer follows the macro journey / context energy at bar boundaries:
 // "forward" leans into high-energy states, "recessive" eases out of them,
@@ -36,13 +46,14 @@ export const EMPTY_STEPS = Array.from({ length: 16 }, () => false);
 export const ENERGY_ROLES = ["balanced", "forward", "recessive"];
 
 // Layer roles decide how the engine voices a layer and what kind of data its
-// steps hold: "degrees" layers store scale degrees (null = rest), "steps"
-// layers store on/off booleans.
+// steps hold: "degrees" layers store scale degrees (null = rest); "hits"
+// layers store a per-step hit list (`[{ piece, at, vel?, pitch? }]`), where
+// the `piece` key is meaningful for percussion but ignored for harmony/bass.
 export const LAYER_ROLES = {
-  harmony: { label: "Harmony bed", kind: "steps" },
+  harmony: { label: "Harmony bed", kind: "hits" },
   motif: { label: "Main motif", kind: "degrees" },
-  bass: { label: "Low pulse", kind: "steps" },
-  percussion: { label: "Rhythm", kind: "steps" },
+  bass: { label: "Low pulse", kind: "hits" },
+  percussion: { label: "Rhythm", kind: "hits" },
 };
 
 // A layer's color is derived from its function (role), not authored per layer,
@@ -107,7 +118,10 @@ export const DEFAULT_LAYERS = [
       { param: "velocity", axis: "intensity", domain: [0.22, 0.3] },
       { param: "duration", axis: "intensity", domain: ["1m", "2n"] },
     ],
-    steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
+    steps: [
+      [{ at: 0 }], [], [], [], [{ at: 0 }], [], [], [],
+      [{ at: 0 }], [], [], [], [{ at: 0 }], [], [], [],
+    ],
   },
   {
     id: "melody",
@@ -157,7 +171,10 @@ export const DEFAULT_LAYERS = [
       { param: "velocity", axis: "intensity", domain: [0.32, 0.56] },
       { param: "duration", axis: "intensity", domain: ["4n", "8n"] },
     ],
-    steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
+    steps: [
+      [{ at: 0 }], [], [], [], [{ at: 0 }], [], [], [],
+      [{ at: 0 }], [], [], [], [{ at: 0 }], [], [], [],
+    ],
   },
   {
     id: "percussion",
@@ -185,7 +202,15 @@ export const DEFAULT_LAYERS = [
       { param: "hat.velocity", axis: "intensity", domain: [0.16, 0.32] },
       { param: "hat.variation", axis: "intensity", domain: [0.0, 0.3] },
     ],
-    steps: [true, false, false, true, true, false, true, false, true, false, false, true, true, false, true, false],
+    steps: [
+      // The default groove, converted from the v7 boolean skeleton: kick on the
+      // structural downbeats (0/4/8/12), hat on the set off-beats (3/6/11/14).
+      // Fills/rolls still layer on reactively at higher intensity.
+      [{ piece: "kick", at: 0 }], [], [], [{ piece: "hat", at: 0 }],
+      [{ piece: "kick", at: 0 }], [], [{ piece: "hat", at: 0 }], [],
+      [{ piece: "kick", at: 0 }], [], [], [{ piece: "hat", at: 0 }],
+      [{ piece: "kick", at: 0 }], [], [{ piece: "hat", at: 0 }], [],
+    ],
   },
 ];
 
@@ -392,9 +417,37 @@ function sanitizeDegrees(value, fallback) {
     .map((step) => (step === null || (Number.isInteger(step) && step >= 0 && step <= 7) ? step : null));
 }
 
-function sanitizeSteps(value, fallback) {
-  if (!Array.isArray(value)) return [...fallback];
-  return [...value.slice(0, 16), ...EMPTY_STEPS].slice(0, 16).map(Boolean);
+// A beat layer's steps: a 16-slot array where each slot is a list of hits
+// `{ piece, at, vel?, pitch? }`. `piece` is meaningful only for percussion;
+// for harmony/bass it is dropped (the role decides the sound). Unrecognized
+// pieces and out-of-range fields are cleaned away so an imported score can't
+// smuggle a bogus kit or a degree outside the key.
+function sanitizeHits(role, value, fallback) {
+  const isPerc = role === "percussion" || role === "drums";
+  const raw = Array.isArray(value) ? value : fallback.steps;
+  const out = Array.from({ length: 16 }, () => []);
+  for (let i = 0; i < 16; i++) {
+    const hits = raw[i];
+    if (!Array.isArray(hits)) continue;
+    for (const hit of hits) {
+      if (!hit || typeof hit !== "object") continue;
+      const atNum = Number(hit.at);
+      const at = Number.isFinite(atNum) ? Math.max(0, Math.min(1, atNum)) : 0;
+      const velNum = Number(hit.vel);
+      const cleaned = { at };
+      if (Number.isFinite(velNum)) cleaned.vel = Math.max(0, Math.min(1, velNum));
+      if (isPerc) {
+        if (typeof hit.piece !== "string" || !PIECE_NAMES.includes(hit.piece)) continue;
+        cleaned.piece = hit.piece;
+        const pitchNum = Number(hit.pitch);
+        if (Number.isInteger(pitchNum) && pitchNum >= 0 && pitchNum <= 7 && pieceIsPitched(hit.piece)) {
+          cleaned.pitch = pitchNum;
+        }
+      }
+      out[i].push(cleaned);
+    }
+  }
+  return out;
 }
 
 // A layer's automation: an array of { param, axis, domain }. The engine
@@ -480,42 +533,59 @@ function sanitizeLayer(raw, index, usedIds) {
     activity: raw?.activity !== undefined ? sanitizeActivity(raw.activity) : (fallback.activity ?? null),
     fills: raw?.fills !== undefined ? sanitizeFills(raw.fills) : (fallback.fills ?? null),
     automation: raw?.automation !== undefined ? sanitizeAutomation(raw.automation) : (fallback.automation ?? []),
-    steps: kind === "degrees" ? sanitizeDegrees(raw?.steps, fallback.steps) : sanitizeSteps(raw?.steps, fallback.steps),
+    steps: kind === "degrees" ? sanitizeDegrees(raw?.steps, fallback.steps) : sanitizeHits(role, raw?.steps, fallback),
   };
-}
-
-// Version 1 projects kept per-track data flat at the top level; lift it into
-// the layer entries.
-function layersFromV1(value) {
-  const muted = value?.muted ?? {};
-  const overrides = {
-    chords: { muted: Boolean(muted.chords) },
-    melody: {
-      muted: Boolean(muted.melody),
-      instrument: value.instrument,
-      density: value.density,
-      variation: value.variation,
-      humanize: value.humanize,
-      steps: value.melody,
-    },
-    bass: { muted: Boolean(muted.bass), steps: value.bass },
-    percussion: { muted: Boolean(muted.percussion), steps: value.percussion },
-  };
-  return DEFAULT_LAYERS.map((layer, index) => sanitizeLayer({ ...layer, ...overrides[layer.id] }, index, new Set()));
 }
 
 // Convert a layer's steps between the two step kinds when its role changes
-// (e.g. motif -> harmony): degrees collapse to on/off, hits become the tonic.
+// (e.g. motif -> harmony). Degree steps collapse to an on-beat hit; a step
+// with any hit becomes the tonic (degree 0) for a degree layer; and a role
+// change within the hits kind adjusts the `piece` validity for percussion vs
+// harmony/bass.
+function hitsForRole(role) {
+  return role === "percussion" || role === "drums";
+}
+
+function hitsFromDegrees(steps, role) {
+  const perc = hitsForRole(role);
+  return steps.map((degree) => {
+    if (degree === null) return [];
+    return perc ? [{ piece: "kick", at: 0 }] : [{ at: 0 }];
+  });
+}
+
+function prepareHitsForRole(steps, role) {
+  const perc = hitsForRole(role);
+  return steps.map((hits) => {
+    if (!Array.isArray(hits)) return [];
+    return hits.map((h) => {
+      const out = { at: h.at ?? 0 };
+      if (h.vel !== undefined) out.vel = h.vel;
+      if (perc) {
+        const piece = typeof h.piece === "string" && PIECE_NAMES.includes(h.piece) ? h.piece : "kick";
+        out.piece = piece;
+        const pitchNum = Number(h.pitch);
+        if (Number.isInteger(pitchNum) && pitchNum >= 0 && pitchNum <= 7 && pieceIsPitched(piece)) {
+          out.pitch = pitchNum;
+        }
+      }
+      return out;
+    });
+  });
+}
+
 export function convertStepsForRole(steps, fromRole, toRole) {
   const fromKind = LAYER_ROLES[fromRole].kind;
   const toKind = LAYER_ROLES[toRole].kind;
-  if (fromKind === toKind) return [...steps];
-  if (toKind === "steps") return steps.map((step) => step !== null);
-  return steps.map((step) => (step ? 0 : null));
+  if (fromKind === "hits" && toKind === "hits") return prepareHitsForRole(steps, toRole);
+  if (toKind === "hits") return hitsFromDegrees(steps, toRole);
+  return steps.map((hits) => (Array.isArray(hits) && hits.length ? 0 : null));
 }
 
-// Defensive deserialization: fill any missing/malformed field from defaults,// migrate version 1 projects, and keep valid version 2 projects round-trip
-// stable.
+// Defensive deserialization: fill any missing/malformed field from defaults
+// and keep valid projections round-trip stable. Old boolean-step/flat-v1
+// projects are not migrated (schema v8 dropped backward compatibility for the
+// hit-format rewrite).
 export function hydrateProject(value) {
   const source = value && typeof value === "object" ? value : {};
   const scale = typeof source.scale === "string" && source.scale in SCALES ? source.scale : null;
@@ -548,6 +618,6 @@ export function hydrateProject(value) {
     variationSeed: Math.max(0, Number.isFinite(Number(source.variationSeed)) ? Math.floor(Number(source.variationSeed)) : DEFAULT_PROJECT.variationSeed),
     layers: rawLayers
       ? rawLayers.map((layer, index) => sanitizeLayer(layer, index, usedIds))
-      : layersFromV1(source),
+      : DEFAULT_LAYERS.map((layer, index) => sanitizeLayer(layer, index, usedIds)),
   };
 }

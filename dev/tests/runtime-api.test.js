@@ -36,7 +36,8 @@ const Tone = {
   Filter: class extends __Node { constructor() { super(); } },
   Chorus: class extends __Node { constructor() { super(); } },
   Panner: class extends __Node { constructor() { super(); } },
-  Synth: class {}, FMSynth: class {},
+  Synth: class extends __Node { constructor() { super(); this.volume = __ramp("synth.volume"); } triggerAttackRelease() {} },
+  FMSynth: class {},
   PolySynth: class { constructor() { this._env = {}; }
     set(o) { const v = __ramp("synth.volume"); v.value = o.volume ?? 0; this.volume = v;
       this.envelope = o.envelope ?? {}; this.oscillator = o.oscillator ?? {}; return this; }

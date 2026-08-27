@@ -26,14 +26,19 @@ export function makeSparser(melody) {
   return melody.map((note, index) => (index % 4 !== 0 && Math.random() < 0.38 ? null : note));
 }
 
-// Generate an on/off pattern for a steps-kind layer, shaped by its role.
+// Generate a hit-list pattern for a hits-kind layer, shaped by its role.
 // Harmony and bass anchor on the bar starts; percussion gets a livelier
-// skeleton. Density (the layer's own) drives how busy the result is.
+// skeleton. Density (the layer's own) drives how busy the result is. Hits are
+// on-beat (at 0) by default; percussion gets a kick, harmony/bass a plain hit.
 export function composePattern(layer) {
   const density = (layer.density ?? 50) / 100;
+  const perc = layer.role === "percussion" || layer.role === "drums";
   return Array.from({ length: 16 }, (_, step) => {
-    if (layer.role === "harmony") return step % 4 === 0 || Math.random() < 0.12 * density;
-    if (layer.role === "bass") return step % 4 === 0 || Math.random() < 0.25 * density;
-    return step % 4 === 0 ? Math.random() < 0.9 : Math.random() < 0.45 * density;
+    let on = false;
+    if (layer.role === "harmony") on = step % 4 === 0 || Math.random() < 0.12 * density;
+    else if (layer.role === "bass") on = step % 4 === 0 || Math.random() < 0.25 * density;
+    else on = step % 4 === 0 ? Math.random() < 0.9 : Math.random() < 0.45 * density;
+    if (!on) return [];
+    return perc ? [{ piece: "kick", at: 0 }] : [{ at: 0 }];
   });
 }

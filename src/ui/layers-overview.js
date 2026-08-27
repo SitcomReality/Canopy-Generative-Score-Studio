@@ -24,7 +24,7 @@ export function initLayersOverview(store, actions) {
 
 function hasNoteAt(layer, kind, step) {
   const value = layer.steps[step];
-  return kind === "degrees" ? Number.isInteger(value) : Boolean(value);
+  return kind === "degrees" ? Number.isInteger(value) : Array.isArray(value) && value.length > 0;
 }
 
 function render(root, state) {

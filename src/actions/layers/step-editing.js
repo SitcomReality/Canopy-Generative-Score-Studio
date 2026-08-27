@@ -29,14 +29,30 @@ export function createStepEditingActions(store, host) {
       store.updateProject({ layers });
     },
 
-    // Toggle a beat on the selected on/off layer.
-    toggleLayerStep(step) {
+    // Toggle a beat on the selected hit-list layer. `at` is the onset fraction
+    // of the step (0..1); `piece` is the kit piece for percussion layers and is
+    // ignored for harmony/bass (the role decides the voice). Clicking toggles a
+    // hit with that exact (at, piece) in or out of the step's hit list.
+    toggleLayerHit(step, at, piece) {
       const { project, selectedTrack } = store.get();
       const layers = project.layers.map((layer) => {
         if (layer.id !== selectedTrack) return layer;
-        const steps = [...layer.steps];
-        steps[step] = !steps[step];
-        return { ...layer, steps };
+        const perc = layer.role === "percussion" || layer.role === "drums";
+        const hits = [...layer.steps];
+        const list = Array.isArray(hits[step]) ? [...hits[step]] : [];
+        const index = list.findIndex((h) => {
+          if (Math.abs((h.at ?? 0) - at) > 1e-9) return false;
+          return perc ? h.piece === piece : true;
+        });
+        if (index >= 0) {
+          list.splice(index, 1);
+        } else {
+          const hit = { at };
+          if (perc) hit.piece = piece;
+          list.push(hit);
+        }
+        hits[step] = list.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
+        return { ...layer, steps: hits };
       });
       store.updateProject({ layers });
     },

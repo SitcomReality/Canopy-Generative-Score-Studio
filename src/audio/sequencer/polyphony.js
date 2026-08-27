@@ -25,12 +25,20 @@ export function noteDurSec(duration, bpm) {
 
 // Musical priority for thinning: higher = keep first. Structural downbeat
 // events and the bass/harmony rhythm survive; fills and ghost hats are dropped
-// first when the budget is tight.
+// first when the budget is tight. Percussion pieces rank by their role in the
+// groove (kick > pitched accents > snare/shaker > stray hats).
 export function eventPriority(ev, role) {
   switch (ev.kind) {
     case "kick": return 5;
     case "scale": return role === "bass" ? 5 : role === "motif" || role === "melody" ? 3 : 4;
     case "chord": return 4;
+    case "tom-hi":
+    case "tom-lo":
+    case "bongo-hi":
+    case "bongo-lo":
+    case "keyed":
+    case "steel":
+    case "rim":
     case "snare": return 2;
     default: return 1; // hat and other ghosts
   }

@@ -30,9 +30,9 @@ export function applyBarStart({ score, voices, perfSteps, restCounter, resting, 
     // Total loudness bias = journey role bias + static trim + verse delta.
     const delta = journeyGain(layer, energy) + layerLevel(layer) + sectionGain(section, layer.id);
     if (voice.kind === "drums") {
-      voice.kick.volume.rampTo(-10 + delta, 0.8);
-      voice.hat.volume.rampTo(-24 + delta, 0.8);
-      if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
+      for (const node of Object.values(voice.kit ?? {})) {
+        if (node?.volume && node.baseVolume !== undefined) node.volume.rampTo(node.baseVolume + delta, 0.8);
+      }
     } else {
       const base = voice.kind === "chords" ? -13 : voice.kind === "melody" ? -9 : -11;
       voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);

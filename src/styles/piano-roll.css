@@ -15,6 +15,15 @@
 .compose-menu-anchor { position: relative; }
 .compose-menu { top: 36px; }
 
+/* Beat-layer toolbar: subdivision selector + piece picker (percussion only). */
+.beat-tools { flex: none; display: flex; align-items: center; gap: 8px; }
+.beat-tools[hidden] { display: none; }
+.beat-tools-label { color: var(--text-4); font-size: var(--kicker-size); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.subdiv-group, .piece-group { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.subdiv, .piece-chip { height: 24px; padding: 0 8px; border: 1px solid var(--line-strong); background: var(--surface-3); color: var(--text-3); font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }
+.subdiv.active, .piece-chip.active { color: var(--accent-editor); border-color: var(--accent-editor); }
+.subdiv:hover, .piece-chip:hover { color: var(--text-1); border-color: var(--text-4); }
+
 .roll-scroll { flex: 1; min-height: 0; overflow-x: auto; overflow-y: auto; scrollbar-color: var(--text-4) var(--surface-2); }
 .piano-roll {
   --lanes: 9;

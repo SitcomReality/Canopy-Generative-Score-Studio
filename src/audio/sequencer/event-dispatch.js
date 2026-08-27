@@ -41,6 +41,28 @@ export function resolveEventTime(layerId, kind, offset, base, lastTimes) {
   return due;
 }
 
+// Which kit node realizes a percussion piece (mirrors the runtime's kitNode).
+// Snare falls back to the hat on a kit without a dedicated snare node.
+export function kitNode(voice, piece) {
+  const kit = voice?.kit;
+  if (!kit) return null;
+  switch (piece) {
+    case "kick": return kit.kick;
+    case "tom-hi":
+    case "tom-lo":
+    case "bongo-hi":
+    case "bongo-lo": return kit.drum;
+    case "rim":
+    case "keyed":
+    case "steel": return kit.tone;
+    case "hat": return kit.hat;
+    case "hat-open": return kit["hat-open"];
+    case "shaker": return kit.shaker;
+    case "snare": return kit.snare ?? kit.hat;
+    default: return null;
+  }
+}
+
 export function dispatchEvents({ score, voices, events, time, lastTimes = {} }) {
   const sounding = [];
   for (const ev of events) {
@@ -50,28 +72,49 @@ export function dispatchEvents({ score, voices, events, time, lastTimes = {} }) 
     // transient mismatch between the store's project and the voice graph.
     const pitched = ev.kind === "chord" || ev.kind === "scale";
     if (pitched && !voice.synth) continue;
+    let node = voice.synth;
+    if (!pitched) {
+      if (voice.kit) {
+        node = kitNode(voice, ev.kind);
+      } else {
+        // Legacy voice bundle (kick/hat/snare), used by the collision tests.
+        node = ev.kind === "kick"
+          ? voice.kick
+          : ev.kind === "hat"
+            ? voice.hat
+            : ev.kind === "snare"
+              ? (voice.snare ?? voice.hat)
+              : null;
+      }
+    }
+    if (!node) continue;
     sounding.push(ev.layerId);
     const when = resolveEventTime(ev.layerId, ev.kind, ev.offset, time, lastTimes);
     // Pluck voices have no velocity parameter; their serial velocity gain
     // (see voices.js) carries the note's expression instead.
     if (voice.velGain) voice.velGain.gain.setValueAtTime(voice.velGain.baseGain * ev.velocity, when);
     if (ev.kind === "chord") {
-      voice.synth.triggerAttackRelease(chordNotes(score, ev.degree), ev.duration, when, ev.velocity);
+      node.triggerAttackRelease(chordNotes(score, ev.degree), ev.duration, when, ev.velocity);
     } else if (ev.kind === "scale") {
-      voice.synth.triggerAttackRelease(
+      node.triggerAttackRelease(
         midiToNote(scaleMidi(score, ev.degree, ev.octave)),
         ev.duration,
         when,
         ev.velocity,
       );
-    } else if (ev.kind === "kick") {
-      voice.kick.triggerAttackRelease(ev.pitch ?? "D1", ev.duration, when, ev.velocity);
-    } else if (ev.kind === "hat") {
+    } else if (node.drumKind === "noise") {
       // NoiseSynth signature is (duration, time, velocity).
-      voice.hat.triggerAttackRelease(ev.duration ?? "32n", when, ev.velocity);
-    } else if (ev.kind === "snare") {
-      const target = voice.snare ?? voice.hat;
-      target.triggerAttackRelease(ev.duration ?? "16n", when, ev.velocity);
+      node.triggerAttackRelease(ev.duration ?? "16n", when, ev.velocity);
+    } else {
+      // Membrane/Synth pitched drums: (note, duration, time, velocity). A kick
+      // carries a fixed note (`ev.pitch`, e.g. "D1"); tonal pieces map their
+      // scale degree through the song's key so they stay in-key.
+      node.triggerAttackRelease(
+        ev.pitch || midiToNote(scaleMidi(score, ev.degree, ev.octave ?? 4)),
+        ev.duration ?? "16n",
+        when,
+        ev.velocity,
+      );
     }
   }
   return sounding;

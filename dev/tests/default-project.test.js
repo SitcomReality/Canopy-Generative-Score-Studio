@@ -1,10 +1,11 @@
-// Tests for the project schema (version 2) and defensive hydration.
+// Tests for the project schema (version 8) and defensive hydration.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_PROJECT,
   DEFAULT_LAYERS,
-  EMPTY_STEPS,
+  EMPTY_DEGREES,
+  EMPTY_HITS,
   LAYER_ROLES,
   PROJECT_VERSION,
   convertStepsForRole,
@@ -13,9 +14,11 @@ import {
 
 const LAYER_IDS = ["chords", "melody", "bass", "percussion"];
 
-test("EMPTY_STEPS has 16 false steps", () => {
-  assert.equal(EMPTY_STEPS.length, 16);
-  assert.ok(EMPTY_STEPS.every((step) => step === false));
+test("EMPTY_DEGREES is 16 nulls; EMPTY_HITS is 16 empty hit lists", () => {
+  assert.equal(EMPTY_DEGREES.length, 16);
+  assert.ok(EMPTY_DEGREES.every((degree) => degree === null));
+  assert.equal(EMPTY_HITS.length, 16);
+  assert.ok(EMPTY_HITS.every((hits) => Array.isArray(hits) && hits.length === 0));
 });
 
 test("default project carries four layers with unique ids", () => {
@@ -33,7 +36,14 @@ test("every default layer has 16 steps matching its role kind", () => {
         assert.ok(degree === null || (Number.isInteger(degree) && degree >= 0 && degree <= 7));
       }
     } else {
-      for (const step of layer.steps) assert.equal(typeof step, "boolean");
+      for (const hits of layer.steps) {
+        assert.ok(Array.isArray(hits), layer.id);
+        for (const hit of hits) {
+          assert.equal(typeof hit.at, "number");
+          assert.ok(hit.at >= 0 && hit.at <= 1, "at is an onset fraction");
+          if (layer.role === "percussion") assert.equal(typeof hit.piece, "string");
+        }
+      }
     }
   }
 });
@@ -63,13 +73,30 @@ test("hydrateProject sanitizes layer steps per role kind", () => {
   const project = hydrateProject({
     layers: [
       { id: "melody", role: "motif", steps: [1, 99, "x", 3] },
-      { id: "perc", role: "percussion", steps: [1, 0, "yes", false] },
+      { id: "beat", role: "bass", steps: [[{ at: 0 }], [{ at: 0.5, vel: 0.9 }], "bad"] },
+      {
+        id: "drums",
+        role: "percussion",
+        steps: [
+          [{ piece: "kick", at: 0 }],
+          [{ piece: "womp", at: 0 }, { piece: "tom-hi", at: 0.5, pitch: 4, vel: 2 }],
+          [{ piece: "hat", at: 0.25, vel: 0.4 }],
+        ],
+      },
     ],
   });
+  // Degree steps: non-integers / out-of-range become null.
   assert.deepEqual(project.layers[0].steps.slice(0, 4), [1, null, null, 3]);
   assert.equal(project.layers[0].steps.length, 16);
-  assert.deepEqual(project.layers[1].steps.slice(0, 4), [true, false, true, false]);
+  // Non-percussion hits keep at/vel; invalid entries become empty hit lists.
+  assert.deepEqual(project.layers[1].steps.slice(0, 2), [[{ at: 0 }], [{ at: 0.5, vel: 0.9 }]]);
+  assert.deepEqual(project.layers[1].steps[2], []);
   assert.equal(project.layers[1].steps.length, 16);
+  // Percussion hits: unknown pieces dropped, vel clamped, pitch clamped to 0..7.
+  assert.deepEqual(project.layers[2].steps[0], [{ at: 0, piece: "kick" }]);
+  assert.deepEqual(project.layers[2].steps[1], [{ at: 0.5, piece: "tom-hi", vel: 1, pitch: 4 }]);
+  assert.deepEqual(project.layers[2].steps[2], [{ at: 0.25, piece: "hat", vel: 0.4 }]);
+  assert.equal(project.layers[2].steps.length, 16);
 });
 
 test("hydrateProject rejects unknown roles and dedupes ids", () => {
@@ -84,50 +111,27 @@ test("hydrateProject rejects unknown roles and dedupes ids", () => {
   assert.notEqual(project.layers[0].id, project.layers[1].id);
 });
 
-test("hydrateProject migrates version 1 flat projects", () => {
-  const v1 = {
-    version: 1,
-    name: "Old draft",
-    bpm: 90,
-    key: "G",
-    scale: "Dorian",
-    progression: [0, 4, 5, 3],
-    progressionName: "Homeward",
-    melody: [2, null, 3, null, 2, null, 1, null, 0, null, 2, null, 4, null, 2, null],
-    bass: Array(16).fill(true),
-    percussion: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
-    density: 71,
-    variation: 22,
-    humanize: 9,
-    reverb: 50,
-    swing: 15,
-    instrument: "Warm reed",
-    muted: { chords: false, melody: true, bass: false, percussion: true },
-  };
-  const migrated = hydrateProject(v1);
-  assert.equal(migrated.version, PROJECT_VERSION);
-  assert.equal(migrated.reverb, 50);
-  assert.equal(migrated.swing, 15);
-  const byId = Object.fromEntries(migrated.layers.map((layer) => [layer.id, layer]));
-  assert.deepEqual(byId.melody.steps, v1.melody);
-  assert.deepEqual(byId.bass.steps, v1.bass);
-  assert.deepEqual(byId.percussion.steps, v1.percussion);
-  assert.equal(byId.melody.muted, true);
-  assert.equal(byId.percussion.muted, true);
-  assert.equal(byId.melody.instrument, "Warm reed");
-  assert.equal(byId.melody.density, 71);
-  assert.equal(byId.melody.variation, 22);
-  assert.equal(byId.melody.humanize, 9);
-  assert.equal(byId.chords.muted, false);
+test("hydrateProject with no layers falls back to the default project (v1 is not migrated)", () => {
+  // Schema v8 intentionally dropped backward compatibility for the old
+  // boolean-step / flat-v1 format, so a flat source uses the default layers.
+  const hydrated = hydrateProject({ name: "Legacy", bpm: 90, melody: [2, null, 3], bass: Array(16).fill(true) });
+  assert.deepEqual(hydrated.layers, DEFAULT_PROJECT.layers);
 });
 
 test("convertStepsForRole switches between step kinds without losing hits", () => {
   const degrees = [0, null, 4, null, 7, null, null, null, null, null, null, null, null, null, null, 0];
-  const steps = convertStepsForRole(degrees, "motif", "harmony");
-  assert.deepEqual(steps.slice(0, 5), [true, false, true, false, true]);
-  const back = convertStepsForRole(steps, "harmony", "motif");
+  const hits = convertStepsForRole(degrees, "motif", "harmony");
+  assert.deepEqual(hits.slice(0, 5), [[{ at: 0 }], [], [{ at: 0 }], [], [{ at: 0 }]]);
+  const back = convertStepsForRole(hits, "harmony", "motif");
   assert.deepEqual(back.slice(0, 5), [0, null, 0, null, 0]);
-  assert.deepEqual(convertStepsForRole(steps, "harmony", "bass"), steps);
+});
+
+test("convertStepsForRole keeps rhythm through a role change and fills percussion pieces", () => {
+  const toPerc = convertStepsForRole([[{ at: 0 }], [], [{ at: 0.5 }]], "bass", "percussion");
+  assert.deepEqual(toPerc[0], [{ at: 0, piece: "kick" }]);
+  assert.deepEqual(toPerc[2], [{ at: 0.5, piece: "kick" }]);
+  const toBass = convertStepsForRole([[{ piece: "kick", at: 0 }], []], "percussion", "bass");
+  assert.deepEqual(toBass[0], [{ at: 0 }]);
 });
 
 test("JSON round-trip through hydrateProject is lossless", () => {
@@ -136,42 +140,12 @@ test("JSON round-trip through hydrateProject is lossless", () => {
 });
 
 test("v4 reactive fields hydrate: axes, bindings, per-layer activity/fills/automation", () => {
-  const v3 = {
-    version: 3,
-    name: "Legacy",
-    bpm: 90,
-    key: "G",
-    scale: "Dorian",
-    progression: [0, 4, 5, 3],
-    reverb: 40,
-    swing: 10,
-    journey: { shape: "arc", length: 16, depth: 40 },
-    variationSeed: 7,
-    layers: [{ id: "perc", name: "Drums", role: "percussion", instrument: "Soft pluck", density: 60, variation: 10, humanize: 5, restWindow: 0, energyRole: "recessive", steps: [true, false, false, false, true, false, true, false, true, false, true, false, true, false, true, false] }],
-  };
-  const hydrated = hydrateProject(v3);
-  // v3 -> v7: reactive fields get defaults, tempo bindings stay empty, and the
-  // legacy context presets/flourish overrides are dropped on migration.
-  assert.equal(hydrated.version, PROJECT_VERSION);
-  assert.deepEqual(hydrated.axes, DEFAULT_PROJECT.axes);
-  assert.deepEqual(hydrated.bindings, DEFAULT_PROJECT.bindings);
-  assert.ok(!("contexts" in hydrated));
-  assert.ok(!("flourishes" in hydrated));
-  // Legacy v3 layer had no reactive fields -> defaults applied: activity/fills
-  // stay null; automation defaults to the index-matched fallback layer's
-  // automation (DEFAULT_LAYERS[0] = chords here), never undefined.
-  assert.equal(hydrated.layers[0].activity, null);
-  assert.equal(hydrated.layers[0].fills, null);
-  assert.ok(Array.isArray(hydrated.layers[0].automation) && hydrated.layers[0].automation.length > 0);
-
-  // A v4 score carrying explicit reactive fields is preserved (and the
-  // percussion default activity survives). The legacy tempo.offset binding is
-  // dropped on migration: bpm is static during playback from v5 on.
   const v4 = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
   v4.bindings = [{ target: "tempo.offset", axis: "tension", domain: [0, 18] }];
   const again = hydrateProject(v4);
+  // The legacy tempo.offset binding is dropped on migration (bpm is static from v5 on).
   assert.deepEqual(again.bindings, []);
-  assert.equal(again.version, 7);
+  assert.equal(again.version, 8);
   const perc = again.layers.find((l) => l.id === "percussion");
   assert.deepEqual(perc.activity, { axis: "intensity", range: [0.35, 1] });
   assert.ok(Array.isArray(perc.automation) && perc.automation.length > 0);
@@ -190,7 +164,7 @@ test("v5 expressive fields hydrate: layer level, sections; flourishes are droppe
       bogus: [{ degree: 0 }],
     },
   });
-  assert.equal(project.version, 7);
+  assert.equal(project.version, 8);
   assert.equal(project.layers[0].level, -3);
   assert.equal(project.sections.length, 2);
   assert.equal(project.sections[1].length, 16); // clamped to 1..16

@@ -31,29 +31,87 @@ export function makePitched(roleKey, cfg) {
     .set({ ...options, volume: ROLE_VOLUME[roleKey], maxPolyphony: POLYPHONY_CAP[roleKey] ?? 16 });
 }
 
-// Build the percussion kit for one layer. Targets decide where each drum
-// lands in the graph (the studio routes into buses; the runtime template
-// connects straight to destinations). A custom instrument's kit (project
-// instruments) overrides the catalog preset.
+// Build the percussion kit for one layer. A kit exposes one Tone node per
+// piece family, keyed in `.kit` by the piece names the dynamics core emits
+// (kick / rim / hat / hat-open / snare / tom-hi / tom-lo / bongo-hi /
+// bongo-lo / keyed / steel / shaker). Every node is tagged with `.drumKind`
+// ("membrane" | "synth" | "noise") so the dispatcher knows its trigger
+// signature, plus `.drumName` for the strict-increase voice group. `kick`,
+// `hat` and `snare` are also aliased on the returned bundle because the
+// bar-boundary loudness deltas ramp them (see arrangement.js). A custom
+// instrument's kit (project instruments) overrides the catalog preset.
 export function makeDrums(instrument, targets, project = {}) {
   const custom = project.instruments?.[instrument]?.percussion;
   const preset = custom ?? instrumentSettings(instrument, "percussion");
   const extras = [];
+  const room = targets.room ?? targets.reverb;
+  const tonal = targets.tonal ?? targets.glue;
+
   const kick = new Tone.MembraneSynth({ ...preset.kick, volume: -10 }).connect(targets.kick);
+  kick.drumKind = "membrane";
+  kick.drumName = "kick";
+  kick.baseVolume = -10;
+
+  // One tuneable pitched membranophone for toms/bongos.
+  const drum = new Tone.MembraneSynth({
+    pitchDecay: 0.004,
+    octaves: 2,
+    envelope: { attack: 0.001, decay: 0.26, sustain: 0, release: 0.12 },
+    volume: -18,
+  }).connect(room);
+  drum.drumKind = "membrane";
+  drum.drumName = "drum";
+  drum.baseVolume = -18;
+
+  // One short pitched voice for keyed/steel/rim (in-key metallic/tuned tones).
+  const tone = new Tone.Synth({
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.2 },
+    volume: -18,
+  }).connect(tonal);
+  tone.drumKind = "synth";
+  tone.drumName = "tone";
+  tone.baseVolume = -18;
+
   const hatFilter = preset.hatFilter
     ? new Tone.Filter({ type: "highpass", frequency: preset.hatFilter }).connect(targets.hat)
     : null;
   const hat = new Tone.NoiseSynth({ ...preset.hat, volume: -24 }).connect(hatFilter ?? targets.hat);
+  hat.drumKind = "noise";
+  hat.drumName = "hat";
+  hat.baseVolume = -24;
   if (hatFilter) extras.push(hatFilter);
+
+  const hatOpen = new Tone.NoiseSynth({
+    ...preset.hat,
+    envelope: { ...(preset.hat?.envelope ?? {}), decay: 0.28, release: 0.24 },
+    volume: -24,
+  }).connect(hatFilter ?? targets.hat);
+  hatOpen.drumKind = "noise";
+  hatOpen.drumName = "hat-open";
+  hatOpen.baseVolume = -24;
+
+  const shaker = new Tone.NoiseSynth({ ...preset.hat, volume: -28 }).connect(hatFilter ?? targets.hat);
+  shaker.drumKind = "noise";
+  shaker.drumName = "shaker";
+  shaker.baseVolume = -28;
+
   let snare = null;
   if (preset.snare) {
     const snareFilter = preset.snareFilter
       ? new Tone.Filter({ type: "bandpass", frequency: preset.snareFilter, Q: 0.8 }).connect(targets.snare)
       : null;
     snare = new Tone.NoiseSynth({ ...preset.snare, volume: -14 }).connect(snareFilter ?? targets.snare);
+    snare.drumKind = "noise";
+    snare.drumName = "snare";
+    snare.baseVolume = -14;
     if (snareFilter) extras.push(snareFilter);
   }
-  return { kind: "drums", kick, hat, snare, extras };
+
+  const kit = { kick, drum, tone, hat, "hat-open": hatOpen, shaker, ...(snare ? { snare } : {}) };
+  const nodes = [kick, drum, tone, hat, hatOpen, shaker, ...(snare ? [snare] : [])];
+  // Alias kick/hat/snare on the bundle so bar-boundary loudness ramps find them.
+  return { kind: "drums", kit, kick, hat, snare, nodes, extras };
 }
 
 // Tone.PluckSynth has no velocity parameter — triggerAttackRelease ignores
@@ -130,9 +188,9 @@ export function createVoices(project, buses, disposables) {
     if (bundle) {
       voices[layer.id] = bundle;
     } else if (layer.role === "percussion") {
-      const kit = makeDrums(layer.instrument, { kick: buses.dry, hat: buses.reverb, snare: buses.glue });
+      const kit = makeDrums(layer.instrument, { kick: buses.dry, hat: buses.reverb, snare: buses.glue, room: buses.reverb, tonal: buses.glue }, project);
       voices[layer.id] = kit;
-      disposables.push(kit.kick, kit.hat, ...(kit.snare ? [kit.snare] : []), ...(kit.extras ?? []));
+      disposables.push(...(kit.nodes ?? []), ...(kit.extras ?? []));
     }
   }
   return voices;

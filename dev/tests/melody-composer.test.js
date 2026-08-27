@@ -42,15 +42,21 @@ test("composeMelody always resolves the final step to the tonic", () => {
   }
 });
 
-test("composePattern returns 16 booleans shaped by role and density", () => {
+test("composePattern returns 16 hit lists shaped by role and density", () => {
   const base = { density: 100 };
   for (const role of ["harmony", "bass", "percussion"]) {
     for (let run = 0; run < 20; run += 1) {
       const pattern = composePattern({ ...base, role });
       assert.equal(pattern.length, 16);
-      for (const step of pattern) assert.equal(typeof step, "boolean");
+      for (const hits of pattern) {
+        assert.ok(Array.isArray(hits, "each step is a hit list"));
+        for (const hit of hits) {
+          assert.equal(typeof hit.at, "number");
+          if (role === "percussion") assert.equal(typeof hit.piece, "string");
+        }
+      }
       if (role !== "percussion") {
-        assert.ok(pattern[0] && pattern[4] && pattern[8] && pattern[12], `${role} anchors bar starts`);
+        assert.ok(pattern[0].length && pattern[4].length && pattern[8].length && pattern[12].length, `${role} anchors bar starts`);
       }
     }
   }

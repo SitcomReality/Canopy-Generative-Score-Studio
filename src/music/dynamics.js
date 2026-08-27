@@ -32,5 +32,6 @@ export { layerActive, fillActive, automationLookup } from "./dynamics/gates.js";
 export { humanDelay, humanVelocity } from "./dynamics/humanize.js";
 export { orderEvents, computeStepFrame } from "./dynamics/step-frame.js";
 export { journeyGain } from "./dynamics/arrangement.js";
+export { PIECES, PIECE_NAMES, pieceInfo, pieceIsPitched } from "./pieces.js";
 
 export { journeyEnergy } from "./variation.js";

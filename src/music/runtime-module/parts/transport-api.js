@@ -16,6 +16,28 @@ let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
 let axisTarget = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
 let driftRng = Math.random;
 
+// Which kit node realizes a percussion piece. Snare falls back to the hat on
+// kits without a dedicated snare node, mirroring the studio dispatcher.
+function kitNode(voice, piece) {
+  const kit = voice?.kit;
+  if (!kit) return null;
+  switch (piece) {
+    case "tom-hi":
+    case "tom-lo":
+    case "bongo-hi":
+    case "bongo-lo": return kit.drum;
+    case "rim":
+    case "keyed":
+    case "steel": return kit.tone;
+    case "hat": return kit.hat;
+    case "hat-open": return kit["hat-open"];
+    case "shaker": return kit.shaker;
+    case "snare": return kit.snare || kit.hat;
+    case "kick": return kit.kick;
+    default: return null;
+  }
+}
+
 function setup() {
   const sp = score.space || { lead: 0.3, bed: 0.32, bass: 0.12, echo: 0.2 };
   const master = new Tone.Gain(0.74).toDestination();
@@ -98,8 +120,8 @@ function setup() {
     } else if (layer.role === "percussion") {
       const drums = makeDrums(layer.instrument, reverb, glue, score);
       voices[layer.id] = drums;
-      nodes[layer.id] = { kick: drums.kick, hat: drums.hat };
-      drumExtras.push(...drums.extras);
+      nodes[layer.id] = drums; // dispose() skips non-disposable bundles; kit nodes live in drumExtras
+      drumExtras.push(...drums.nodes, ...drums.extras);
     }
   }
   const transport = Tone.getTransport();
@@ -135,9 +157,9 @@ function setup() {
         if (!voice || layer.muted || resting[layer.id] || !layerActive(layer, liveAxes)) continue;
         const delta = journeyGain(layer, energy) + layerLevel(layer) + sectionGain(section, layer.id);
         if (voice.kind === "drums") {
-          voice.kick.volume.rampTo(-10 + delta, 0.8);
-          voice.hat.volume.rampTo(-24 + delta, 0.8);
-          if (voice.snare) voice.snare.volume.rampTo(-14 + delta, 0.8);
+          for (const node of Object.values(voice.kit || {})) {
+            if (node && node.volume && node.baseVolume !== undefined) node.volume.rampTo(node.baseVolume + delta, 0.8);
+          }
         } else if (voice.synth) {
           const base = voice.kind === "chords" ? -13 : voice.kind === "melody" ? -9 : -11;
           voice.synth.volume.rampTo(Math.max(-40, Math.min(0, base + delta)), 0.8);
@@ -170,13 +192,11 @@ function setup() {
         voice.synth.triggerAttackRelease(chord(ev.degree), ev.duration, when, ev.velocity);
       } else if (ev.kind === "scale") {
         voice.synth.triggerAttackRelease(note(ev.degree, ev.octave), ev.duration, when, ev.velocity);
-      } else if (ev.kind === "kick") {
-        voice.kick.triggerAttackRelease(ev.pitch || "D1", ev.duration, when, ev.velocity);
-      } else if (ev.kind === "hat") {
-        voice.hat.triggerAttackRelease(ev.duration || "32n", when, ev.velocity);
-      } else if (ev.kind === "snare") {
-        const target = voice.snare || voice.hat;
-        target.triggerAttackRelease(ev.duration || "16n", when, ev.velocity);
+      } else {
+        const node = kitNode(voice, ev.kind);
+        if (!node) continue;
+        if (node.drumKind === "noise") node.triggerAttackRelease(ev.duration || "16n", when, ev.velocity);
+        else node.triggerAttackRelease(ev.pitch || note(ev.degree, ev.octave || 4), ev.duration || "16n", when, ev.velocity);
       }
     }
     step = (step + 1) % 16;
