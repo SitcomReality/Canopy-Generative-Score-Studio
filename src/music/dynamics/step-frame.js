@@ -31,7 +31,13 @@ export function computeStepFrame(project, live, state, step, rng) {
   const events = [];
 
   for (const layer of project.layers) {
-    if (layer.muted || resting.includes(layer.id)) continue;
+    // A muted layer must NOT be omitted here: it keeps consuming its share of
+    // the seeded RNG stream so muting/unmuting one never re-rolls any other
+    // layer's subsequent humanize/variation draws. Mute is applied as a gate
+    // at the emission boundary (see timing engine), never as a generation
+    // skip. Resting and activity gates remain — they are deterministic
+    // arrangement decisions, not user toggles.
+    if (resting.includes(layer.id)) continue;
     const feat = state.features?.[layer.id];
     const kind = layer.role;
     if (!layerActive(layer, live)) continue;

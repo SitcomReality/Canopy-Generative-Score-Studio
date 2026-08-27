@@ -41,10 +41,12 @@ export function applyBarStart({ score, voices, perfSteps, restCounter, resting, 
   return section?.id ?? null;
 }
 
-// Bar-boundary phrase drift for motif layers (long-form variation).
+// Bar-boundary phrase drift for motif layers (long-form variation). A muted
+// layer still drifts: it must keep consuming the shared driftRng stream so
+// muting/unmuting never re-rolls other layers (gate-only, not generation).
 export function applyPhraseDrift({ score, perfSteps, rng }) {
   for (const layer of score.layers) {
-    if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
+    if (layer.role === "motif" && layer.variation > 0) {
       perfSteps[layer.id] = mutateMotif(layer.steps, layer.variation, rng);
     }
   }

@@ -135,7 +135,7 @@ function setup() {
     }
     if (boundary) {
       for (const layer of score.layers) {
-        if (layer.role === "motif" && !layer.muted && layer.variation > 0) {
+        if (layer.role === "motif" && layer.variation > 0) {
           perfSteps[layer.id] = mutateMotif(layer.variation, layer.steps, driftRng);
         }
       }
@@ -147,6 +147,10 @@ function setup() {
     for (const ev of events) {
       const voice = voices[ev.layerId];
       if (!voice) continue;
+      // Mute is a gate at the emission boundary, not a generation skip (the
+      // core now keeps a muted layer's RNG stream intact). A muted layer still
+      // renders its events here but they are NOT realized.
+      if (score.layers.find((layer) => layer.id === ev.layerId)?.muted) continue;
       const when = time + (ev.offset || 0);
       // Pluck voices have no velocity parameter; their serial velocity gain
       // carries the note's expression instead.

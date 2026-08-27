@@ -43,11 +43,16 @@ test("computeStepFrame emits events carrying layerId and a playable kind", () =>
   assert.ok(ids.size > 0);
 });
 
-test("muted layers produce no events", () => {
+test("mute is a gate, not a generation skip: muted layers still consume RNG", () => {
   const project = JSON.parse(JSON.stringify(DEFAULT_PROJECT));
   project.layers.forEach((layer) => (layer.muted = true));
   const events = computeStepFrame(project, { intensity: 0.5, tension: 0.5, brightness: 0.5 }, features(project), 0, rng);
-  assert.equal(events.length, 0);
+  // A muted layer must still emit events from the pure core so its place in
+  // the deterministic RNG stream is preserved; the timing engine gates these
+  // at the emission boundary instead of skipping generation (brief §5.1). If
+  // any layer is rested it won't, so assert there is at least one event, not
+  // zero — muting must never re-roll the other layers' humanize/variation.
+  assert.ok(events.length > 0, "muted layers must still generate events to keep their RNG share");
 });
 
 test("harmony-guard: every pitched event is a scale degree 0..7", () => {
