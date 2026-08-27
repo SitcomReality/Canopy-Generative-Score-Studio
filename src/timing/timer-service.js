@@ -86,6 +86,7 @@ export function createTimerService(now) {
     wait,
     fireDue,
     reschedule,
+    add,
     clear,
   };
 }

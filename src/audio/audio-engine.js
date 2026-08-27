@@ -137,8 +137,11 @@ export function createAudioEngine(store) {
       engine.clearSolo();
     },
     play() {
-      sequencer.setDriftRng(makeRng(store.get().project.variationSeed ?? 0));
+      // Reset long-form arrangement state first, then seed the drift RNG (so a
+      // non-zero variationSeed reproduces the same sequence), then start the
+      // clock. The engine anchors the baseline and begins lookahead dispatch.
       sequencer.reset();
+      sequencer.setDriftRng(makeRng(store.get().project.variationSeed ?? 0));
       engine.play();
     },
     pause() {
