@@ -28,7 +28,11 @@ function sanitizeInstrumentConfig(raw) {
   return Object.keys(out).length > 0 ? out : null;
 }
 function resolveInstrumentConfig(layer, role) {
-  const base = instrumentSettings(layer.instrument, role);
+  // v6: a custom instrument (score.instruments) overrides the catalog preset.
+  const custom = (typeof score !== "undefined") ? (score.instruments?.[layer.instrument]) : undefined;
+  const base = custom
+    ? (role === "percussion" ? (custom.percussion || {}) : (custom.voice || {}))
+    : instrumentSettings(layer.instrument, role);
   const override = sanitizeInstrumentConfig(layer.instrumentConfig);
   if (!override) return base;
   const oscillator = override.oscillator, envelope = override.envelope;

@@ -169,7 +169,7 @@ test("v4 reactive fields hydrate: axes, contexts, bindings, per-layer activity/f
   v4.bindings = [{ target: "tempo.offset", axis: "tension", domain: [0, 18] }];
   const again = hydrateProject(v4);
   assert.deepEqual(again.bindings, []);
-  assert.equal(again.version, 5);
+  assert.equal(again.version, 6);
   const perc = again.layers.find((l) => l.id === "percussion");
   assert.deepEqual(perc.activity, { axis: "intensity", range: [0.35, 1] });
   assert.ok(Array.isArray(perc.automation) && perc.automation.length > 0);
@@ -188,7 +188,7 @@ test("v5 expressive fields hydrate: layer level, sections, flourishes", () => {
       bogus: [{ degree: 0 }],
     },
   });
-  assert.equal(project.version, 5);
+  assert.equal(project.version, 6);
   assert.equal(project.layers[0].level, -3);
   assert.equal(project.sections.length, 2);
   assert.equal(project.sections[1].length, 16); // clamped to 1..16

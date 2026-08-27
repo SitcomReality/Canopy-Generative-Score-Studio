@@ -42,13 +42,18 @@ export function sanitizeInstrumentConfig(raw) {
   return Object.keys(out).length > 0 ? out : null;
 }
 
-// The config a layer's role actually sounds: catalog preset with any
-// per-layer override merged on top (top-level keys + one envelope level).
-// Presets store `oscillator: { type }`; overrides use a bare waveform name,
-// so the merge folds it into the preset's oscillator object. This is the
-// single consumption point for both engines.
-export function resolveInstrumentConfig(layer, role) {
-  const base = instrumentSettings(layer.instrument, role);
+// The config a layer's role actually sounds: a custom instrument (v6,
+// project.instruments) or the catalog preset, with any per-layer override
+// merged on top (top-level keys + one envelope level). Presets store
+// `oscillator: { type }`; overrides use a bare waveform name, so the merge
+// folds it into the preset's oscillator object. This is the single consumption
+// point for both engines. `project` is optional so pure callers (tests) can
+// resolve a catalog preset without one.
+export function resolveInstrumentConfig(layer, role, project = {}) {
+  const custom = project.instruments?.[layer.instrument];
+  const base = custom
+    ? (role === "percussion" ? (custom.percussion ?? {}) : (custom.voice ?? {}))
+    : instrumentSettings(layer.instrument, role);
   const override = sanitizeInstrumentConfig(layer.instrumentConfig);
   if (!override) return base;
   const { oscillator, envelope, ...rest } = override;

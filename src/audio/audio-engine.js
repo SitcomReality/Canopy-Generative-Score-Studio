@@ -75,7 +75,7 @@ export function createAudioEngine(store) {
     for (let i = disposables.length - 1; i >= 0; i--) {
       if (nodes.includes(disposables[i])) disposables.splice(i, 1);
     }
-    voices[layerId] = createLayerVoice(layer, buses, disposables);
+    voices[layerId] = createLayerVoice(layer, buses, disposables, store.get().project);
   }
 
   return {
@@ -123,7 +123,7 @@ export function createAudioEngine(store) {
         return;
       }
       const role = target.kind === "chords" ? "harmony" : target.kind === "melody" ? "motif" : "bass";
-      const cfg = resolveInstrumentConfig(layer, role);
+      const cfg = resolveInstrumentConfig(layer, role, store.get().project);
       if ((cfg.voice ?? "synth") !== target.voiceClass) {
         // Different synth family (plain/FM/pluck): rebuild the voice rather
         // than .set()-ing foreign options onto the old class.
@@ -139,7 +139,7 @@ export function createAudioEngine(store) {
       const target = voices[layerId];
       if (!layer || !target || target.kind === "drums") return;
       const role = target.kind === "chords" ? "harmony" : target.kind === "melody" ? "motif" : "bass";
-      const cfg = resolveInstrumentConfig(layer, role);
+      const cfg = resolveInstrumentConfig(layer, role, store.get().project);
       if ((cfg.voice ?? "synth") !== target.voiceClass) {
         rebuildVoice(layerId);
       } else {

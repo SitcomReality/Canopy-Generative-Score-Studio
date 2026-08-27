@@ -73,23 +73,23 @@ function makeVelocityPath(synth, connectTo, disposables, baseGain = 1) {
 // owns is listed in `.nodes` so live swaps can dispose exactly what they
 // replaced, and `voiceClass` records which synth family is live so the
 // engine knows when an instrument change needs a rebuild vs a .set().
-export function createLayerVoice(layer, buses, disposables) {
+export function createLayerVoice(layer, buses, disposables, project = {}) {
   let kind, bus, roleKey, cfg;
   if (layer.role === "harmony") {
     kind = "chords";
     roleKey = "chords";
     bus = buses.harmony;
-    cfg = resolveInstrumentConfig(layer, "harmony");
+    cfg = resolveInstrumentConfig(layer, "harmony", project);
   } else if (layer.role === "motif") {
     kind = "melody";
     roleKey = "melody";
     bus = buses.motif;
-    cfg = resolveInstrumentConfig(layer, "motif");
+    cfg = resolveInstrumentConfig(layer, "motif", project);
   } else if (layer.role === "bass") {
     kind = "bass";
     roleKey = "bass";
     bus = buses.bass ?? buses.dry;
-    cfg = resolveInstrumentConfig(layer, "bass");
+    cfg = resolveInstrumentConfig(layer, "bass", project);
   } else {
     return null;
   }
@@ -124,7 +124,7 @@ export function createLayerVoice(layer, buses, disposables) {
 export function createVoices(project, buses, disposables) {
   const voices = {};
   for (const layer of project.layers) {
-    const bundle = createLayerVoice(layer, buses, disposables);
+    const bundle = createLayerVoice(layer, buses, disposables, project);
     if (bundle) {
       voices[layer.id] = bundle;
     } else if (layer.role === "percussion") {

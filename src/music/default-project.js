@@ -20,7 +20,7 @@ import { clamp01, domainValue } from "./dynamics.js";
 // helpers (see dev/tests/dynamics-parity.test.js).
 export { clamp01, domainValue };
 
-export const PROJECT_VERSION = 5;
+export const PROJECT_VERSION = 6;
 
 // The canonical reactive axes every context target and every binding maps
 // from. Each is a continuous 0..1 dimension; the game (or a context preset)
@@ -72,6 +72,15 @@ export const DEFAULT_CONTEXTS = CONTEXTS.map(({ id, name, targets }) => ({
 }));
 
 export const DEFAULT_BINDINGS = [];
+
+// Song-defined custom instruments: a map of { id: config }. A custom instrument
+// defines one pitched `voice` (used for motif/harmony/bass, with per-role
+// loudness handled by the engine) and one `percussion` kit. It mirrors the
+// built-in catalog's config shapes, so the engine's resolve path reads a
+// custom instrument exactly like a preset. Layers reference it by id via
+// `layer.instrument`, which the studio's instrument picker merges with the
+// built-in catalog.
+export const DEFAULT_INSTRUMENTS = {};
 
 // Song-level space/room sends (0..1): how much of each pitched role rides the
 // shared reverb, and how much echo the lead carries. These are parallel sends —
@@ -195,6 +204,7 @@ export const DEFAULT_PROJECT = {
   reverb: 64,
   swing: 8,
   space: DEFAULT_SPACE,
+  instruments: DEFAULT_INSTRUMENTS,
   journey: { shape: "flat", length: 16, depth: 35 },
   variationSeed: 0,
   axes: AXES,
@@ -364,6 +374,74 @@ function sanitizeSpace(value) {
   };
 }
 
+// ---- custom instruments (v6) -------------------------------------------
+// A song-owned map of { id: { label, voice, percussion } }. Sanitizers keep
+// only the known config keys/values so an imported score can't smuggle
+// arbitrary synth options, while still letting a song define its own timbre.
+const VOICE_WAVEFORMS = ["sine", "triangle", "square", "sawtooth", "square8", "triangle8", "sawtooth8"];
+const NOISE_TYPES = ["white", "pink", "brown"];
+const ENV_KEYS = ["attack", "decay", "sustain", "release"];
+
+function cleanNumberSubset(obj, keys) {
+  if (!obj || typeof obj !== "object") return null;
+  const out = {};
+  for (const key of keys) {
+    const num = Number(obj[key]);
+    if (Number.isFinite(num)) out[key] = num;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+function sanitizeCustomVoice(value) {
+  if (!value || typeof value !== "object") return null;
+  const out = {};
+  if (value.voice === "fm" || value.voice === "pluck") out.voice = value.voice;
+  if (VOICE_WAVEFORMS.includes(value.oscillator?.type)) out.oscillator = { type: value.oscillator.type };
+  const envelope = cleanNumberSubset(value.envelope, ENV_KEYS);
+  if (envelope) out.envelope = envelope;
+  const filterEnvelope = cleanNumberSubset(value.filterEnvelope, [...ENV_KEYS, "baseFrequency", "octaves"]);
+  if (filterEnvelope) out.filterEnvelope = filterEnvelope;
+  const harmonic = cleanNumberSubset(value, ["harmonicity", "modulationIndex"]);
+  if (harmonic) Object.assign(out, harmonic);
+  if (typeof value.modulation?.type === "string") out.modulation = { type: value.modulation.type };
+  const modulationEnvelope = cleanNumberSubset(value.modulationEnvelope, ENV_KEYS);
+  if (modulationEnvelope) out.modulationEnvelope = modulationEnvelope;
+  const pluck = cleanNumberSubset(value.pluck, ["attackNoise", "dampening", "resonance", "volume"]);
+  if (pluck) out.pluck = pluck;
+  return Object.keys(out).length ? out : null;
+}
+
+function sanitizeCustomKit(value) {
+  if (!value || typeof value !== "object") return null;
+  const out = {};
+  const kickNum = cleanNumberSubset(value.kick, ["pitchDecay", "octaves"]);
+  const kickEnv = cleanNumberSubset(value.kick?.envelope, ENV_KEYS);
+  if (kickNum || kickEnv) out.kick = { ...(kickNum ?? {}), ...(kickEnv ? { envelope: kickEnv } : {}) };
+  const hatNoise = NOISE_TYPES.includes(value.hat?.noise?.type) ? { type: value.hat.noise.type } : undefined;
+  const hatEnv = cleanNumberSubset(value.hat?.envelope, ENV_KEYS);
+  if (hatNoise || hatEnv) out.hat = { ...(hatNoise ? { noise: hatNoise } : {}), ...(hatEnv ? { envelope: hatEnv } : {}) };
+  const snareNoise = NOISE_TYPES.includes(value.snare?.noise?.type) ? { type: value.snare.noise.type } : undefined;
+  const snareEnv = cleanNumberSubset(value.snare?.envelope, ENV_KEYS);
+  if (snareNoise || snareEnv) out.snare = { ...(snareNoise ? { noise: snareNoise } : {}), ...(snareEnv ? { envelope: snareEnv } : {}) };
+  if (Number.isFinite(Number(value.hatFilter))) out.hatFilter = Number(value.hatFilter);
+  if (Number.isFinite(Number(value.snareFilter))) out.snareFilter = Number(value.snareFilter);
+  return Object.keys(out).length ? out : null;
+}
+
+function sanitizeInstruments(value) {
+  if (!value || typeof value !== "object") return {};
+  const out = {};
+  for (const [id, raw] of Object.entries(value)) {
+    if (!raw || typeof raw !== "object" || !id) continue;
+    const label = typeof raw.label === "string" && raw.label.trim() ? raw.label.trim().slice(0, 40) : id;
+    const voice = sanitizeCustomVoice(raw.voice);
+    const percussion = sanitizeCustomKit(raw.percussion);
+    if (!voice && !percussion) continue;
+    out[id] = { label, ...(voice ? { voice } : {}), ...(percussion ? { percussion } : {}) };
+  }
+  return out;
+}
+
 function sanitizeDegrees(value, fallback) {
   if (!Array.isArray(value)) return [...fallback];
   return [...value.slice(0, 16), ...Array(16).fill(null)]
@@ -519,6 +597,7 @@ export function hydrateProject(value) {
     reverb: clampPercent(source.reverb, DEFAULT_PROJECT.reverb),
     swing: clampPercent(source.swing, DEFAULT_PROJECT.swing),
     space: sanitizeSpace(source.space),
+    instruments: sanitizeInstruments(source.instruments),
     journey: sanitizeJourney(source.journey),
     axes: sanitizeAxes(source.axes),
     contexts: sanitizeContexts(source.contexts),

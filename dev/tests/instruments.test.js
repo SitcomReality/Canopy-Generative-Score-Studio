@@ -92,6 +92,32 @@ test("resolveInstrumentConfig merges the override over the preset", () => {
   assert.deepEqual(resolveInstrumentConfig({ instrument: "Glass bell" }, "motif"), preset);
 });
 
+test("v6 custom instruments hydrate and resolve into a layer's voice", () => {
+  const instruments = {
+    "my-bell": {
+      label: "My Bell",
+      voice: { voice: "fm", oscillator: { type: "sine" }, envelope: { attack: 0.1, decay: 0.4, sustain: 0.2, release: 1.5 } },
+      percussion: { kick: { pitchDecay: 0.03, octaves: 6, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.2 } }, hat: { noise: { type: "white" }, envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.02 } } },
+    },
+  };
+  const project = hydrateProject({ instruments });
+  assert.equal(project.instruments["my-bell"].label, "My Bell");
+  assert.equal(project.instruments["my-bell"].voice.voice, "fm");
+  assert.ok(project.instruments["my-bell"].percussion.kick);
+  // A layer referencing the custom instrument resolves to its voice, with the
+  // per-layer override still merged on top.
+  const layer = { instrument: "my-bell", instrumentConfig: { oscillator: "sawtooth" } };
+  const resolved = resolveInstrumentConfig(layer, "motif", project);
+  assert.equal(resolved.oscillator.type, "sawtooth");
+  assert.deepEqual(resolved.envelope, { attack: 0.1, decay: 0.4, sustain: 0.2, release: 1.5 });
+});
+
+test("v6 untrusted custom-instrument configs are sanitized away", () => {
+  const project = hydrateProject({ instruments: { bad: { label: "Bad", voice: { oscillator: { type: "laser" }, volume: -30 } } } });
+  // An instrument with no usable voice and no kit is dropped entirely.
+  assert.equal(project.instruments.bad, undefined);
+});
+
 test("hydrateProject round-trips a valid instrumentConfig and drops bad ones", () => {
   const good = { oscillator: "triangle", envelope: { attack: 0.3, release: 2 } };
   const project = hydrateProject({

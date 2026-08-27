@@ -44,11 +44,11 @@ export function initInstrumentEditor(store, actions) {
     selectedLayerId = layer.id;
     // Percussion kits aren't tweakable yet; plucks have no osc/envelope.
     const role = layer.role === "harmony" ? "harmony" : layer.role === "bass" ? "bass" : layer.role === "motif" ? "motif" : null;
-    const editable = role !== null && resolveInstrumentConfig(layer, role).voice === undefined;
+    const editable = role !== null && resolveInstrumentConfig(layer, role, project).voice === undefined;
     root.hidden = !editable;
     if (!editable) return;
 
-    const resolved = resolveInstrumentConfig(layer, role);
+    const resolved = resolveInstrumentConfig(layer, role, project);
     const waveform = typeof resolved.oscillator === "object" && resolved.oscillator !== null
       ? resolved.oscillator.type
       : undefined;
