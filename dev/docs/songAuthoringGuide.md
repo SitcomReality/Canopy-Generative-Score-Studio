@@ -14,7 +14,7 @@ The authoritative sources, if anything here seems ambiguous:
 | Instrument presets (synth configs) | `src/music/instruments.js` |
 | Reactive decisions (axes → parameters → events) | `src/music/dynamics.js` |
 | Phrase drift + journey energy | `src/music/variation.js` |
-| Keys / scales / progressions / contexts | `src/music/keys.js`, `scales.js`, `progressions.js`, `contexts.js` |
+| Keys / scales / progressions | `src/music/keys.js`, `scales.js`, `progressions.js` |
 
 ---
 
@@ -25,14 +25,15 @@ Everything adaptive is data-driven from the JSON — there are no hidden rules
 in the playback engines. A score plays through four pipelines stacked on top
 of the written notes:
 
-1. **Reactive dynamics (v5).** Three continuous axes (`intensity`,
-   `tension`, `brightness`, each 0..1) are steered by *context presets* (or by
-   the game at runtime). Axes modulate velocities, densities, octaves,
-   note durations, percussion behavior, and can gate whole layers on or off.
-   Axis changes are eased toward the active context's targets at every bar
-   boundary (rate 0.5/bar ≈ smooth over two bars), so nothing jumps.
+1. **Reactive dynamics.** Three continuous axes (`intensity`,
+   `tension`, `brightness`, each 0..1) are steered by the game at runtime via
+   `setGameAxes` (there are no built-in presets). Axes modulate velocities,
+   densities, octaves, note durations, percussion behavior, the shared
+   atmosphere, and can gate whole layers on or off.
+   Axis changes are eased toward the target at every bar boundary
+   (rate 0.5/bar ≈ smooth over two bars), so nothing jumps.
    **Tempo never changes during playback** — intensity expresses itself
-   through loudness, density, percussion and register.
+   through loudness, density, percussion, register and the shared atmosphere.
 2. **Long-form variation.** At each bar boundary, motif layers get a fresh,
    seeded drift pass (`mutateMotif`) derived from their written phrase — the
    written phrase itself never changes. Separately, a macro "journey" curve
@@ -47,7 +48,7 @@ of the written notes:
    (drift, dropouts, hat variance, humanize offsets) replays identically.
    Seed 0 means fully random.
 
-Transitions are musical by construction: contexts apply only at bar
+Transitions are musical by construction: axis changes apply only at bar
 boundaries (steps 0 and 8), and layers never cut mid-chord.
 
 ### The harmony guard
@@ -75,10 +76,8 @@ note; conversely, you should *think in degrees*, not note names.
   "journey": { "shape": "arc", "length": 16, "depth": 40 },
   "variationSeed": 0,              // 0 = random; >0 = reproducible
   "axes":        { ... },          // keep the default (see §5)
-  "contexts":    [ ... ],          // context presets with axis targets (§5)
-  "bindings":    [ ... ],          // axis -> custom song parameter (§5)
+  "bindings":    [ ... ],          // axis -> shared-atmosphere param (§5)
   "sections":    [ ... ],          // v5 verses, [] = one continuous section (§5)
-  "flourishes":  null,             // v5 one-shot overrides; null = built-ins (§5)
   "layers":      [ ... ]           // 1..n layers (§3)
 }
 ```
@@ -215,11 +214,12 @@ hat instead.
 
 ---
 
-## 5. Reactive dynamics (the v4 core)
+## 5. Reactive dynamics (the v7 core)
 
-All reactive state flows one way: **context targets → eased live axes →
+All reactive state flows one way: **setGameAxes target → eased live axes →
 parameters/events**, resolved per step inside `computeStepFrame()`
-(`src/music/dynamics.js`). Both the studio preview and the exported
+(`src/music/dynamics.js`). The game steers the axes directly; there are no
+built-in preset contexts. Both the studio preview and the exported
 `.score.js` run this same spliced core.
 
 ### Axes
@@ -234,24 +234,13 @@ Fixed to three dimensions (whitelisted; don't invent others):
 }
 ```
 
-### Contexts
+### Axes are the only input
 
-Named presets over the axes. Only the canonical ids survive hydration:
-`explore`, `unease`, `combat`. Each carries 0..1 targets:
-
-```jsonc
-"contexts": [
-  { "id": "explore", "label": "Explore", "targets": { "intensity": 0.3,  "tension": 0.25, "brightness": 0.7 } },
-  { "id": "unease",  "label": "Unease",  "targets": { "intensity": 0.55, "tension": 0.5,  "brightness": 0.55 } },
-  { "id": "combat",  "label": "Combat",  "targets": { "intensity": 0.9,  "tension": 0.68, "brightness": 0.35 } }
-]
-```
-
-While a context is active, live axes ease toward its targets each bar
-(half the remaining distance per bar). Shape your targets deliberately:
-explore should breathe, combat should press. Brightness currently steers
-feel more than a single hard-wired parameter — lean on intensity/tension for
-motion.
+There are no built-in mood presets (contexts were removed in v7). The three
+axes are the whole adaptive input: the game steers them directly via
+`setGameAxes`, and a song reacts through per-layer activity/fills/automation and
+the song-level atmosphere bindings. Shape the layers' reaction ranges around
+the axis space; the game decides what each value means.
 
 ### Bindings
 
@@ -302,23 +291,12 @@ the pad pulled back (`gain: -3`), then a full verse with everything up. An
 empty list plays one continuous arrangement as before. Layer drop-in/out
 combines with per-layer `activity` gates: both must allow the layer through.
 
-### Flourishes (v5)
+### One-shot events are the game's job
 
-One-shot events queued by name (studio button or `musicEvent(name)` in a
-game), played across one full bar at the next bar boundary by the lead voice:
-`victory` (full-bar ascending fanfare), `defeat`, `combat`, `calm`, `relief`,
-`unease`. Each also resolves the context it dramatizes (e.g. victory settles
-back to explore, combat commits to combat) — see the table in
-`dynamicsConvention.md`. Per-song overrides:
-
-```jsonc
-"flourishes": {
-  "calm": [{ "degree": 4, "octave": 4, "at": 0, "dur": 1.4, "vel": 0.36 }]
-}
-```
-
-Degrees are harmony-guarded (0..7); `at`/`dur` are in beat units within one
-bar. `null` keeps the built-in catalog.
+Flourishes were removed in v7: the engine plays no one-shot "music events".
+When a milestone lands (a win, a room change), the game fires its own, more
+sample-accurate SFX and, if it wants the score to react, nudges the axes
+(`setGameAxes`). This is why the exported API exposes only the axis control.
 
 ### Layer activity gates
 
@@ -356,8 +334,8 @@ Per-role behavior when a fill fires:
   note.
 
 Fills fire *every* time the axis is above threshold — they're intensity-
-gated texture, not one-shots. Use thresholds to decide which contexts show
-them (e.g. threshold 0.7 ⇒ only combat).
+gated texture, not one-shots. Use thresholds to decide which intensity ranges
+show them (e.g. a high threshold keeps them for the song's loudest passages).
 
 ### Automation (axis → parameter per layer)
 
@@ -420,11 +398,12 @@ boundaries musically.
 6. **Add rhythm** — kick-weighted pattern (downbeats true, some syncopation);
    set `activity` intensity ≥ 0.35; add fills with staggered thresholds
    (0.5 for accents, 0.7 for rolls). Give it `restWindow` 4–8.
-7. **Shape contexts/journey/verses** — widen the explore↔combat contrast
-   through targets; choose journey arc/tide with moderate depth; add two or
-   more sections with layer drop-in/out for verse variety; optionally override
-   flourishes to match your song's character; set a non-zero seed if the game
-   build must replay identically.
+7. **Shape axes/journey/verses** — set per-layer activity/fills/automation so
+   the song reacts across the axis space (explore sparse at low intensity,
+   full-band at high), add bounds/levels for atmosphere, choose journey
+   arc/tide with moderate depth, and add two or more sections with layer
+   drop-in/out for verse variety. Set a non-zero seed if the game build must
+   replay identically.
 8. **Validate mentally against hydration**: instrument names exact, degrees
    0–7/null, bools for on/off layers, 4-entry progression of 0–6, domains
    well-formed.
@@ -437,7 +416,7 @@ chorus moments.
 
 ```json
 {
-  "version": 5,
+  "version": 7,
   "name": "Vineheart Hollow",
   "bpm": 72,
   "key": "D",
@@ -453,18 +432,15 @@ chorus moments.
     "tension": { "label": "Tension" },
     "brightness": { "label": "Brightness" }
   },
-  "contexts": [
-    { "id": "explore", "label": "Explore", "targets": { "intensity": 0.3, "tension": 0.25, "brightness": 0.75 } },
-    { "id": "unease", "label": "Unease", "targets": { "intensity": 0.55, "tension": 0.55, "brightness": 0.5 } },
-    { "id": "combat", "label": "Combat", "targets": { "intensity": 0.9, "tension": 0.68, "brightness": 0.35 } }
+  "bindings": [
+    { "target": "reverb", "axis": "tension", "domain": [55, 78] },
+    { "target": "space.lead", "axis": "intensity", "domain": [0.2, 0.6] }
   ],
-  "bindings": [],
   "sections": [
     { "id": "a", "label": "Verse A", "length": 4, "layers": { "melody": { "gain": 2 } } },
     { "id": "b", "label": "Chorus", "length": 4,
       "layers": { "chords": { "gain": 1.5 }, "bass": { "gain": 2 }, "percussion": { "gain": 2.5 } } }
   ],
-  "flourishes": null,
   "layers": [
     {
       "id": "chords",

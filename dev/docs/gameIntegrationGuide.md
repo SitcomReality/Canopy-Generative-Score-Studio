@@ -2,7 +2,7 @@
 
 How to drop an exported `.score.js` into a web game and drive its adaptive
 behavior. This is the counterpart to `songAuthoringGuide.md` (how songs are
-authored) and `dynamicsConvention.md` (the formal v5 reactive contract). It is
+authored) and `dynamicsConvention.md` (the formal v7 reactive contract). It is
 written so it can be handed to an LLM or a developer who has never seen the
 Canopy studio.
 
@@ -14,8 +14,8 @@ The studio exports two things (the Phase 5 split — **data** and **engine** are
 no longer duplicated per song):
 
 1. **`name.score.js`** — DATA ONLY. Just `export const score = {…}` (the
-   schema-versioned song — layers, journey, reactive axes, verses, flourishes,
-   space, custom instruments). No Tone import, no engine, ~the song JSON.
+   schema-versioned song — layers, journey, reactive axes, verses, space,
+   custom instruments). No Tone import, no engine, ~the song JSON.
 2. **`scoreEngine.js`** — the SHARED engine. One copy per game. It imports Tone
    once, embeds the synth-graph builders, the 16-step sequencer, and the
    reactive-dynamics decision core (spliced verbatim from the studio's shared
@@ -43,15 +43,13 @@ imports it; only `scoreEngine.js` does.
 |---|---|---|
 | `music.startScore` | `async () => void` | Unlock audio, build the graph, start looping. Idempotent-ish: safe to call again after `stopScore`. |
 | `music.stopScore` | `() => void` | Stop transport and reset to bar 0. Nodes stay alive for a fast restart. |
-| `music.setGameMusicState` | `({ threat = 0, inCombat = false } = {}) => void` | Steer the adaptive context. Queued; applied at the next bar boundary. |
-| `music.musicEvent` | `(name: string) => void` | One-shot flourish: `"victory"`, `"defeat"`, `"combat"`, `"calm"`, `"relief"` or `"unease"`. Plays across one bar at the next bar boundary. |
-| `music.getRuntimeInfo` | `() => { playing, context, bar, liveAxes, axisOverride, sectionId }` | Read-only snapshot — context, bar count, eased axes, manual override, current verse id. Additive. |
-| `music.setGameAxes` | `(axes: { intensity?, tension?, brightness? } \| null) => void` | Manually steer axes; `null` restores full context control. |
+| `music.setGameAxes` | `(axes: { intensity?, tension?, brightness? } \| null) => void` | Steer the three reactive axes. `null` resets to a neutral default. Eased in at each bar boundary. |
+| `music.getRuntimeInfo` | `() => { playing, bar, liveAxes, axisTarget, sectionId }` | Read-only snapshot — bar count, eased live axes, the axis target, current verse id. Additive. |
 | `music.disposeScore` | `() => void` | Free everything. Call on scene teardown / permanent unload. |
 
 > **Note:** where the rest of this guide writes `startScore()`,
-> `setGameMusicState(...)`, etc., read it as `music.startScore()`,
-> `music.setGameMusicState(...)` — the API lives on the runtime returned by
+> `setGameAxes(...)`, etc., read it as `music.startScore()`,
+> `music.setGameAxes(...)` — the API lives on the runtime returned by
 > `createScoreEngine(score)`.
 
 ## 2. Minimal integration
@@ -78,73 +76,66 @@ seeded variation without any per-frame input from the game.
 ### The state model
 
 The music runs three continuous axes — `intensity`, `tension`, `brightness`
-(0..1). You do not set them directly; you select **context presets** whose
-axis targets the engine eases toward (half the remaining distance per bar, so
-transitions take ~2 bars and never jump mid-chord):
+(0..1). **You steer these directly** with `setGameAxes`; there are no built-in
+"mood presets" in the engine, and the game owns what a "state" means. At each
+bar boundary the live axes ease half the remaining distance toward your target,
+so transitions take ~2 bars and never jump mid-chord.
 
-| Context | Feel | Default targets (typical) |
-|---|---|---|
-| `explore` | calm, sparse, bright | intensity .30 / tension .25 / brightness .70 |
-| `unease` | restless, denser | intensity .55 / tension .50 / brightness .55 |
-| `combat` | driving, loud, dark | intensity .90 / tension .68 / brightness .35 |
-
-(The exact targets are whatever the song author chose — read them from
-`score.contexts` if you want to display them.)
-
-### `setGameMusicState`
+The engine exposes a single low-level control; your game wraps it in whatever
+state vocabulary makes sense for it:
 
 ```js
-setGameMusicState({ threat: myThreat01, inCombat: false });
+// A combat-heavy game defines its own states on top of setGameAxes.
+function setMusicState(state) {
+  switch (state) {
+    case "combat":  music.setGameAxes({ intensity: 1, tension: 1, brightness: 0.35 }); break;
+    case "unease":  music.setGameAxes({ intensity: 0.55, tension: 0.5, brightness: 0.55 }); break;
+    case "explore": music.setGameAxes({ intensity: 0.3, tension: 0.25, brightness: 0.7 }); break;
+  }
+}
+
+// A cosy game never needs combat —
+function playRomanticMusic() {
+  music.setGameAxes({ brightness: 1, intensity: 0.8, tension: 0.15 });
+}
 ```
 
-Mapping rules inside the runtime:
+`setGameAxes` merges a partial object over the current target, so you can steer
+one axis at a time (`music.setGameAxes({ tension: 0.9 })`) or all three at once.
+Pass `null` to ease back to a neutral default
+(`{ intensity: 0.3, tension: 0.25, brightness: 0.7 }`).
 
-- `inCombat === true` **or** `threat > 0.7` → queue `combat`
-- else `threat > 0.3` → queue `unease`
-- else → queue `explore`
-
-The change lands at the **next bar boundary** — expect up to ~2 bars of
-latency at slow tempos (at 76 BPM a bar is ≈ 3.2 s). This quantization is
-intentional: it keeps transitions musical. Don't try to fight it by calling
-every frame with rapidly changing values; instead:
-
-**Recommended usage pattern**
+**Bar-quantized, by design.** Because changes land at the next bar boundary,
+expect up to ~2 bars of latency at slow tempos (at 76 BPM a bar is ≈ 3.2 s).
+Don't fight it by calling every frame with rapidly changing values. Instead
+smoothe the game's own input into a target and only push when it moves enough:
 
 ```js
-// Per frame (or on change): feed a smoothed 0..1 threat value.
-// Add hysteresis so lingering near a threshold doesn't thrash contexts.
+// Per frame (or on change): feed a smoothed 0..1 value, then steer an axis.
+// Add hysteresis so lingering near a threshold doesn't thrash.
 function updateMusic(dt, playerHealth, enemiesNearby) {
   const target = Math.min(1, enemiesNearby * 0.25 + (1 - playerHealth) * 0.4);
   smoothedThreat += (target - smoothedThreat) * Math.min(1, dt * 2);
   const band = smoothedThreat > 0.75 ? 1 : smoothedThreat > 0.35 ? 0.5 : 0;
-  // Only push when the coarse band changes — the runtime queues anyway,
-  // but this keeps intent readable and avoids redundant work.
   if (band !== lastBand) {
     lastBand = band;
-    setGameMusicState({ threat: band, inCombat: band === 1 && inCombatFlag });
+    music.setGameAxes({ intensity: band, tension: band * 0.9 });
   }
 }
 ```
 
-Enter/exit combat explicitly where the game has a hard state change:
+### SFX and one-shots
+
+The engine does not play one-shot "music events" (flourishes were removed).
+Games should trigger their own, more timely SFX when a milestone lands. Tie
+the music to the same moment with an axis nudge if you want the score to react:
 
 ```js
-onCombatStart: () => { inCombatFlag = true; setGameMusicState({ threat: 1, inCombat: true }); }
-onCombatEnd:   () => { inCombatFlag = false; setGameMusicState({ threat: smoothedThreat, inCombat: false }); }
+function onVictory() {
+  myVictoryFanfare.play();          // your own, sample-accurate SFX
+  music.setGameAxes({ brightness: 1, intensity: 0.9 }); // lift the score
+}
 ```
-
-### One-shot events
-
-```js
-musicEvent("victory");
-```
-
-Queues the victory flourish — a full-bar ascending fanfare — starting at the
-next bar boundary, after which the context resolves back to `explore`. Fire it
-the moment the winning blow lands — the bar-boundary timing makes it feel
-placed rather than slapped on. The same pattern covers the other five
-flourishes (`"defeat"`, `"combat"`, `"calm"`, `"relief"`, `"unease"`), each
-resolving the context its drama implies.
 
 ## 4. Lifecycle
 
@@ -172,11 +163,7 @@ To balance against SFX, wrap it:
 
 ```js
 import * as Tone from "tone";
-const musicBus = new Tone.Gain(0.8).toDestination();
-Tone.Destination; // not needed — instead, after startScore:
-// Route everything through one node by connecting post-hoc is NOT supported
-// by the public API; simplest reliable approach is master-level control:
-Tone.Destination.volume.value = -6; // dB, affects ALL audio incl. SFX if shared
+Tone.Destination.volume.value = -6; // affects ALL audio incl. SFX if shared
 ```
 
 If SFX run through their own (non-Tone) audio pipeline, put Tone's output on
@@ -187,23 +174,21 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
 ## 6. Determinism & testing
 
 - If the song's `variationSeed` is > 0, every playthrough of a session is
-  identical given the same sequence of `setGameMusicState` calls — useful for
+  identical given the same sequence of `setGameAxes` calls — useful for
   golden-path QA recordings and rhythm-sensitive sections.
 - Seed 0 means each playthrough varies. Both are valid; competitive/roguelike
   games often prefer seeded.
 - Because transitions are bar-quantized, automated tests should advance time
-  in whole bars (or stub `Tone.getTransport()`) when asserting context
-  changes.
+  in whole bars (or stub `Tone.getTransport()`) when asserting axis changes.
 
-## 7. Known limits (as of schema v5)
+## 7. Known limits (as of schema v7)
 
-- Games cannot drive axes per-frame; use coarse context bands via
-  `setGameMusicState`, or pin specific axes with `setGameAxes({...})` (eased in
-  at bar boundaries like everything else — not a per-frame fader).
+- Axes are not a per-frame fader: `setGameAxes` eases in at bar boundaries.
+  Steer a target, not a per-tick value.
 - Tempo never changes during playback (v5 removed tempo modulation). If your
   old v4 song sped up with intensity, re-export it: intensity now expresses
-  itself through loudness, density and percussion instead.
-- Flourish names other than the six in the table are ignored by `musicEvent`.
+  itself through loudness, density, percussion and the shared atmosphere.
+- There is no one-shot flourish API anymore (removed in v7) — play your own SFX.
 - One score instance per page is the supported shape (module-level state).
 - No pause/resume in the public API (see §4 for workarounds).
 - The runtime cannot load external samples; all sounds are synthesized, so
@@ -217,20 +202,24 @@ its own bus by setting `Tone.Destination.volume` for ducking under dialogue
 ## Quick reference card
 
 ```js
-import { startScore, stopScore, setGameMusicState, musicEvent, disposeScore }
-  from "./your-song.score.js";
+import { score } from "./your-song.score.js";
+import { createScoreEngine } from "./scoreEngine.js";
+const music = createScoreEngine(score);
 
 // loading screen (pre-warm)
-await startScore(); stopScore();
+await music.startScore(); music.stopScore();
 
 // gameplay start (after user gesture)
-startScore();
+await music.startScore();
 
-// adaptive steering (coarse bands + hysteresis)
-setGameMusicState({ threat: 0.5 });            // unease queued
-setGameMusicState({ inCombat: true });         // combat queued
-musicEvent("victory");                          // flourish, resolves to explore
+// adaptive steering (your own states -> axes, eased in at bar boundaries)
+music.setGameAxes({ intensity: 0.3, tension: 0.25, brightness: 0.7 }); // calm
+music.setGameAxes({ tension: 0.9 });                                  // spike tension only
+music.setGameAxes(null);                                              // reset to neutral
+
+// read live state (HUDs, logging)
+const info = music.getRuntimeInfo(); // { playing, bar, liveAxes, axisTarget, sectionId }
 
 // teardown
-disposeScore();
+music.disposeScore();
 ```

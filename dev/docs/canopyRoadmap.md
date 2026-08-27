@@ -124,24 +124,18 @@ mapping shows its param (known-params datalist), driving axis, and a low→high
 domain (number or raw text/JSON endpoints), plus add/remove. Empty domain
 endpoints revert instead of corrupting the engine lookup.
 
-4b. **Flourishes editor — DONE** (`ui/flourish-editor.js`, `actions/song-actions.js`).
-A modal to tune each one-shot flourish (degree/octave/at/dur/vel per event, add/remove,
-reset to built-in). Edits start from the built-in catalog so tweaking a preset
-seeds a custom override. **Bindings wiring — DONE** (runtime): song-level
+4b. **Bindings editor — DONE** (v7, `ui/atmosphere-panel.js`). The song-level
 `bindings` (`{ target, axis, domain }`) now drive the shared atmosphere —
-`reverb`, `space.lead/bed/bass/echo`, and `swing` — resolved at each bar
-boundary by `atmosphereBindings()` in the dynamics core (spliced into the
-runtime) and applied by both the studio sequencer and the exported engine.
-`DEFAULT_BINDINGS` stays empty, so the default mix is untouched. **Bindings
-editor — PENDING**: a UI to author those bindings (mirror the flourish editor);
-no UI yet — user has the JSON contract and wants UI deferred until the
-atmosphere-target editing is settled.
+`reverb`, `space.lead/bed/bass/echo`, and `swing` — and are authored inline in
+the Shared Atmosphere panel (a "Bind" toggle per param reveals axis + domain).
+Bound targets are resolved each bar boundary by `atmosphereBindings()` in the
+dynamics core (spliced into the runtime) and applied by both the studio
+sequencer and the exported engine. `DEFAULT_BINDINGS` stays empty, so the
+default mix is untouched.
 
-**Flourish timing — DONE.** The studio sequencer only queued flourishes at
-`step === 0` while the runtime already fired at both bar boundaries
-(`step === 0 || step === 8`), so a preview flourish could lag ~2 bars. Now both
-fire at the next boundary and begin resolving the context there — trigger at the
-end of the current bar, transition at the start of the next.
+**Flourishes — REMOVED (v7).** One-shot musical events were dropped entirely,
+along with the flourish editor and the `musicEvent` API — games play their own
+SFX and nudge the axes instead.
 
 ## Phase 5 — Score-file format refactor — DONE
 
@@ -150,8 +144,7 @@ end of the current bar, transition at the start of the next.
 - **Shared engine** (`scoreEngineSource`) = one `scoreEngine.js` per game,
   importing Tone once and exporting a single `createScoreEngine(score)` factory
   whose returned runtime exposes the stable API
-  (`startScore/stopScore/setGameMusicState/musicEvent/setGameAxes/
-  getRuntimeInfo/disposeScore`).
+  (`startScore/stopScore/setGameAxes/getRuntimeInfo/disposeScore`).
 - A `musicDirector.js` pattern (import the engine once + a track→data registry)
   is described in `dev/docs/gameIntegrationGuide.md`.
 - The studio's Runtime harness loads the data-only score + the engine and
@@ -171,8 +164,27 @@ end of the current bar, transition at the start of the next.
   playing; seeking while stopped moves the playhead but `play()` still starts
   from bar 0.)
 
+## Phase 7 — Remove "music state" — DONE
+
+- **Schema v7**: dropped `contexts` presets and `flourishes` overrides
+  (hydration silently removes both). `axes`, `bindings`, `sections` stay.
+- **Runtime API**: removed `setGameMusicState` (threat/inCombat) and `musicEvent`
+  (flourish). `setGameAxes` is now the single axis control (partial merge; null
+  resets to neutral); live axes ease toward it each bar boundary.
+  `getRuntimeInfo` drops `context`.
+- **Studio**: the deck-live inset now holds steerable axis sliders (the studio's
+  `setGameAxes` equivalent) with a live-value readout; the context switcher,
+  threat slider and flourish controls are gone. Removed the "Reactive axes"
+  song group. The Shared Atmosphere panel is a "Score" bank group with an inline
+  bindings editor per param.
+- **Dynamics core**: removed `contextTargets`, `FLOURISH_NAMES`, `flourishEvents`.
+- **Percussion hit-format rewrite** (Phase 3c) and **song-level `bindings`
+  editor (Phase 4b)** are now closed by Phase 7's atmosphere-panel bindings
+  editor. The one still-open item is the **percussion hit-format rewrite**
+  (per-step hits + full kit), still deferred to a dedicated pass.
+
 ## Recommended execution order
 
-**1 → 2 → 6 (quick wins) → 4 → 3 → 5**, with Phase 5 timed to the Phase 3 schema
+**1 → 2 → 6 (quick wins) → 4 → 3 → 5 → 7**, with Phase 5 timed to the Phase 3 schema
 bump. Commit after any completed step that makes sense to commit, so no work is
 lost between sessions.

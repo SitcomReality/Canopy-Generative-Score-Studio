@@ -24,11 +24,11 @@ src/
   styles/             one stylesheet per visual area (+ responsive.css)
   partials/           .inc.html markup included into the template
   dynamics.js         (in music/) shared reactive-dynamics decision core:
-                      axes, context targets, bindings, layer activity/fills/
-                      automation resolution, humanization. Pure and Tone-free;
-                      consumed by audio-engine.js and spliced verbatim into
-                      runtime-module.js. The barrel re-exports single-purpose
-                      parts from music/dynamics/ (axes, sections, flourishes,
+                      axes, axis easing, bindings/atmosphere, layer activity/
+                      fills/automation resolution, humanization. Pure and
+                      Tone-free; consumed by audio-engine.js and spliced
+                      verbatim into runtime-module.js. The barrel re-exports
+                      single-purpose parts from music/dynamics/ (axes, sections,
                       gates, humanize, step-frame, arrangement); vendor_
                       dynamics.mjs concatenates those parts for the splice.
   audio/              master-chain.js (graph/buses/space sends), voices.js
@@ -72,15 +72,15 @@ their init functions in `main.js`.
   to v4 defaults. Bump the version and extend `hydrateProject` before breaking
   its shape.
 - **Runtime API**: generated `.score.js` files are consumed in users' games;
-  their public surface (`startScore`, `stopScore`, `setGameMusicState`,
-  `musicEvent`, `disposeScore`) must stay stable.
+  their public surface (`startScore`, `stopScore`, `setGameAxes`, `disposeScore`,
+  `getRuntimeInfo`) must stay stable.
 
 ## 4. Data flow
 
 Views subscribe to the central store (`src/state/app-state.js`) with change
 notifications keyed by which slice changed. The audio engine's transport
 callback reads live values straight from the store, so parameter edits apply
-without tearing down or re-subscribing the sequencer, and step/context/flourish
+without tearing down or re-subscribing the sequencer, and step/axis/verse
 changes made inside the callback propagate back to views as ordinary store
 updates.
 

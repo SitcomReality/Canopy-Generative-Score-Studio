@@ -5,14 +5,16 @@
 Canopy is a browser-based **generative/adaptive music studio** for game developers who are not musicians. It lets a user compose a short two-bar score (16 eighth-note steps) constrained to a key + scale, then:
 
 - preview it live in the browser via Tone.js synthesis,
-- simulate adaptive "game state" transitions (`explore` / `unease` / `combat`, plus a one-shot victory flourish) that modulate tempo, density, bass and percussion at bar boundaries,
+- steer the three reactive axes (intensity / tension / brightness) directly, in
+  the studio via sliders and in a game via `setGameAxes`, to modulate loudness,
+  density, percussion and the shared atmosphere at bar boundaries,
 - export the result three ways: an editable `.canopy.json` project, a standalone Tone.js runtime module (`.score.js`) to drop into a web game, or a `.mid` MIDI sketch for a DAW.
 
 There is no backend, no server, no database. Projects persist in `localStorage` under the key `canopy-project`. The UI language of the product is English.
 
-The project schema (version 5) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/level/energyRole parameters plus reactive fields (`activity`, `fills`, `automation`). Song-level fields are bpm (static during playback), key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth), variationSeed, `sections` (v5 verse rotation: per-layer gain deltas and drop-in/out) and `flourishes` (v5 one-shot event overrides; built-ins: victory/defeat/combat/calm/relief/unease). **Reactive dynamics live in the JSON**: a declarative axis space (`axes`), context presets with axis targets (`contexts`), song-level bindings (`bindings`; the v4 tempo binding was removed), and per-layer activity/fills/automation. The adaptive behavior that used to be hardcoded in the two engines now lives in the schema, so a consumed `.score.js` reacts identically to the studio preview. See `dev/docs/dynamicsConvention.md`.
+The project schema (version 7) stores music as a `layers` array — each layer has a role (motif / harmony / bass / percussion), step data (scale degrees or on/off hits), and its own voice + density/variation/humanize/restWindow/level/energyRole parameters plus reactive fields (`activity`, `fills`, `automation`). Song-level fields are bpm (static during playback), key, scale, progression, reverb, swing, journey (macro energy curve: shape/length/depth), variationSeed, `sections` (verse rotation: per-layer gain deltas and drop-in/out) and `bindings` (axis → shared-atmosphere param). **Reactive dynamics live in the JSON**: a declarative axis space (`axes`), song-level bindings (`bindings`; the v4 tempo binding was removed), and per-layer activity/fills/automation. There are **no built-in mood presets** — the game steers the three axes directly and defines its own states. The adaptive behavior that used to be hardcoded in the two engines now lives in the schema, so a consumed `.score.js` reacts identically to the studio preview. See `dev/docs/dynamicsConvention.md`.
 
-**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), context/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/songAuthoringGuide.md`. The **reactive dynamics core** (schema v4) in `src/music/dynamics.js` is the single source of truth for adaptive decisions; the exported runtime splices it verbatim into `.score.js`, and `dev/tests/dynamics-parity.test.js` guards against drift.
+**Long-form variation is implemented** (schema v3): phrase mutation (`src/music/variation.js`), axis/journey-driven arrangement energy, rest windows, and seeded determinism via `variationSeed` — see `dev/docs/songAuthoringGuide.md`. The **reactive dynamics core** in `src/music/dynamics.js` is the single source of truth for adaptive decisions; the exported runtime splices it verbatim into `.score.js`, and `dev/tests/dynamics-parity.test.js` guards against drift.
 
 ## Tech stack
 
@@ -51,13 +53,13 @@ src/
   main.js              thin composition root: store + engine host, action
                        assembly, view wiring — no logic of its own
   actions/             user-facing actions grouped by concern: playback
-                       (transport/recording/contexts/flourishes/reset),
+                       (transport/recording/axis-targets/reset),
                        song (tempo/key/scale/mix/journey/reactive schema),
                        layer (selection/steps/compose/lifecycle/fills),
                        project-io (save/export/import)
   music/               pure music-theory modules, one concern per file:
                        note-names, keys, scales, progressions, scale-math,
-                       contexts, tracks, instruments (preset catalog),
+                       tracks, instruments (preset catalog),
                        default-project (schema + hydrate), dynamics,
                        instrument-override (per-layer preset overrides),
                        variation, melody-composer, midi-adapter,
@@ -66,14 +68,14 @@ src/
                        `music/runtime-module/` parts by emitted concern).
                        `dynamics.js` is a barrel
                        re-exporting the single-purpose parts under
-                       `music/dynamics/` (axes, sections, flourishes, gates,
+                       `music/dynamics/` (axes, sections, gates,
                        humanize, step-frame, arrangement).
   audio/               master-chain.js builds the graph/buses/space sends,
                        voices.js turns instrument presets into Tone nodes
                        (incl. the pluck velocity-gain path), sequencer.js
                        runs the 16-step callback (implementation split into
                        audio/sequencer/: arrangement, event-dispatch,
-                       flourish, orchestration; UI-visible state is
+                       polyphony, orchestration; UI-visible state is
                        published via Tone.Draw; the step counter stays
                        internal); audio-engine.js is the thin composition
                        root wiring all three.
@@ -81,8 +83,9 @@ src/
                        the transport is stopped (heavy edits stop playback)
   state/app-state.js   pub/sub store + localStorage persistence
   ui/                  one module per view region (header, transport-bar,
-                       context-ribbon, layers-panel, sequence-panel,
-                       refine-panel, instrument-editor, runtime-harness),
+                       axis-control, layers-panel, sequence-panel,
+                       refine-panel, atmosphere-panel, instrument-editor,
+                       runtime-harness),
                        plus icons/toast/parameter-slider/dom helpers as needed. Views subscribe
                        through ui/render-batch.js (rAF-coalesced) and split
                        grid rebuilds from cheap playhead class toggles.
@@ -93,14 +96,15 @@ src/
   partials/            header/compose/runtime/toast .inc.html markup
 ```
 
-The compose view is laid out as `deck` (transport + live-state inset with live
-axis meters) → `workspace` (`rail` = layer list + pinned `inspector`, plus the
-phrase `editor` with an all-layers minimap under the piano roll) → full-width
-`song-bar` (chord path / long form with a journey-energy strip / reactive axes
-/ atmosphere), sized to fit a ~1900×980 viewport with no page scroll. The v4
-reactive schema is exposed in the UI: context targets and the tempo binding in
-the song bar's "Reactive axes" group, per-layer activity gate + fills +
-automation summary in the inspector. All colors/typography come
+The compose view is laid out as `deck` (transport + live-state inset with the
+steerable axis sliders) → `workspace` (`rail` = layer list + pinned
+`inspector`, plus the phrase `editor` with an all-layers minimap under the
+piano roll) → full-width `song-bar` (chord path / long form with a
+journey-energy strip / structure / shared atmosphere), sized to fit a
+~1900×980 viewport with no page scroll. The reactive schema is exposed in the
+UI: axis sliders in the deck, the shared-atmosphere bindings editor in the song
+bar, per-layer activity gate + fills + automation summary in the inspector.
+All colors/typography come
 from `src/styles/tokens.css` custom properties. See `dev/docs/canopyUiOverhaul.md`.
 
 Keep new code modular with descriptive single-purpose filenames. When a file
@@ -116,8 +120,8 @@ pattern used by `actions/layer-actions.js` → `actions/layers/`,
 - All styling lives in `src/styles/*.css` using semantic class names (e.g. `.transport-bar`). Do not introduce inline styles except dynamic custom properties (e.g. slider fills).
 - Musical logic must respect the "harmony guard": every generated note derives from `scaleMidi()` / `chordNotes()` in `src/music/scale-math.js` (studio) or the vendored `note()`/`chord()` in the runtime. Nothing ever leaves the chosen key/scale; `src/music/dynamics.js` only ever emits scale degrees.
 - Adaptive transitions are queued and applied only on bar boundaries (steps 0 and 8) inside `audio-engine.js`; keep state changes musical, never mid-chord cuts.
-- **Reactive dynamics live in `src/music/dynamics.js`** (pure, Tone-free) and are driven entirely by the JSON schema (axes/contexts/bindings/activity/fills/automation) — do not hardcode context-dependent rules in the engines. The exported runtime splices `dynamics.js` verbatim (see `runtimeModule()` in `music/runtime-module.js`).
-- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameMusicState`, `musicEvent`, `setGameAxes`, `disposeScore`, plus the read-only `getRuntimeInfo`) because exported files are consumed in users' games. Do not hand-edit the spliced block — edit `dynamics.js` instead, and keep `dev/tests/dynamics-parity.test.js` green. The Runtime tab's harness (`src/ui/runtime-harness.js`) loads the actual exported module in-page via a blob import and must drive it only through that public API.
+- **Reactive dynamics live in `src/music/dynamics.js`** (pure, Tone-free) and are driven entirely by the JSON schema (axes/bindings/activity/fills/automation) — do not hardcode axis-driven rules in the engines. The exported runtime splices `dynamics.js` verbatim (see `runtimeModule()` in `music/runtime-module.js`).
+- The runtime module emitted by `runtimeModule()` must stay dependency-free except for `tone` and must keep its public API stable (`startScore`, `stopScore`, `setGameAxes`, `disposeScore`, plus the read-only `getRuntimeInfo`) because exported files are consumed in users' games. Do not hand-edit the spliced block — edit `dynamics.js` instead, and keep `dev/tests/dynamics-parity.test.js` green. The Runtime tab's harness (`src/ui/runtime-harness.js`) loads the actual exported module in-page via a blob import and must drive it only through that public API.
 - After editing any partial or the template, run `build.py` (or keep `--watch` running) before verifying changes.
 
 ## Testing
@@ -127,7 +131,9 @@ Automated tests live in `dev/tests/*.test.js` (node:test, no framework) and cove
 Minimum manual verification for UI changes:
 
 1. `npm test` and `python3 dev/scripts/check_imports.py` both exit 0.
-2. Serve statically: play/pause/stop works, step highlight advances, context switching audibly changes tempo/density and applies at bar boundaries.
+2. Serve statically: play/pause/stop works, step highlight advances, moving the
+   axis sliders audibly changes density/percussion/atmosphere and applies at
+   bar boundaries.
 3. Export each format (JSON project, `.score.js`, MIDI) and re-import the JSON project round-trips correctly.
 
 ## Security considerations
