@@ -26,6 +26,15 @@ export function createPlaybackActions(store, host) {
       store.set({ playing: false });
     },
 
+    // Jump the loop position to a specific step (0..15) within the 2-bar loop.
+    // The engine re-anchors live (no-op while stopped); the store always
+    // updates so the readout/playhead reflect the dragged position.
+    seek(stepValue) {
+      const frameStep = ((Number(stepValue) - 1) % 16 + 16) % 16;
+      host.engine?.seek(frameStep);
+      store.set({ step: stepValue });
+    },
+
     // Record the live master mix (contexts, flourishes and all) and save the
     // take as WAV or MP3 when recording stops. Starting a recording also
     // starts playback if the transport is idle — there is otherwise nothing

@@ -42,6 +42,13 @@ export function initTransportBar(store, actions) {
   keySelect.addEventListener("change", (event) => actions.setKey(event.target.value));
   scaleSelect.addEventListener("change", (event) => actions.setScale(event.target.value));
 
+  // Loop-position seek bar: jump within the 2-bar loop (0..15 steps).
+  const seekSlider = document.getElementById("seek-slider");
+  seekSlider.addEventListener("input", () => {
+    seekSlider.style.setProperty("--value", `${(seekSlider.value / 15) * 100}%`);
+  });
+  seekSlider.addEventListener("change", () => actions.seek(Number(seekSlider.value)));
+
   store.subscribe((changed) => {
     const { project, playing, step } = store.get();
     if (changed.includes("project")) {
@@ -60,6 +67,8 @@ export function initTransportBar(store, actions) {
       document.getElementById("readout-bar").textContent = String(Math.floor(step / 8) + 1).padStart(2, "0");
       document.getElementById("readout-beat").textContent = String(Math.floor((step % 8) / 2) + 1).padStart(2, "0");
       document.getElementById("transport-readout").classList.toggle("running", playing);
+      seekSlider.value = String(step);
+      seekSlider.style.setProperty("--value", `${(step / 15) * 100}%`);
     }
   });
 

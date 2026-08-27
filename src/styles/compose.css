@@ -48,8 +48,11 @@
 .context-option.active[data-context="combat"] .context-active-bg { background: var(--ctx-combat); }
 .threat-control { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
 .threat-control input { appearance: none; height: 2px; width: 88px; background: linear-gradient(to right, var(--accent) var(--value), var(--line-strong) var(--value)); cursor: pointer; }
-.threat-control input::-webkit-slider-thumb, .parameter-slider input::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
+.threat-control input::-webkit-slider-thumb, .parameter-slider input::-webkit-slider-thumb, .seek-bar input::-webkit-slider-thumb { appearance: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface-1); background: var(--accent); box-shadow: 0 0 0 1px var(--text-4); }
 .threat-control strong { min-width: 28px; color: var(--text-2); font-family: var(--font-num); font-size: var(--kicker-size); }
+/* Loop-position seek bar: a slim scrubber across the 2-bar loop (16 steps). */
+.seek-bar { display: flex; align-items: center; padding: 0 18px; }
+.seek-bar input { appearance: none; height: 2px; width: 120px; background: linear-gradient(to right, var(--accent) var(--value, 0%), var(--line-strong) var(--value, 0%)); cursor: pointer; }
 .event-button { height: 32px; padding: 0 11px; display: flex; align-items: center; gap: 6px; border: 1px solid #584f38; background: #1c1d16; color: #e8c877; font-size: var(--kicker-size); font-weight: 600; cursor: pointer; }
 .ribbon-field { display: flex; align-items: center; gap: 9px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; cursor: pointer; }
 .ribbon-field select { height: 32px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); padding: 0 7px; font-size: var(--label-size); letter-spacing: normal; text-transform: none; cursor: pointer; }
@@ -98,8 +101,10 @@
 .song-group[data-bank="room"] .parameter-slider > span b { min-width: 30px; text-align: right; }
 
 /* Journey strip: sparkline of the long-form energy curve + playhead. */
-#journey-strip { flex: none; height: 26px; border: 1px solid var(--line); background: var(--surface-2); }
+#journey-strip { flex: none; height: 26px; border: 1px solid var(--line); background: var(--surface-2); position: relative; }
 #journey-strip svg { display: block; width: 100%; height: 100%; }
+#journey-strip .journey-progress { fill: var(--accent); opacity: 0.10; }
+#journey-strip .journey-readout { position: absolute; top: 3px; right: 6px; color: var(--text-3); font-family: var(--font-num); font-size: 9px; letter-spacing: .08em; pointer-events: none; }
 
 /* Live axis meters in the deck's live inset (intensity/tension/brightness). */
 .axis-meters { display: flex; flex-direction: column; gap: 3px; }

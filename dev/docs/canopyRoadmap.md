@@ -107,11 +107,17 @@ editable.
 - Update `dev/docs/gameIntegrationGuide.md`, `dev/scripts/check_imports.py`, and
   keep `dev/tests/dynamics-parity.test.js` green.
 
-## Phase 6 — Small fixes
+## Phase 6 — Small fixes — DONE
 
-- **Journey-strip progress**: debug the playhead (`journey-strip.js`) and
-  replace the faint pips with a clear "bar x / y" + marker.
-- **Seek bar**: loop-position scrubber (bar:step, 0..16).
+- **Journey-strip progress** (`ui/journey-strip.js`): rebuilt the strip with a
+  translucent progress band up to the playhead, a brighter marker, and a
+  "bar x / y" readout so long-form position reads at a glance.
+- **Seek bar**: a loop-position scrubber (0..15 steps of the 2-bar loop) in the
+  deck. `seek(step)` re-anchors the timing engine live (`engine.setPosition`) so
+  dragging jumps mid-loop while keeping the schedule continuous; the store /
+  readout / piano-roll playhead follow it. (Note: seek is a live jump while
+  playing; seeking while stopped moves the playhead but `play()` still starts
+  from bar 0.)
 
 ## Recommended execution order
 

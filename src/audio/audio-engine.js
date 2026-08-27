@@ -9,6 +9,7 @@ import { createMasterChain } from "./master-chain.js";
 import { createVoices, createLayerVoice, makeDrums, ROLE_VOLUME } from "./voices.js";
 import { createSequencer } from "./sequencer.js";
 import { getTimingEngine } from "../timing/index.js";
+import { STEPS_PER_BEAT } from "../timing/core.js";
 import { makeRng } from "../music/variation.js";
 import { resolveInstrumentConfig } from "../music/instrument-override.js";
 
@@ -100,6 +101,13 @@ export function createAudioEngine(store) {
       // v5: tempo is static during playback — no adaptive offset. The engine
       // defers the re-anchor to the next half-bar boundary (continuous, no ramp).
       engine.setTempo(bpm);
+    },
+    // Jump the loop position to a specific step (0..15). The timing engine
+    // re-anchors at the nearest half-beat so a mid-loop seek keeps the
+    // schedule continuous (and in-flight voices' strict-increase guard holds,
+    // since the next dispatch time is still after the last one).
+    seek(frameStep) {
+      engine.setPosition(frameStep / STEPS_PER_BEAT);
     },
     setInstrument(layerId, instrument) {
       const layer = store.get().project.layers.find((item) => item.id === layerId);
