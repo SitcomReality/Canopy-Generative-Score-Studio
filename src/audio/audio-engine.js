@@ -1,12 +1,14 @@
 // Studio preview host: a thin composition root that builds the master chain
-// and layer voices, then hands them to the 16-step sequencer. The transport
-// callback reads live values from the passed-in `store`, so parameter changes
-// apply without re-subscribing. Adaptive *decisions* come from the shared
-// pure core in ../music/dynamics.js; graph construction lives in
-// ./master-chain.js and ./voices.js, step logic in ./sequencer.js.
+// and layer voices, then hands them to the timing engine's step source. The
+// engine owns all timing (the audio↔musical baseline, lookahead windows, the
+// ticker) and the per-layer gates; this module owns the audio graph and voice
+// realization. Adaptive *decisions* come from the shared pure core in
+// ../music/dynamics.js; graph construction lives in ./master-chain.js and
+// ./voices.js, step logic in ./sequencer.js.
 import { createMasterChain } from "./master-chain.js";
 import { createVoices, createLayerVoice, makeDrums, ROLE_VOLUME } from "./voices.js";
 import { createSequencer } from "./sequencer.js";
+import { createTimingEngine } from "../timing/index.js";
 import { makeRng } from "../music/variation.js";
 import { resolveInstrumentConfig } from "../music/instrument-override.js";
 
@@ -29,14 +31,19 @@ export function createAudioEngine(store) {
     if ((voices[layer.id]?.kind ?? layer.role) === "melody") perfSteps[layer.id] = [...layer.steps];
   }
 
-  const sequencer = createSequencer({ store, voices, perfSteps });
-
-  const transport = Tone.getTransport();
-  transport.bpm.value = project.bpm;
-  transport.swing = project.swing / 100;
-  transport.swingSubdivision = "8n";
-
-  const loopId = transport.scheduleRepeat((time) => sequencer.handleStep(time), "8n");
+  // The single time authority for this preview. It owns the baseline, the
+  // lookahead ticker (real Tone.now() + interval), and per-layer gates; the
+  // sequencer plugs in as its step source.
+  const engine = createTimingEngine();
+  engine.setTempo(project.bpm); // initial rate; play() honors it as a cold-start rate
+  engine.setSwing((project.swing ?? 0) / 100);
+  // Sync the engine's gates from the persisted project so a fresh or rebuilt
+  // engine reflects each layer's mute state (mute is gate-only, never RNG).
+  for (const layer of project.layers) {
+    engine.setLayerEnabled(layer.id, !layer.muted);
+  }
+  const sequencer = createSequencer({ store, voices, perfSteps, engine });
+  sequencer.attach();
 
   const firstVoiceOf = (kind) => project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
 
@@ -67,11 +74,14 @@ export function createAudioEngine(store) {
       chain.setReverb(value);
     },
     setSwing(value) {
-      transport.swing = value / 100;
+      // The UI stores swing as a 0-100 percentage; the engine wants a 0-1
+      // off-beat delay ratio (0 = straight).
+      engine.setSwing(value / 100);
     },
     setTempo(bpm) {
-      // v5: tempo is static during playback — no adaptive offset.
-      transport.bpm.rampTo(bpm, 0.6);
+      // v5: tempo is static during playback — no adaptive offset. The engine
+      // defers the re-anchor to the next half-bar boundary (continuous, no ramp).
+      engine.setTempo(bpm);
     },
     setInstrument(layerId, instrument) {
       const layer = store.get().project.layers.find((item) => item.id === layerId);
@@ -110,20 +120,35 @@ export function createAudioEngine(store) {
         applyConfig(target, cfg);
       }
     },
+    // Mute/solo toggles route to the engine's gates. They are gate-only: the
+    // engine emits identically through a toggle (it never re-anchors or
+    // rebuilds; only whether events realize changes).
+    setLayerMuted(layerId, muted) {
+      engine.setLayerEnabled(layerId, !muted);
+    },
+    setLayerSolo(layerId) {
+      engine.setLayerSolo(layerId);
+    },
+    clearSolo() {
+      engine.clearSolo();
+    },
     play() {
       sequencer.setDriftRng(makeRng(store.get().project.variationSeed ?? 0));
-      transport.start("+0.05");
+      sequencer.reset();
+      engine.play();
     },
     pause() {
-      transport.pause();
+      engine.pause();
     },
     stop() {
-      transport.stop();
-      transport.position = 0;
+      engine.stop();
       sequencer.reset();
     },
     dispose() {
-      transport.clear(loopId);
+      // Full teardown: stop scheduling, release the ticker, free voices. The
+      // engine's dispose must free queues/voices BEFORE releasing the ticker,
+      // and must be safe even if a previous dispose was interrupted.
+      engine.dispose();
       disposables.forEach((node) => node.dispose());
     },
   };

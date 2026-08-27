@@ -1,11 +1,16 @@
 // Direct grid edits: mute, track selection, and toggling cells on the
 // selected layer (degree lane for pitched layers, beat on/off for patterns).
-export function createStepEditingActions(store) {
+export function createStepEditingActions(store, host) {
   return {
     toggleMute(layerId) {
       const layers = store.get().project.layers.map((layer) =>
         layer.id === layerId ? { ...layer, muted: !layer.muted } : layer);
+      const layer = layers.find((item) => item.id === layerId);
       store.updateProject({ layers });
+      // Mute is gate-only: keep the engine's gate in sync with the persisted
+      // project field so playback flows identically through the toggle (it
+      // never re-anchors, rebuilds, or alters the RNG stream).
+      host.engine?.setLayerMuted(layerId, Boolean(layer?.muted));
     },
 
     selectTrack(track) {

@@ -19,9 +19,10 @@ export function createEngineHost(store) {
 
     // Adding/removing layers or changing a layer's role changes the synth
     // graph, so the engine is rebuilt instead of patched. Callers must stop
-    // playback first (stopForHeavyEdit): disposing mid-transport leaves the
-    // shared Tone transport running while its callback is cleared, and
-    // restarting it desyncs the step counter.
+    // playback first (stopForHeavyEdit). The timing engine's dispose() is
+    // idempotent and fully tears down: it stops the ticker, revokes the
+    // lookahead, and clears queues/voices before releasing anything, so a
+    // rebuild can never leave a stale step counter desyncing across restarts.
     rebuild() {
       if (!engine) return;
       engine.stop();

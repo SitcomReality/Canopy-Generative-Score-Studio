@@ -18,6 +18,7 @@ import {
   beatsPerSecond,
   musicalPositionAt,
   stepStartTime,
+  stepDuration,
   snappedPosition,
   reanchorAt,
   retempoAt,
@@ -47,10 +48,12 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   let tickerId = null;
   let disposed = false;
   let bpm = 120; // current musical rate target (beats/min)
+  let swing = 0; // 0 = straight; delays off-beat 8ths (odd steps) for a swung feel
   let deferredBpm = null; // bpm queued for the next half-bar boundary
   let onBarBoundary = null; // sequencer hook for arrangement/context at step 0
   let stepSource = null; // { onEvents(frame), onPause() } | null
   let publisher = null; // (frame) => void, set by the host to publish UI position
+  let initialWindow = false; // first tick after (re)anchor starts the window at the anchor
 
   // ---- audio-time source ------------------------------------------------
 
@@ -69,9 +72,30 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
   // ---- the single tick loop --------------------------------------------
 
   function tick() {
-    if (disposed || !baseline || !clockReady()) return;
-
+    if (disposed) return;
     const t = audioNow();
+
+    // Drain due timer-service tasks (toast / render-batch / harness polls /
+    // recording readout). These are app-wide and run regardless of whether the
+    // musical transport is playing, so this is done before the baseline guard.
+    // (When the AudioContext is suspended, audioNow() is frozen and tasks that
+    // were scheduled on it simply wait — acceptable, since UI timers are only
+    // set while the context is running.)
+    const due = timer.fireDue(t * 1000);
+    for (const task of due) {
+      try {
+        task.fn();
+      } catch (err) {
+        console.error("[timing] timer error:", err);
+      }
+      const next = timer.reschedule(task);
+      if (next) timer.add(next); // re-arm repeating tasks for the next cycle
+    }
+
+    // Musical lookahead dispatch runs only while playing and the audio context
+    // is trustworthy. It never runs off a counter: position comes from the
+    // baseline map and the injected audio clock.
+    if (!baseline || !clockReady()) return;
 
     // Tempo change lands here at a musical boundary: re-anchor at the next
     // half-bar (step 0 or 8) so position stays continuous, never mid-chord.
@@ -85,11 +109,19 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
       }
     }
 
-    const win = renderWindow(t, LOOKAHEAD);
+    // First tick after a (re)anchor opens its window at the anchor point so the
+    // just-started step (0 or the resume step) is never skipped, even though the
+    // ticker fires up to TICK_MS after play/resume set the baseline.
+    const win = initialWindow
+      ? renderWindow(baseline.audioOrigin, LOOKAHEAD)
+      : renderWindow(t, LOOKAHEAD);
+    initialWindow = false;
     const steps = dueSteps(baseline, win);
 
     for (const stepIndex of steps) {
-      const when = stepStartTime(baseline, stepIndex);
+      // Off-beat 8ths (odd steps) are delayed by the swing amount for a swung
+      // feel; even steps (the on-beat) stay on the grid.
+      const when = stepStartTime(baseline, stepIndex) + (stepIndex % 2 === 1 ? swing * stepDuration(baseline) : 0);
       const frame = positionFrame(musicalPositionAt(baseline, when));
 
       // Bar boundary: let the sequencer run arrangement/context transitions.
@@ -113,18 +145,6 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
 
       publisher?.(frame);
     }
-
-    // Drain due timer-service tasks (toast/render-batch/harness polls).
-    const due = timer.fireDue(t * 1000);
-    for (const task of due) {
-      try {
-        task.fn();
-      } catch (err) {
-        console.error("[timing] timer error:", err);
-      }
-      const next = timer.reschedule(task);
-      if (next) timer.add(next); // re-arm repeating tasks for the next cycle
-    }
   }
 
   // ---- lifecycle --------------------------------------------------------
@@ -138,17 +158,21 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
       deferredBpm = null;
     }
     // Anchor AFTER unlock: the calling host awaits Tone.start() first (§5.7).
-    // A null baseline means cold start from musical origin 0.
+    // A null baseline means cold start from musical origin 0. The first tick
+    // uses an anchor-wide window so step 0 is scheduled even though the ticker
+    // fires up to TICK_MS after this. The ticker itself already runs for app
+    // timers; only the baseline distinguishes playing from idle.
     baseline = createBaseline(audioNow(), 0, beatsPerSecond(bpm));
     heldPosition = null;
-    startTicker();
+    initialWindow = true;
+    ensureTicker();
   }
 
   function pause() {
     if (!baseline) return;
-    // Hold musical position, then revoke the lookahead: stop ticking first so
-    // no further events emit, then let the source release in-flight handles.
-    stopTicker();
+    // Hold musical position, then revoke the lookahead: null the baseline so
+    // no further events emit (musical dispatch halts even though the ticker
+    // stays up for app timers), then let the source release in-flight handles.
     heldPosition = musicalPositionAt(baseline, audioNow());
     baseline = null;
     releaseInFlight();
@@ -158,14 +182,14 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     if (heldPosition === null) return;
     baseline = createBaseline(audioNow(), snappedPosition(heldPosition), beatsPerSecond(bpm));
     heldPosition = null;
-    startTicker();
+    initialWindow = true;
+    ensureTicker();
   }
 
   function stop() {
     // Distinct from pause: clear the baseline, return to origin, and reset
     // long-form state. The sequencer resets its own arrangement state via its
     // onPause / a next-start reset.
-    stopTicker();
     releaseInFlight();
     baseline = null;
     heldPosition = null;
@@ -188,8 +212,11 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     soloedId = null;
   }
 
-  function startTicker() {
-    if (tickerId !== null) return;
+  // The ticker is the ONE source of app-wide ticks. It is started lazily (by
+  // play/resume or any app timer registration) and kept running until dispose,
+  // so UI timers keep firing even when transport is stopped/paused.
+  function ensureTicker() {
+    if (disposed || tickerId !== null) return;
     tickerId = provideTicker(tick);
   }
 
@@ -245,6 +272,10 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     deferredBpm = nextBpm;
   }
 
+  function setSwing(value) {
+    swing = value;
+  }
+
   function tempoNow() {
     return deferredBpm ?? bpm;
   }
@@ -276,17 +307,19 @@ export function createTimingEngine({ now, ticker, frame } = {}) {
     setLayerSolo,
     clearSolo,
     setTempo,
+    setSwing,
     setPosition,
     position,
     audioNow,
     tempoNow,
     bpm: () => bpm,
-    // Timer service surface (app-wide timers route here).
-    setTimeout: (fn, ms) => timer.setTimeout(fn, ms),
+    // Timer service surface (app-wide timers route here). Registering a timer
+    // starts the shared ticker lazily so it runs even before playback begins.
+    setTimeout: (fn, ms) => { ensureTicker(); return timer.setTimeout(fn, ms); },
     clearTimeout: (id) => timer.clearTimeout(id),
-    setInterval: (fn, ms) => timer.setInterval(fn, ms),
+    setInterval: (fn, ms) => { ensureTicker(); return timer.setInterval(fn, ms); },
     clearInterval: (id) => timer.clearInterval(id),
-    wait: (ms) => timer.wait(ms),
+    wait: (ms) => { ensureTicker(); return timer.wait(ms); },
     onFrame(fn) {
       let id = null;
       const loop = (ts) => {

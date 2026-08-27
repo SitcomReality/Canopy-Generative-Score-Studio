@@ -8,7 +8,7 @@ import { createReactiveActions } from "./reactive.js";
 
 export function createLayerActions(store, host) {
   return {
-    ...createStepEditingActions(store),
+    ...createStepEditingActions(store, host),
     ...createComposeActions(store, host),
     ...createLifecycleActions(store, host),
     ...createSoundActions(store, host),

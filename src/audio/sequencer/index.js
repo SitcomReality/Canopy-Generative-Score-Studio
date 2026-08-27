@@ -1,9 +1,14 @@
-// Orchestrates the 16-step transport callback: reads the store's project each
-// step, asks the shared dynamics core which events sound, triggers the layer
-// voices (see ./event-dispatch.js), applies bar-boundary arrangement
-// (./arrangement.js) and one-shot flourishes (./flourish.js), and publishes
-// UI-visible state through Tone.Draw. All long-form state (bar count, rest
-// windows, live axes, drifted phrases) lives here.
+// Orchestrates one step of a playback: called by the timing engine as the
+// step source. Each step it reads the store's project, asks the shared
+// dynamics core which events sound, gates them (mute/solo) at the emission
+// boundary, triggers the layer voices, and applies bar-boundary arrangement
+// (./arrangement.js) and one-shot flourishes (./flourish.js).
+//
+// The sequencer is the engine's *step adapter*: it owns WHAT plays and HOW it
+// is realized, while the engine owns WHEN (the audio↔musical baseline, lookahead
+// windows, the ticker). It therefore holds no timing counter — the engine hands
+// it { step, bar, when } each call and musical position is derived from the
+// audio clock, not accumulated here.
 import {
   computeStepFrame,
   contextTargets,
@@ -15,34 +20,43 @@ import { applyBarStart, applyPhraseDrift } from "./arrangement.js";
 import { dispatchEvents } from "./event-dispatch.js";
 import { playFlourish } from "./flourish.js";
 
-export function createSequencer({ store, voices, perfSteps }) {
+export function createSequencer({ store, voices, perfSteps, engine }) {
   // Long-form arrangement state: absolute bar count for the journey curve,
   // per-layer pass counters for rest windows, and the current quiet-pass
-  // flags consulted by the step callback.
+  // flags consulted by the step callback. These are MUSICAL (not timing) and
+  // survive inside the sequencer; only the step counter is gone.
   let barCount = 0;
-  // Id of the active v5 section (verse), published to the UI each bar.
   let sectionId = null;
   const restCounter = {};
   const resting = {};
   // The live axis vector, eased toward the active context's targets each bar.
   let liveAxes = { intensity: 0.3, tension: 0.25, brightness: 0.7 };
-  // Seeded determinism: a non-zero variationSeed reproduces the same drift
-  // sequence; 0 (the default) is fully random. Reset on each playback.
-  let driftRng = Math.random;
-  // Authoritative step index for the sequencer; mirrored to the store on
-  // draw time purely for the UI.
-  let stepIndex = 0;
+  let driftRng = Math.random; // seeded via setDriftRng on play
 
   const firstVoiceOf = (kind) =>
     store.get().project.layers.map((layer) => voices[layer.id]).find((voice) => voice.kind === kind);
 
-  function handleStep(time) {
+  function computeFeatures(score) {
+    const features = {};
+    for (const layer of score.layers) {
+      features[layer.id] = { steps: perfSteps[layer.id] ?? layer.steps };
+    }
+    return features;
+  }
+
+  function publish(frame, isBar, sounding) {
+    // Preserve the app's existing playhead convention (step+1) so the visual
+    // is unchanged from the old Tone.Transport path.
+    if (isBar) store.set({ perfSteps: { ...perfSteps }, liveAxes: { ...liveAxes }, bar: barCount, sectionId });
+    store.set({ step: (frame.step + 1) % 16, sounding });
+  }
+
+  // One step: called by the engine with { step, bar, when } where `when` is an
+  // ABSOLUTE audio-context start time for the step's first 8th-note.
+  function onEvents(frame) {
+    const { step, when, bar } = frame;
     const score = store.get().project;
     let context = store.get().currentContext;
-    // The step counter lives here, not in the store: UI publication happens
-    // later (on draw time), so reading it back from the store would let a
-    // delayed or dropped draw callback desync the music itself.
-    const step = stepIndex;
     const isBar = step === 0 || step === 8;
     const queuedContext = store.get().queuedContext;
 
@@ -66,41 +80,49 @@ export function createSequencer({ store, voices, perfSteps }) {
 
     // Feed the project runtime state the shared core needs to resolve events.
     const restingIds = score.layers.filter((layer) => resting[layer.id]).map((layer) => layer.id);
-    const features = {};
-    for (const layer of score.layers) {
-      features[layer.id] = { steps: perfSteps[layer.id] ?? layer.steps };
-    }
-    const events = orderEvents(computeStepFrame(score, liveAxes, { features, resting: restingIds }, step, driftRng));
-    const sounding = dispatchEvents({ score, voices, events, time });
+    const events = orderEvents(computeStepFrame(score, liveAxes, { features: computeFeatures(score), resting: restingIds }, step, driftRng));
+
+    // GATE at the emission boundary: mute/solo filter whether an event hands
+    // off to its voice. Generation (computeStepFrame) was unconditional, so a
+    // muted layer's RNG stream is intact; only realization is skipped.
+    const audible = events.filter((ev) => engine.isLayerAudible(ev.layerId));
+    const sounding = dispatchEvents({ score, voices, events: audible, time: when });
 
     // One-shot flourish (v5): a queued game milestone plays across this bar
-    // via the lead voice, then resolves the context it narrates. All events
-    // come from the shared catalog / per-song overrides in the project JSON.
-    if (isBar) {
+    // via the lead voice, then resolves the context it narrates.
+    if (step === 0) {
       const queued = store.get().flourishQueued;
       if (queued && FLOURISH_NAMES.includes(queued)) {
         const lead = firstVoiceOf("melody") ?? firstVoiceOf("chords");
-        const resolve = playFlourish({ score, leadVoice: lead, time, name: queued });
+        const resolve = playFlourish({ score, leadVoice: lead, time: when, name: queued });
         store.set({ flourishQueued: null, currentContext: resolve, queuedContext: null });
         liveAxes = easeToward(liveAxes, contextTargets(score, resolve), 1);
       }
     }
 
-    // Publish the drifted phrases and live reactive state on bar boundaries so
-    // the UI can overlay ghost notes, meter the axes, place the journey
-    // playhead ("Generated variation" legend) and show the active verse.
-    // UI-visible state goes through Tone.Draw: it fires on draw time (aligned
-    // with what is heard) off the audio-scheduling path, and Tone clears it on
-    // stop/pause so a stale callback can never resurrect an old step.
-    Tone.Draw.schedule(() => {
-      if (isBar) store.set({ perfSteps: { ...perfSteps }, liveAxes: { ...liveAxes }, bar: barCount, sectionId });
-      store.set({ step: (step + 1) % 16, sounding });
-    }, time);
-    stepIndex = (step + 1) % 16;
+    publish(frame, isBar, sounding);
+    void bar; // bar is already reflected via `barCount`; kept for the signature
+  }
+
+  // Release in-flight voices on pause/stop. The engine's lookahead is small (a
+  // fraction of a step), so any already-scheduled-but-not-yet-sounded attack is
+  // at most one step ahead; releasing sustains prevents stuck notes. Short
+  // plucks/percussion releases are no-ops.
+  function onPause() {
+    for (const voice of Object.values(voices)) {
+      try {
+        voice.synth?.releaseAll?.();
+        voice.kick?.triggerRelease?.();
+        voice.hat?.triggerRelease?.();
+        voice.snare?.triggerRelease?.();
+      } catch { /* already disposed or non-cancelable */ }
+    }
   }
 
   return {
-    handleStep,
+    attach() {
+      engine.registerStep({ onEvents, onPause });
+    },
     setDriftRng(rng) {
       driftRng = rng;
     },
@@ -108,7 +130,6 @@ export function createSequencer({ store, voices, perfSteps }) {
     // the score as written.
     reset() {
       barCount = 0;
-      stepIndex = 0;
       driftRng = Math.random;
       Object.keys(restCounter).forEach((id) => delete restCounter[id]);
       Object.keys(resting).forEach((id) => delete resting[id]);
