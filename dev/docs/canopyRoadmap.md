@@ -104,11 +104,12 @@ mapping shows its param (known-params datalist), driving axis, and a low→high
 domain (number or raw text/JSON endpoints), plus add/remove. Empty domain
 endpoints revert instead of corrupting the engine lookup.
 
-4b. **Flourishes editor + bindings editor — PENDING.** Flourishes are a nested
-`{ name: [{ degree, octave, at, dur, vel }] }` structure that the engine uses on
-`musicEvent`; make them editable. Song-level `bindings` (`{ target, axis, domain }`)
-are currently dormant schema (no consumer calls `bindingValue` yet) — add a
-minimal editor for completeness and/or wire it into the engine.
+4b. **Flourishes editor — DONE** (`ui/flourish-editor.js`, `actions/song-actions.js`).
+A modal to tune each one-shot flourish (degree/octave/at/dur/vel per event, add/remove,
+reset to built-in). Edits start from the built-in catalog so tweaking a preset
+seeds a custom override. **Bindings editor — PENDING**: song-level `bindings`
+(`{ target, axis, domain }`) are currently dormant schema (no consumer calls
+`bindingValue` yet) — add a minimal editor for completeness and/or wire it in.
 
 **Flourish timing — DONE.** The studio sequencer only queued flourishes at
 `step === 0` while the runtime already fired at both bar boundaries

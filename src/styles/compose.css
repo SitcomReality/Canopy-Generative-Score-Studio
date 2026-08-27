@@ -186,3 +186,18 @@
 .inst-fields input, .inst-fields select { height: 22px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: var(--kicker-size); padding: 0 5px; min-width: 0; }
 .inst-fields input[type="number"] { font-family: var(--font-num); }
 .inst-fields input[type="number"]::placeholder, .inst-fields input::placeholder { color: var(--text-4); }
+
+/* Flourish editor modal (reuses the structure-modal overlay). */
+.flourish-modal-card { width: min(620px, calc(100vw - 48px)); }
+.flourish-editor { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 18px 16px; display: flex; flex-direction: column; gap: 10px; }
+.flourish-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.flourish-name-field { display: flex; align-items: center; gap: 8px; color: var(--text-4); font-size: var(--kicker-size); text-transform: uppercase; letter-spacing: .1em; }
+.flourish-name-field select { height: 26px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: var(--label-size); padding: 0 7px; cursor: pointer; text-transform: none; }
+.flourish-custom { color: var(--text-4); font-size: var(--kicker-size); letter-spacing: .08em; text-transform: uppercase; }
+.flourish-custom.on { color: var(--accent); }
+.flourish-events { display: flex; flex-direction: column; gap: 6px; }
+.flourish-event { display: grid; grid-template-columns: repeat(5, 1fr) 16px; gap: 6px; align-items: end; padding: 6px; border: 1px solid var(--line); border-radius: 3px; }
+.flourish-event label { display: flex; flex-direction: column; gap: 3px; color: var(--text-4); font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+.flourish-event input { width: 100%; min-width: 0; height: 20px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text-2); font-size: var(--kicker-size); padding: 0 4px; font-family: var(--font-num); }
+.flourish-event .fill-remove { align-self: end; }
+.flourish-actions { display: flex; align-items: center; gap: 10px; }

@@ -3,6 +3,7 @@
 // and the reactive schema's song-level pieces (context targets, verses).
 import { PROGRESSIONS } from "../music/progressions.js";
 import { INSTRUMENTS } from "../music/instruments.js";
+import { flourishEvents } from "../music/dynamics.js";
 
 export function createSongActions(store, host) {
   // Seed a new custom instrument either from a catalog preset or a blank pluck.
@@ -114,6 +115,45 @@ export function createSongActions(store, host) {
       delete instruments[id];
       store.updateProject({ instruments });
       host.rebuild?.();
+    },
+
+    // ---- flourish overrides (v5) ---------------------------------------
+    // project.flourishes is name -> [{ degree, octave, at, dur, vel }], or null
+    // to use the built-in catalog.
+    setFlourish(name, events) {
+      const flourishes = { ...(store.get().project.flourishes ?? {}) };
+      if (events === null || (Array.isArray(events) && events.length === 0)) delete flourishes[name];
+      else flourishes[name] = events;
+      store.updateProject({ flourishes: Object.keys(flourishes).length ? flourishes : null });
+    },
+
+    // Edits start from the effective events — the built-in catalog when the
+    // flourish hasn't been customized — so tweaking a preset seeds a custom
+    // override instead of no-oping.
+    effectiveFlourish(name) {
+      return store.get().project.flourishes?.[name] ?? flourishEvents(store.get().project, name);
+    },
+
+    addFlourishEvent(name) {
+      const current = this.effectiveFlourish(name);
+      const tail = current[current.length - 1]?.at ?? 0;
+      this.setFlourish(name, [...current, { degree: 0, octave: 4, at: tail + 0.5, dur: 0.5, vel: 0.6 }]);
+    },
+
+    updateFlourishEvent(name, index, patch) {
+      const current = this.effectiveFlourish(name);
+      const next = current.map((ev, i) => (i === index ? { ...ev, ...patch } : ev));
+      this.setFlourish(name, next);
+    },
+
+    removeFlourishEvent(name, index) {
+      const current = this.effectiveFlourish(name);
+      const next = current.filter((_, i) => i !== index);
+      this.setFlourish(name, next.length ? next : null);
+    },
+
+    resetFlourish(name) {
+      this.setFlourish(name, null);
     },
   };
 }

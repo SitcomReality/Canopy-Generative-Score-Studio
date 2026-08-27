@@ -56,6 +56,7 @@
           <select id="flourish-select"></select>
         </label>
         <button class="event-button" id="flourish-button"><i data-icon="flag" data-size="15"></i> <span id="flourish-label">Queue flourish</span></button>
+        <button class="event-button" id="edit-flourishes-button" title="Edit the song's one-shot flourishes"><i data-icon="pencil" data-size="13"></i></button>
       </div>
     </section>
 
@@ -268,6 +269,18 @@
           <button class="structure-modal-close" id="instrument-modal-close" aria-label="Close instrument editor"><i data-icon="x" data-size="16"></i></button>
         </header>
         <div class="instrument-library" id="instrument-library"></div>
+      </div>
+    </div>
+
+    <!-- Flourish editor: tune the one-shot game milestone events. -->
+    <div class="structure-modal" id="flourish-modal" hidden>
+      <div class="structure-modal-card flourish-modal-card">
+        <header class="structure-modal-head">
+          <strong>Flourishes</strong>
+          <span class="structure-modal-hint">One-shot musical events a game triggers with musicEvent(). Each has degree (scale position), octave, at (beats into the bar), duration and velocity.</span>
+          <button class="structure-modal-close" id="flourish-modal-close" aria-label="Close flourish editor"><i data-icon="x" data-size="16"></i></button>
+        </header>
+        <div class="flourish-editor" id="flourish-editor"></div>
       </div>
     </div>
   </main>
