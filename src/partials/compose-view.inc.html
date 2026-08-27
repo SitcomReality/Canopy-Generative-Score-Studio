@@ -209,15 +209,12 @@
       </div>
 
       <div class="song-group">
-        <header class="song-heading" title="Verses: arrangement sections that rotate at bar boundaries. Toggle which layers play in each verse; length is in bars.">
-          <span class="kicker">Verses</span>
+        <header class="song-heading" title="Arrangement sections (verses) that rotate at bar boundaries. Toggle which layers play in each; length is in bars.">
+          <span class="kicker">Structure</span>
           <i data-icon="wand-sparkles" data-size="14"></i>
         </header>
-        <div class="verse-editor" id="verse-editor"></div>
-        <div class="field-row">
-          <button class="event-button" id="verse-add">+ Add verse</button>
-          <button class="event-button" id="verse-clear">Reset</button>
-        </div>
+        <div class="structure-strip" id="structure-strip" aria-label="Arrangement sections"></div>
+        <button class="event-button structure-edit-button" id="verse-edit-button" type="button"><i data-icon="pencil" data-size="13"></i> Edit verses</button>
       </div>
 
       <div class="song-group">
@@ -231,4 +228,21 @@
         </div>
       </div>
     </section>
+
+    <!-- Verse (arrangement section) editor: live in a modal so the song bar
+         stays short and never squeezes the piano roll. -->
+    <div class="structure-modal" id="structure-modal" hidden>
+      <div class="structure-modal-card">
+        <header class="structure-modal-head">
+          <strong>Verses</strong>
+          <span class="structure-modal-hint">Rotating arrangement sections — toggle layers per verse.</span>
+          <button class="structure-modal-close" id="structure-modal-close" aria-label="Close verse editor"><i data-icon="x" data-size="16"></i></button>
+        </header>
+        <div class="verse-editor" id="verse-editor"></div>
+        <div class="field-row structure-modal-actions">
+          <button class="event-button" id="verse-add">+ Add verse</button>
+          <button class="event-button" id="verse-clear">Reset</button>
+        </div>
+      </div>
+    </div>
   </main>

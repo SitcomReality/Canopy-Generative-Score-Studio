@@ -15,7 +15,7 @@
 .compose-menu-anchor { position: relative; }
 .compose-menu { top: 36px; }
 
-.roll-scroll { flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; scrollbar-color: var(--text-4) var(--surface-2); }
+.roll-scroll { flex: 1; min-height: 0; overflow-x: auto; overflow-y: auto; scrollbar-color: var(--text-4) var(--surface-2); }
 .piano-roll {
   --lanes: 9;
   min-width: 712px;

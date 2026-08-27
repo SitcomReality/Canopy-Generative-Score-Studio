@@ -9,10 +9,25 @@ export function initDynamicsPanel(store, actions) {
   const meters = document.getElementById("axis-meters");
   const targetsRoot = document.getElementById("context-targets");
   const verseRoot = document.getElementById("verse-editor");
+  const stripRoot = document.getElementById("structure-strip");
+  const modal = document.getElementById("structure-modal");
+
+  // The full verse editor lives in a modal so the song bar stays short and
+  // never squeezes the piano roll; the compact structure strip is always
+  // visible and opens the modal on click.
+  const editButton = document.getElementById("verse-edit-button");
+  const closeButton = document.getElementById("structure-modal-close");
+  editButton?.addEventListener("click", () => { if (modal) modal.hidden = false; });
+  closeButton?.addEventListener("click", () => { if (modal) modal.hidden = true; });
+  stripRoot?.addEventListener("click", () => { if (modal) modal.hidden = false; });
+  modal?.addEventListener("click", (event) => { if (event.target === modal) modal.hidden = true; });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal && !modal.hidden) modal.hidden = true;
+  });
 
   store.subscribe((changed) => {
     if (changed.includes("liveAxes")) renderMeters(meters, store.get().liveAxes);
-    if (changed.includes("project")) paint(store.get().project);
+    if (changed.includes("project")) paint(store.get().project, store.get().sectionId);
     if (changed.includes("sectionId")) paintVersePlayhead(verseRoot, store.get().sectionId);
   });
 
@@ -88,14 +103,43 @@ function paint(project, sectionId = null) {
       }).join("")}
       <button type="button" class="verse-remove" data-remove="${index}" title="Remove verse">×</button>
     </div>`).join("") || `<p class="binding-note">No verses — the song plays as one continuous arrangement.</p>`;
+
+  renderStructureStrip(document.getElementById("structure-strip"), project, sectionId);
+}
+
+// Compact arrangement strip: one chip per section in a single row so the song
+// bar stays short. Chips are informational — clicking one opens the modal.
+function renderStructureStrip(root, project, sectionId) {
+  if (!root) return;
+  const sections = project.sections ?? [];
+  if (sections.length === 0) {
+    root.innerHTML = `<span class="structure-empty">Full song — no sections</span>`;
+    return;
+  }
+  root.innerHTML = sections.map((section) => {
+    const dropped = Object.values(section.layers ?? {}).some((override) => override.active === false);
+    return `<button type="button" class="structure-chip${sectionId === section.id ? " playing" : ""}" data-section="${section.id}"
+      title="${dropped ? "Some layers dropped in this verse" : "Full arrangement"} — ${section.length} bar${section.length > 1 ? "s" : ""}">
+      <span class="structure-chip-label">${section.label}</span>
+      <span class="structure-chip-meta">${section.length}</span>
+    </button>`;
+  }).join("");
 }
 
 // Live playhead highlight for whichever verse is currently sounding.
 function paintVersePlayhead(root, sectionId) {
-  if (!root) return;
-  root.querySelectorAll(".verse-row").forEach((row) => {
-    row.classList.toggle("playing", Boolean(sectionId) && row.dataset.id === sectionId);
-  });
+  const active = Boolean(sectionId);
+  if (root) {
+    root.querySelectorAll(".verse-row").forEach((row) => {
+      row.classList.toggle("playing", active && row.dataset.id === sectionId);
+    });
+  }
+  const strip = document.getElementById("structure-strip");
+  if (strip) {
+    strip.querySelectorAll(".structure-chip").forEach((chip) => {
+      chip.classList.toggle("playing", active && chip.dataset.section === sectionId);
+    });
+  }
 }
 
 // Rebuild the sections list from the editor DOM and write it back.
